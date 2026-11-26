@@ -6,6 +6,7 @@ import { cors, requireStaff, sql } from "../_shared/amaos.ts";
 import { ghlConnected, trialsFromGhl } from "../_shared/ghl.ts";
 import { membersSaved, pullSchool, SCHOOLS as EFC_SCHOOLS } from "../_shared/efc.ts";
 import { sha256 } from "../_shared/amaos.ts";
+import { cancelsToAction, holdsToAction, newMemberCalls } from "../_shared/flows.ts";
 
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
@@ -115,12 +116,9 @@ async function dash(money: boolean) {
   const absOpen = openIds.size;
   // "Needs you now" and "This week" (hub-style home). Open items by status words the hub uses.
   const wk7 = addDays(today, -6), d90 = addDays(today, -90);
-  const needs = {
-    holds: holds.filter((r) => !/signed|declin|active|resum|no freeze|done|closed|cancel/i.test(String(r["Status"] ?? ""))).length,
-    cancels: cx.filter((r) => !/done|actioned|withdr|stay|retain|closed|complete|cancelled request|rejoin/i.test(String(r["Status"] ?? ""))).length,
-    newmem: nm.filter((r) => { const d = ymd(r["Start date"], today); return d && d >= d90 && !/done|complete|closed|left/i.test(String(r["Status"] ?? "")) && !yes(r["Done"]); }).length,
-    absent: absOpen,
-  };
+  // Same rules as the hub's My Day queues (holds to action, cancellations to action in EFC, new member calls).
+  const enr = await src("Enrolments");
+  const needs = { holds: holdsToAction(holds).length, cancels: cancelsToAction(cx).length, newmem: newMemberCalls(enr, nm, holds, cx).length, absent: absOpen };
   const week = {
     from: wk7, to: today,
     joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= wk7 && d <= today; }).length,
