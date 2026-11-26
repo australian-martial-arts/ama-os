@@ -91,7 +91,7 @@ async function dash(money: boolean) {
   }
   const absOpen = openIds.size;
   // "Needs you now" and "This week" (hub-style home). Open items by status words the hub uses.
-  const d7 = addDays(today, -6), d90 = addDays(today, -90);
+  const wk7 = addDays(today, -6), d90 = addDays(today, -90);
   const needs = {
     holds: holds.filter((r) => !/signed|declin|active|resum|no freeze|done|closed|cancel/i.test(String(r["Status"] ?? ""))).length,
     cancels: cx.filter((r) => !/done|actioned|withdr|stay|retain|closed|complete|cancelled request|rejoin/i.test(String(r["Status"] ?? ""))).length,
@@ -99,10 +99,10 @@ async function dash(money: boolean) {
     absent: absOpen,
   };
   const week = {
-    from: d7, to: today,
-    joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= d7 && d <= today; }).length,
-    cancelled: cx.filter((r) => { const d = ymd(r["Logged at"], today); return d >= d7 && d <= today; }).length,
-    holds: holds.filter((r) => { const d = ymd(r["Logged at"], today); return d >= d7 && d <= today; }).length,
+    from: wk7, to: today,
+    joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= wk7 && d <= today; }).length,
+    cancelled: cx.filter((r) => { const d = ymd(r["Logged at"], today); return d >= wk7 && d <= today; }).length,
+    holds: holds.filter((r) => { const d = ymd(r["Logged at"], today); return d >= wk7 && d <= today; }).length,
     members: efc.length,
   };
   // 12-week trend: new members vs cancellation requests per week (weeks start Monday).
