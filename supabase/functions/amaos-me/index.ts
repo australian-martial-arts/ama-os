@@ -25,13 +25,17 @@ Deno.serve(async (req) => {
     const auth = req.headers.get("authorization") ?? "";
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
     const { data, error } = await sb.auth.getUser();
-    const email = data?.user?.email?.toLowerCase();
-    if (error || !email) return json({ ok: false, error: "Please sign in again." }, 401);
-    const rows = await sql`select name, role, preview from ama_os.staff where email = ${email} and active`;
-    if (!rows.length) return json({ ok: false, error: "This email isn't set up for AMA OS yet." }, 403);
+    const email = data?.user?.email?.toLowerCase() ?? "";
+    const digits = (data?.user?.phone ?? "").replace(/\D/g, "");
+    if (error || (!email && !digits)) return json({ ok: false, error: "Please sign in again." }, 401);
+    const rows = await sql`select name, role, preview, email from ama_os.staff
+      where active and ((${digits} <> '' and regexp_replace(coalesce(phone, ''), '\D', '', 'g') = ${digits})
+                        or (${email} <> '' and email = ${email}))
+      limit 1`;
+    if (!rows.length) return json({ ok: false, error: "This login isn't set up for AMA OS yet." }, 403);
     const s = rows[0];
     if (!s.preview) return json({ ok: false, error: "AMA OS is coming soon." }, 403);
-    return json({ ok: true, email, name: s.name, role: s.role });
+    return json({ ok: true, email: s.email, name: s.name, role: s.role });
   } catch (_e) {
     return json({ ok: false, error: "Something went wrong. Please try again." }, 500);
   }
