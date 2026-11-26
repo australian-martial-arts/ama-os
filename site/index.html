@@ -193,7 +193,7 @@
     function idle() { clearTimeout(idleTimer); idleTimer = setTimeout(function () { setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out after ' + IDLE_MIN + ' minutes of no activity.'); }); }, IDLE_MIN * 60000); }
     ['click', 'keydown', 'touchstart', 'scroll'].forEach(function (ev) { document.addEventListener(ev, function () { if (!$('stepIn').hidden) idle(); }, { passive: true }); });
     function getStep() { try { return sessionStorage.getItem('amaosStepup') || ''; } catch (e) { return ''; } }
-    function setStep(t) { try { if (t) sessionStorage.setItem('amaosStepup', t); else sessionStorage.removeItem('amaosStepup'); } catch (e) {} }
+    function setStep(t) { try { if (t) sessionStorage.setItem('amaosStepup', t); else { sessionStorage.removeItem('amaosStepup'); sessionStorage.removeItem('amaosDash'); } } catch (e) {} }
     function pk(act, extra) {
       return sb.auth.getSession().then(function (r) {
         var s = r.data && r.data.session; var hdr = { Authorization: 'Bearer ' + (s ? s.access_token : ''), apikey: C.supabaseAnonKey, 'content-type': 'application/json' };
@@ -320,9 +320,17 @@
     }
 
     /* ---------- Home (Needs you now, This week, Today's trials) and the management dashboard ---------- */
+    /* Instant open: show the last copy straight away (kept for this browser session only), then update when the new one arrives. */
     function loadDash() {
-      var el = $('tabDash'); el.innerHTML = '<p class="note">Loading…</p>';
+      var el = $('tabDash'), last = null; try { last = JSON.parse(sessionStorage.getItem('amaosDash') || 'null'); } catch (e) {}
+      if (last && last.ok) paintDash(last); else el.innerHTML = '<p class="note">Loading…</p>';
       api('amaos-dash', { act: 'dash' }).then(function (j) {
+        if (j && j.ok) { try { sessionStorage.setItem('amaosDash', JSON.stringify(j)); } catch (e) {} }
+        if (!(j && !j.ok && last)) paintDash(j);
+      }).catch(function () { if (!last) el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function paintDash(j) {
+        var el = $('tabDash');
         if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
         DJ = j; var N = j.needs || {}, W = j.week || {}, T = j.totals, B = j.by;
         var sod = new Date(); sod.setHours(0, 0, 0, 0); var now = Date.now(), tr = j.trials || [];
@@ -349,7 +357,6 @@
           '<tr class="tot"><td>All schools</td>' + cols.map(function (c) { return '<td>' + fmtN(T[c[0]]) + '</td>'; }).join('') + '</tr></table></div>';
         m += '<div class="box"><h3>Joined vs cancellation requests, last 12 weeks</h3><div class="legend"><span><i style="background:#1B7A3D"></i>Joined</span><span><i style="background:#d9604c"></i>Cancellation requests</span></div>' + bars(j.weeks) + '</div>';
         $('tabMgmt').innerHTML = m;
-      }).catch(function () { el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     var DJ = null, trialMode = 'today', trialLoc = 'All', ST = { 'Rebooked': 'rec', 'Enrolled': 'en', 'Rec sent': 'rec', 'Attended': 'att', 'Absent': 'abs', 'No update': '' };
     function renderTrials() {
@@ -523,7 +530,7 @@
         .catch(function (e) { $('pkAddBtn').disabled = false; msg((e && e.message && !/NotAllowed|abort/i.test(e.name || '')) ? e.message : 'Passkey set-up cancelled.', 'err'); });
     };
     $('backBtn').onclick = function () { show('stepEmail'); msg(''); };
-    $('outBtn').onclick = function () { setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); }); };
+    $('outBtn').onclick = function () { try { sessionStorage.removeItem('amaosDash'); } catch (e) {} setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); }); };
 
     whoAmI();
   })();
