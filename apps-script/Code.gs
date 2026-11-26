@@ -23589,13 +23589,25 @@ function mhub2Team_(all) {
 function mhub2_(who, b, act) {
   const today = mhub2Ymd_(new Date());
   if (act === 'extra') {
+    const ck = 'mh2x_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(b.key || ''))).slice(0, 16), C = CacheService.getScriptCache();
+    if (!b.fresh) { const hit = C.get(ck); if (hit) { try { return JSON.parse(hit); } catch (e) { } } }
+    const res = mhub2Extra_(who, b, today); try { const s = JSON.stringify(res); if (res.ok && s.length < 95000) C.put(ck, s, 600); } catch (e) { }
+    return res;
+  }
+  return mhub2b_(who, b, act, today);
+}
+function mhub2Extra_(who, b, today) {
+  {
     const key = String(b.key || ''), kids = mhub2Fam_(key); if (!kids.length) return { ok: false, error: 'Family not found in EFC.' };
     const out = { ok: true, live: MHUB.live, kids: [], feed: [], notices: mhub2Xmas_(today), docs: mhub2Docs_(key), team: [], share: null, absReasons: MHUB2.absReasons, timetable: {} };
-    const S = mvSubs_().filter(function (x) { return x.fam === key && !x.removed; }), noMedia = mhub2MediaNo_(kids.map(function (k) { return String(k.id); }));
-    let earliest = mhub2Ymd_(new Date(Date.now() - 90 * 864e5));
+    const S = mvSubs_().filter(function (x) { return x.fam === key; }), noMedia = mhub2MediaNo_(kids.map(function (k) { return String(k.id); }));
+    let earliest = mhub2Ymd_(new Date(Date.now() - 90 * 864e5)), belts = [];
+    try { belts = mhubBelts_(kids); } catch (e) { }
     kids.forEach(function (k, i) {
-      let v = null; try { v = mvView_(key, k.id, who); } catch (e) { }
-      const progs = (v && v.ok ? v.progs : []).map(function (p) { return { programme: p.programme, belt: p.belt, since: p.since, towards: p.towards, min: p.min, done: p.done, total: p.total, ready: p.ready || p.efcReady, left: p.moves.filter(function (m) { return !m.cls && !m.done; }).slice(0, 4).map(function (m) { return m.text; }) }; });
+      const SK = S.filter(function (x) { return x.sid === String(k.id); });
+      const progs = (belts[i] || []).map(function (bl) { const P = mvMoves_(bl.programme, bl.belt, bl.content), left = []; let done = 0, vt = 0;
+        P.moves.forEach(function (m) { if (m.cls) return; vt++; if (SK.some(function (x) { return x.p === bl.programme && x.g === bl.belt && x.mkey === m.key && x.coach === 'achieved'; })) done++; else if (left.length < 4) left.push(m.text); });
+        return { programme: bl.programme, belt: bl.belt, since: bl.since, towards: P.towards, min: P.min, done: done, total: vt, ready: (vt > 0 && done === vt) || bl.ready, left: left }; });
       progs.forEach(function (p) { if (p.since && p.since < earliest && p.since > mhub2Ymd_(new Date(Date.now() - 400 * 864e5))) earliest = p.since; });
       out.kids[i] = { id: k.id, name: k.student, school: k.school, progs: progs, upcoming: [], att: [], err: '', media: !noMedia[String(k.id)], payments: [], next: '' };
       try { out.timetable[k.school] = (STAGE4.timetable || {})[efcSchoolOf_(k.school)] || ''; } catch (e) { }
@@ -23627,7 +23639,7 @@ function mhub2_(who, b, act) {
     const F = out.feed, cut = mhub2Ymd_(new Date(Date.now() - 120 * 864e5));
     out.kids.forEach(function (K) {
       const fn = String(K.name).split(' ')[0];
-      K.progs.forEach(function (p) { if (p.since && p.since >= cut) F.push({ d: p.since, kid: fn, i: '🥋', t: 'Earned ' + p.belt + ' in ' + p.programme, proud: 1 }); if (p.ready) F.push({ d: today, kid: fn, i: '🎉', t: 'Ready for the next ' + p.programme + ' grading', proud: 1 }); });
+      K.progs.forEach(function (p) { if (p.since && p.since >= cut && !/white|entry|no belt/i.test(p.belt)) F.push({ d: p.since, kid: fn, i: '🥋', t: 'Earned ' + p.belt + ' in ' + p.programme, proud: 1 }); if (p.ready) F.push({ d: today, kid: fn, i: '🎉', t: 'Ready for the next ' + p.programme + ' grading', proud: 1 }); });
       K.att.slice(0, 6).forEach(function (a) { F.push({ d: a.d, kid: fn, i: '✔️', t: 'Trained' + (a.n ? ': ' + a.n : '') + (a.t ? ' at ' + a.t : '') }); });
     });
     S.forEach(function (x) {
@@ -23644,6 +23656,8 @@ function mhub2_(who, b, act) {
     try { const sc = kids.map(function (k) { return efcSchoolOf_(k.school); }); out.team = mhub2Team_(false).filter(function (t) { return t.show && (!t.schools || sc.some(function (s) { return t.schools.indexOf(s) > -1; })); }); } catch (e) { }
     return out;
   }
+}
+function mhub2b_(who, b, act, today) {
   if (act === 'makeups') {
     const kid = mhub2Fam_(String(b.key || '')).filter(function (k) { return String(k.id) === String(b.id); })[0]; if (!kid) return { ok: false, error: 'Student not found.' };
     const s = efcSchoolOf_(kid.school); if (!s || !efcKey_(s)) return { ok: false, error: 'EFC is not connected for this school yet.' };
