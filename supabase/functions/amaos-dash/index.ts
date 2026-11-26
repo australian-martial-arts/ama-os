@@ -4,6 +4,7 @@
 // EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan, Ridvan and Busra only (Mark's rule).
 import { cors, requireStaff, sql } from "../_shared/amaos.ts";
 import { ghlConnected, trialsFromGhl } from "../_shared/ghl.ts";
+import { efcConnected, membersLive } from "../_shared/efc.ts";
 
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
@@ -44,12 +45,26 @@ async function src(name: string): Promise<Row[]> {
   CACHE.set(name, { at: Date.now(), rows }); return rows;
 }
 
+// 26 Nov 2026 (Mark): members straight from EFC with AMA OS's own keys; the hub's nightly copy is only the fallback.
+async function members(): Promise<{ rows: Row[]; live: boolean; at: string }> {
+  if (await efcConnected()) {
+    try {
+      const today = sydToday(), hold: Record<string, string> = {};
+      (await src("Holds")).forEach((r) => { const a = ymd(r["Freeze starts"], today), b = ymd(r["Freeze ends"], today);
+        if (a && b && a <= today && today <= b && !/reject|declin|cancel|withdr/i.test(String(r["Status"] ?? ""))) hold[last9(r["Mobile"])] = "On hold until " + b; });
+      const r = await membersLive(hold); return { rows: r.rows as Row[], live: true, at: r.at };
+    } catch (e) { console.log("efc members: " + (e as Error).message); }
+  }
+  return { rows: await src("EFC live"), live: false, at: "" };
+}
+
 async function dash(money: boolean) {
   const today = sydToday(), d30 = addDays(today, -30), d7 = addDays(today, 7);
-  const [gt, efc, holds, cx, nm, tb, tf, ab, runs] = await Promise.all([
-    src("GHL trials"), src("EFC live"), src("Holds"), src("Cancellations"), src("New members"), src("Hub trial bookings"), src("Trial follow-up"), src("Absentees"),
+  const [gt, mem, holds, cx, nm, tb, tf, ab, runs] = await Promise.all([
+    src("GHL trials"), members(), src("Holds"), src("Cancellations"), src("New members"), src("Hub trial bookings"), src("Trial follow-up"), src("Absentees"),
     sql`select source, max(at) as at from ama_os.mirror_runs group by source`,
   ]);
+  const efc = mem.rows;
   const by = () => Object.fromEntries(SCHOOLS.map((s) => [s, 0])) as Record<string, number>;
   const S: Record<string, Record<string, number>> = { members: by(), onHold: by(), newMembers: by(), cancels: by(), trialsNext7: by(), trialsLast30: by(), attendedLast30: by(), quiet14: by() };
   let overdue = 0, overdueAmt = 0, nextAmt = 0;
@@ -126,7 +141,7 @@ async function dash(money: boolean) {
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
-    absenteesOpen: absOpen, weeks, trials, trialsAt, trialsLive, needs, week,
+    absenteesOpen: absOpen, weeks, trials, trialsAt, trialsLive, needs, week, membersLive: mem.live, membersAt: mem.at,
     upcoming: upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 60),
     money: money ? { overdueFamilies: overdue, overdueTotal: Math.round(overdueAmt), nextInvoicesTotal: Math.round(nextAmt) } : null,
   };
@@ -149,7 +164,7 @@ async function list(kind: string, money: boolean) {
 
 const KID = ["School", "Student", "Age", "Groups", "Last attended", "Days since", "Classes this month", "Total classes", "Enrolled on", "Hub hold", "Flags", "Reference"];
 async function find(q: string, money: boolean) {
-  const today = sydToday(), efc = await src("EFC live"), qd = q.replace(/\D/g, ""), ql = q.toLowerCase();
+  const today = sydToday(), mem = await members(), efc = mem.rows, qd = q.replace(/\D/g, ""), ql = q.toLowerCase();
   const hit = efc.filter((r) => (qd.length >= 6 && last9(r["Mobile"]).includes(qd.slice(-9))) ||
     (ql.length >= 2 && [r["Student"], r["Parent"], r["Email"], r["Reference"]].some((v) => String(v ?? "").toLowerCase().includes(ql))));
   const fams = new Map<string, { mobile: string; parent: string; email: string; kids: Row[] }>();
@@ -171,7 +186,7 @@ async function find(q: string, money: boolean) {
     docs: mine(docs, k9).length ? mine(docs, k9).map((r) => pick(r, Object.keys(r).filter((x) => !/mobile|email|url|link|file/i.test(x)).slice(0, 6))) : [],
     absent: mine(ab, k9).length,
   }));
-  return { today, families, more: fams.size > list.length };
+  return { today, families, more: fams.size > list.length, membersLive: mem.live, membersAt: mem.at };
 }
 
 Deno.serve(async (req) => {
