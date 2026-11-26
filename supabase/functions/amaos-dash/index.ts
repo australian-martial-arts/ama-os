@@ -198,9 +198,10 @@ async function refresh(what: string, school: string) {
     return { trials: trials.length };
   }
   if (what === "dash") {
-    for (const m of [true, false]) { const d = await dash(m);
+    const t0 = Date.now(), ms: number[] = [];
+    for (const m of [true, false]) { const d = await dash(m); ms.push(Date.now() - t0);
       await sql`insert into ama_os.cache (key, data, at) values (${m ? "dash_m" : "dash_n"}, ${sql.json(d as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`; }
-    return { dash: true };
+    return { dash: true, ms };
   }
   return { error: "unknown" };
 }

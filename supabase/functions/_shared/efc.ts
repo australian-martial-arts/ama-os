@@ -37,12 +37,18 @@ type M = Record<string, unknown> & { id: string; groups?: { name: string }[] };
 /** Scheduled: every enrolled member of one school, saved as "efc_school_<School>". */
 export async function pullSchool(school: string) {
   if (!(await key(school))) return { school, skipped: true };
-  const loc = await efcLoc(school); let all: M[] = [], cur = "", n = 0;
+  // A few pages per call (big schools take several calls); progress is saved between calls.
+  const t0 = Date.now(), pk = "efc_pull_" + school, prog = await sql`select data, at from ama_os.cache where key = ${pk}`;
+  const p = prog.length && Date.now() - new Date(prog[0].at as string).getTime() < 15 * 60000 ? prog[0].data as { cur: string; all: M[] } : { cur: "", all: [] as M[] };
+  const loc = await efcLoc(school); let all: M[] = p.all, cur = p.cur, n = 0;
   do {
     const r = await efcGet(school, `/version/1/locations/${loc}/members/query?status=enrolled&pageSize=200` + (cur ? "&cursor=" + encodeURIComponent(cur) : ""));
     if (r.code !== 200 || !r.body) throw new Error(school + ": EFC answered " + r.code);
     const b = r.body as { records?: M[]; nextCursor?: string }; all = all.concat(b.records ?? []); cur = b.nextCursor ?? ""; n++;
-  } while (cur && n < 40);
+  } while (cur && Date.now() - t0 < 60000 && all.length < 8000);
+  if (cur) { await sql`insert into ama_os.cache (key, data, at) values (${pk}, ${sql.json({ cur, all } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+    return { school, more: true, sofar: all.length, pages: n, ms: Date.now() - t0 }; }
+  await sql`delete from ama_os.cache where key = ${pk}`;
   const rows = all.map((m) => ({ "School": school, "Member ID": m.id, "Reference": m.reference ?? "", "Student": [m.firstName, m.lastName].filter(Boolean).join(" ").trim(), "Age": m.age ?? "",
     "Parent": [m.contactFirstName, m.contactLastName].filter(Boolean).join(" ").trim(), "Mobile": m.telephoneMobile ?? "", "Email": m.email ?? "",
     "Groups": (m.groups ?? []).map((g) => g.name).join(", "), "Last attended": m.lastAttended ? String(m.lastAttended).slice(0, 10) : "", "Classes this month": m.monthlyAttended ?? "", "Total classes": m.totalAttended ?? "",
@@ -50,7 +56,7 @@ export async function pullSchool(school: string) {
     "Enrolled on": m.enrolledOn ? String(m.enrolledOn).slice(0, 10) : "" }));
   const at = new Date().toISOString();
   await sql`insert into ama_os.cache (key, data, at) values (${"efc_school_" + school}, ${sql.json({ at, rows } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
-  return { school, members: rows.length };
+  return { school, members: rows.length, ms: Date.now() - t0 };
 }
 
 /** Every saved school, with days since, hold labels (from AMA OS's hold records) and the hub's three flags. null if nothing saved yet. */
