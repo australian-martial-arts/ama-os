@@ -57,23 +57,16 @@ async function members(): Promise<{ rows: Row[]; live: boolean; at: string }> {
   return { rows: await src("EFC live"), live: false, at: "" };
 }
 
-let PROG = "";
 async function dash(money: boolean) {
   const today = sydToday(), d30 = addDays(today, -30), d7 = addDays(today, 7);
-  PROG = "1";
-  const [gt, mem, holds, cx, nm, tb, tf, ab, runs] = await Promise.all([
-    src("GHL trials"), members(), src("Holds"), src("Cancellations"), src("New members"), src("Hub trial bookings"), src("Trial follow-up"), src("Absentees"),
-    sql`select source, max(at) as at from ama_os.mirror_runs group by source`,
-  ]);
-  PROG = "2";
+  // One read at a time: the database pooler stalls when several large reads share one connection.
+  const gt = await src("GHL trials"), mem = await members(), holds = await src("Holds"), cx = await src("Cancellations"), nm = await src("New members");
+  const tb = await src("Hub trial bookings"), tf = await src("Trial follow-up"), ab = await src("Absentees");
+  const runs = await sql`select source, max(at) as at from ama_os.mirror_runs group by source`;
   const efc = mem.rows;
-  PROG = "3";
   const by = () => Object.fromEntries(SCHOOLS.map((s) => [s, 0])) as Record<string, number>;
-  PROG = "4";
   const S: Record<string, Record<string, number>> = { members: by(), onHold: by(), newMembers: by(), cancels: by(), trialsNext7: by(), trialsLast30: by(), attendedLast30: by(), quiet14: by() };
-  PROG = "5";
   let overdue = 0, overdueAmt = 0, nextAmt = 0;
-  PROG = "6";
   for (const r of efc) {
     const s = school(r["School"]); if (!s) continue;
     S.members[s]++; if (r["Hub hold"]) S.onHold[s]++;
@@ -84,7 +77,6 @@ async function dash(money: boolean) {
   for (const r of nm) { const d = ymd(r["Start date"], today); const s = school(r["School"]); if (s && d >= d30 && d <= today) S.newMembers[s]++; }
   for (const r of cx) { const d = ymd(r["Logged at"], today); const s = school(r["Trains at"]); if (s && d >= d30 && !/reject|withdr|stay|retain|cancelled request/i.test(String(r["Status"] ?? ""))) S.cancels[s]++; }
   const upcoming: Row[] = [];
-  PROG = "7";
   for (const r of tb) {
     const d = ymd(r["Trial"], today); const s = school(r["School"]);
     if (s && d >= today && d <= d7) { S.trialsNext7[s]++; upcoming.push({ date: d, when: r["Trial"], school: s, child: r["Child"], cls: r["Class"] }); }
@@ -92,14 +84,10 @@ async function dash(money: boolean) {
   // GHL trials (sent by the hub every 10 minutes, the same list as the hub's Trials card). When present, they set the 7-day count.
   // 26 Nov 2026 (Mark): straight from GHL with AMA OS's own key; the hub's copy is only the fallback.
   let trials: Row[] = [], trialsLive = false;
-  PROG = "8";
   let trialsSavedAt = "";
-  PROG = "9";
   { const t = await sql`select data, at from ama_os.cache where key = 'trials_live'`;
-  PROG = "10";
     if (t.length && Date.now() - new Date(t[0].at as string).getTime() < 30 * 60000) { trials = (t[0].data as { trials: Row[] }).trials; trialsLive = true; trialsSavedAt = new Date(t[0].at as string).toISOString(); } }
   if (!trialsLive) trials = gt.filter((t) => typeof t.t === "number").sort((a, b) => (a.t as number) - (b.t as number));
-  PROG = "11";
   if (trials.length) {
     const off = (new Intl.DateTimeFormat("en-US", { timeZone: "Australia/Sydney", timeZoneName: "shortOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "GMT+11").replace("GMT", "") || "+11";
     const sod = new Date(today + "T00:00:00" + (off.includes(":") ? off : off.replace(/^([+-])(\d+)$/, (_m, g, h) => g + h.padStart(2, "0") + ":00"))).getTime(), end = sod + 8 * 864e5;
@@ -111,32 +99,25 @@ async function dash(money: boolean) {
     if (s && d >= d30 && d < today) { S.trialsLast30[s]++; if (/^(y|yes|true|attended|came)/i.test(String(r["Attended"] ?? ""))) S.attendedLast30[s]++; }
   }
   const holdsNow = holds.filter((r) => { const a = ymd(r["Freeze starts"], today), b = ymd(r["Freeze ends"], today);
-  PROG = "12";
     return a && b && a <= today && today <= b && !/reject|declin|cancel|withdr/i.test(String(r["Status"] ?? "")); });
   const hBy = by(); holdsNow.forEach((r) => { const s = school(r["Trains at"]); if (s) hBy[s]++; });
-  PROG = "13";
   // Absentee follow-ups still open: alert in the last 35 days, not closed, and the member still hasn't trained in 7+ days (one per member).
   const days = new Map(efc.map((r) => [String(r["Member ID"] ?? ""), num(r["Days since"])]));
-  PROG = "14";
   const d35 = addDays(today, -35), openIds = new Set<string>();
-  PROG = "15";
   for (const r of ab) {
     const id = String(r["EFC member ID"] ?? ""), d = ymd(r["Received at"], today);
     if (!id || !d || d < d35 || /clos|came|back|done|cancel|left/i.test(String(r["Status"] ?? "") + " " + String(r["Outcome"] ?? ""))) continue;
     if (days.has(id) && (days.get(id) as number) >= 7) openIds.add(id);
   }
   const absOpen = openIds.size;
-  PROG = "16";
   // "Needs you now" and "This week" (hub-style home). Open items by status words the hub uses.
   const wk7 = addDays(today, -6), d90 = addDays(today, -90);
-  PROG = "17";
   const needs = {
     holds: holds.filter((r) => !/signed|declin|active|resum|no freeze|done|closed|cancel/i.test(String(r["Status"] ?? ""))).length,
     cancels: cx.filter((r) => !/done|actioned|withdr|stay|retain|closed|complete|cancelled request|rejoin/i.test(String(r["Status"] ?? ""))).length,
     newmem: nm.filter((r) => { const d = ymd(r["Start date"], today); return d && d >= d90 && !/done|complete|closed|left/i.test(String(r["Status"] ?? "")) && !yes(r["Done"]); }).length,
     absent: absOpen,
   };
-  PROG = "18";
   const week = {
     from: wk7, to: today,
     joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= wk7 && d <= today; }).length,
@@ -144,26 +125,16 @@ async function dash(money: boolean) {
     holds: holds.filter((r) => { const d = ymd(r["Logged at"], today); return d >= wk7 && d <= today; }).length,
     members: efc.length,
   };
-  PROG = "19";
   // 12-week trend: new members vs cancellation requests per week (weeks start Monday).
   const weeks: { wk: string; joined: number; left: number }[] = [];
-  PROG = "20";
   const dow = (new Date(today + "T12:00:00Z").getUTCDay() + 6) % 7, mon = addDays(today, -dow);
-  PROG = "21";
   for (let i = 11; i >= 0; i--) weeks.push({ wk: addDays(mon, -7 * i), joined: 0, left: 0 });
-  PROG = "22";
   const wkOf = (d: string) => { for (let i = weeks.length - 1; i >= 0; i--) if (d >= weeks[i].wk) return i; return -1; };
-  PROG = "23";
   nm.forEach((r) => { const d = ymd(r["Start date"], today); const i = d && d <= today ? wkOf(d) : -1; if (i > -1) weeks[i].joined++; });
-  PROG = "24";
   cx.forEach((r) => { const d = ymd(r["Logged at"], today); const i = d ? wkOf(d) : -1; if (i > -1) weeks[i].left++; });
-  PROG = "25";
   const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : "");
-  PROG = "26";
   const at = runs.filter((r) => r.source !== "GHL trials").reduce((m: string, r) => { const t = iso(r.at); return t > m ? t : m; }, "");
-  PROG = "27";
   const trialsAt = trialsLive ? trialsSavedAt : iso((runs.find((r) => r.source === "GHL trials") || {}).at);
-  PROG = "28";
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
@@ -171,7 +142,6 @@ async function dash(money: boolean) {
     upcoming: upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 60),
     money: money ? { overdueFamilies: overdue, overdueTotal: Math.round(overdueAmt), nextInvoicesTotal: Math.round(nextAmt) } : null,
   };
-  PROG = "29";
 }
 
 // Read-only lists of the critical flows (side-by-side checks before the switch-over).
@@ -202,7 +172,7 @@ async function find(q: string, money: boolean) {
   }
   const list = [...fams.entries()].slice(0, 15);
   if (!list.length) return { families: [] };
-  const [holds, cx, tb, nm, docs, ab] = await Promise.all([src("Holds"), src("Cancellations"), src("Hub trial bookings"), src("New members"), src("Member docs"), src("Absentees")]);
+  const holds = await src("Holds"), cx = await src("Cancellations"), tb = await src("Hub trial bookings"), nm = await src("New members"), docs = await src("Member docs"), ab = await src("Absentees");
   const mine = (rows: Row[], key9: string) => rows.filter((r) => last9(r["Mobile"]) === key9 && key9.length === 9);
   const families = list.map(([k9, f]) => ({
     ...f,
@@ -222,7 +192,7 @@ async function refresh(what: string, school: string) {
   if (what === "efc") return await pullSchool(EFC_SCHOOLS.includes(school) ? school : "Marrickville");
   if (what === "trials") {
     if (!(await ghlConnected())) return { skipped: true };
-    const [fuRows, enr, tb] = await Promise.all([src("Trial follow-up"), src("Enrolments"), src("Hub trial bookings")]);
+    const fuRows = await src("Trial follow-up"), enr = await src("Enrolments"), tb = await src("Hub trial bookings");
     const trials = await trialsFromGhl({ followup: fuRows, bookings: tb, enrolledCids: new Set(enr.map((r) => String(r["Contact ID"] ?? "").trim()).filter(Boolean)) });
     await sql`insert into ama_os.cache (key, data, at) values ('trials_live', ${sql.json({ trials } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
     return { trials: trials.length };
@@ -232,11 +202,6 @@ async function refresh(what: string, school: string) {
     for (const m of [true, false]) { const d = await dash(m); ms.push(Date.now() - t0);
       await sql`insert into ama_os.cache (key, data, at) values (${m ? "dash_m" : "dash_n"}, ${sql.json(d as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`; }
     return { dash: true, ms };
-  }
-  if (what === "probe2") {
-    PROG = "start"; const t0 = Date.now();
-    const r = await Promise.race([dash(true).then(() => "done"), new Promise((res) => setTimeout(() => res("timeout"), 40000))]);
-    return { r, at: PROG, ms: Date.now() - t0 };
   }
   if (what === "probe") {
     const t: Record<string, number> = {}, t0 = Date.now(), lap = (k: string) => { t[k] = Date.now() - t0; };
