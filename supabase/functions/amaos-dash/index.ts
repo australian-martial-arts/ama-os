@@ -11,6 +11,7 @@ import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMem
 
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
 const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
+const MGMT = ["mark", "sarah", "hakan", "ridvan"];
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
 type Row = Record<string, unknown>;
@@ -150,15 +151,24 @@ async function dash(money: boolean) {
 }
 
 // Read-only lists of the critical flows (side-by-side checks before the switch-over).
-const LISTS: Record<string, { src: string; date: string; school: string; cols: string[]; money?: string[] }> = {
+const LISTS: Record<string, { src: string; date: string; school: string; cols: string[]; money?: string[]; mgmt?: boolean }> = {
   holds: { src: "Holds", date: "Logged at", school: "Trains at", cols: ["Logged at", "Status", "Account holder", "Mobile", "Students", "Trains at", "Reason", "Freeze starts", "Freeze ends", "Weeks", "Taken by", "Approved by", "Signed at", "EFC actioned at", "Resumed at", "Notes"], money: ["Weekly rate"] },
   cancels: { src: "Cancellations", date: "Logged at", school: "Trains at", cols: ["Logged at", "Status", "Account holder", "Mobile", "Students", "Trains at", "Reason", "In their words", "Notice ends", "Last class", "Taken by", "Approved by", "Signed at", "EFC actioned at", "Exit rating", "Rejoined", "Notes"], money: ["Uniform balance"] },
   newmembers: { src: "New members", date: "Start date", school: "School", cols: ["Start date", "Status", "Family", "Mobile", "Students", "School", "Done", "Handled by", "Notes", "Updated at"] },
+  // 27 Nov 2026: more hub tabs, read-only (changes are still made in the hub until the switch-over).
+  close: { src: "Sales chase", date: "Recommended at", school: "School", cols: ["Recommended at", "Outcome", "Family", "Mobile", "Students", "School", "Recommended by", "Attempts", "Last action", "Last action at", "Last action by", "Next due", "Reason not joined", "Closed at", "Notes"], money: ["Weekly"] },
+  absent: { src: "Absentees", date: "Received at", school: "School", cols: ["Received at", "Status", "First name", "Last name", "Mobile", "School", "Days absent", "Last attended", "Stage done", "Handled by", "Outcome", "Reason", "Notes"] },
+  grading: { src: "LD grading", date: "Nominated at", school: "School", cols: ["Nominated at", "Status", "Student", "Age", "School", "Current belt", "Going for", "Nominated by", "Decided by", "Decided at", "Sent at", "Toolkit status"] },
+  promos: { src: "Promotions", date: "Start", school: "Schools", cols: ["Start", "Status", "Name", "Length", "Schools", "Who it is for", "Included", "Hand-outs", "Collect", "Skip trial", "Tags", "Staff notes"] },
+  mediaopt: { src: "Media opt-out", date: "Ticked on", school: "School", cols: ["Ticked on", "Student", "Age", "Parent", "School", "Groups", "Photo", "Form"], mgmt: true },
+  staff: { src: "Hub staff", date: "Last sign-in", school: "Areas", cols: ["Last sign-in", "Name", "Position", "Role", "Active", "Areas", "Mobile", "Notes"], mgmt: true },
+  students: { src: "@members", date: "Last attended", school: "School", cols: ["Last attended", "Student", "Age", "Parent", "Mobile", "School", "Groups", "Days since", "Classes this month", "Total classes", "Enrolled on", "Hub hold", "Flags", "Reference"], money: ["Next invoice", "Next amount", "Overdue"] },
   followup: { src: "Trial follow-up", date: "Trial date", school: "Location", cols: ["Trial date", "Trial time", "Location", "Child", "Class", "Parent", "Mobile", "Attended", "Recommendation sent", "Follow-up", "Next follow-up", "Followed up by", "Follow-up note", "Notes"] },
 };
-async function list(kind: string, money: boolean) {
+async function list(kind: string, money: boolean, mgmt = false) {
   const L = LISTS[kind]; if (!L) return { ok: false, error: "Unknown list." };
-  const today = sydToday(), rows = await src(L.src), cols = money && L.money ? L.cols.concat(L.money) : L.cols;
+  if (L.mgmt && !mgmt) return { ok: false, error: "Management only." };
+  const today = sydToday(), rows = L.src === "@members" ? (await members()).rows : await src(L.src), cols = money && L.money ? L.cols.concat(L.money) : L.cols;
   const out = rows.map((r) => ({ ...pick(r, cols), _d: ymd(r[L.date], today), _s: school(r[L.school]) }))
     .sort((a, b) => String(b._d).localeCompare(String(a._d))).slice(0, 800);
   return { ok: true, kind, today, cols, total: rows.length, rows: out };
@@ -305,7 +315,7 @@ Deno.serve(async (req) => {
       await refresh("dash", "");
       return json({ ok: true, status: tr.status });
     }
-    if (b.act === "list") return json(await list(String((b as { kind?: string }).kind ?? ""), money));
+    if (b.act === "list") return json(await list(String((b as { kind?: string }).kind ?? ""), money, MGMT.includes(me.first) || me.role === "owner"));
     if (b.act === "find") {
       const q = String(b.q ?? "").trim().slice(0, 60);
       if (q.replace(/\s/g, "").length < 2) return json({ ok: false, error: "Type at least 2 letters, or a mobile number." });
