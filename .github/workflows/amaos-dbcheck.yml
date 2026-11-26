@@ -27,8 +27,10 @@ jobs:
           if [ "${{ github.event.inputs.timers }}" = "start" ]; then psql -c "select ama_os.start_timers()"; fi
           if [ -n "${{ github.event.inputs.test }}" ]; then
             psql -c "select name, set_at from ama_os.connections where name in ('GHL_TOKEN') "
-            psql -c "select ama_os.refresh_call('${{ github.event.inputs.test }}') as req"; sleep 25
-            psql -c "select status_code, left(content::text, 300) as body, error_msg from net._http_response order by created desc limit 1" || true
+            R=$(psql -tA -c "select ama_os.refresh_call('${{ github.event.inputs.test }}')"); echo "request $R"
+            for i in $(seq 1 20); do sleep 3; N=$(psql -tA -c "select count(*) from net._http_response where id = $R"); [ "$N" = "1" ] && break; done
+            psql -c "select status_code, left(content::text, 200) as body, left(coalesce(error_msg,''),100) err, created from net._http_response where id = $R" || true
+            sleep 40
             psql -c "select key, at, data from ama_os.cache where key = 'timer_beat'"
           fi
           echo "== AMA OS vs hub trials (same event id, different number or status) =="
