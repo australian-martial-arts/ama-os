@@ -1,6 +1,6 @@
 // AMA OS reads EFC directly (its own keys from ama_os.connections), the same way the hub's "EFC live" pull does.
 import { sql } from "./amaos.ts";
-import { cached } from "./ghl.ts";
+import { cached, cachedBg } from "./ghl.ts";
 
 export const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
 const BASES = ["https://api.efcaquila.com", "https://api.efcaquila.net"];
@@ -46,7 +46,7 @@ async function enrolled(school: string) {
 /** Every enrolled member at every school, in the same shape (and with the same flags) as the hub's "EFC live" tab. Cached 10 minutes.
  *  holdByMobile: families on hold now (last 9 digits of the mobile -> text), from AMA OS's hold records. */
 export async function membersLive(holdByMobile: Record<string, string>) {
-  return await cached("efc_members_v1", 600, async () => {
+  const r = await cachedBg("efc_members_v1", 600, async () => {
     const today = ymdNow(), t0 = new Date(today + "T12:00:00Z").getTime(), at = new Date().toISOString(), out: Record<string, unknown>[] = [], errors: string[] = [];
     await Promise.all(SCHOOLS.map(async (s) => {
       if (!(await key(s))) return;
@@ -67,4 +67,9 @@ export async function membersLive(holdByMobile: Record<string, string>) {
     if (!out.length && errors.length) throw new Error(errors.join("; "));
     return { at, rows: out, errors };
   });
+  if (!r.data) throw new Error("first EFC pull still running");
+  // Hold labels come from AMA OS's records, so refresh them on every read (they change more often than EFC).
+  const last9h = (v: unknown) => String(v ?? "").replace(/\D/g, "").slice(-9);
+  r.data.rows.forEach((m) => { m["Hub hold"] = holdByMobile[last9h(m["Mobile"])] ?? ""; });
+  return r.data;
 }
