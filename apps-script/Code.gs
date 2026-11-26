@@ -23830,7 +23830,7 @@ function tkphNow() { for (let i = 0; i < 20; i++) { const r = tkphTick_(); Logge
 
 /* 26 Nov 2026 (Mark): Connections. Owners paste a connection key (e.g. the AMA OS sync key) in the hub; it is saved straight into
    Script Properties and never shown or sent back. Only the names below can be set. */
-const CONN = { owners: ['mark', 'sarah', 'hakan', 'ridvan'], keys: { AMAOS_SYNC_KEY: 'AMA OS sync key (from Tate): nightly copy, Black Belt Oaths and grading photos' } };
+const CONN = { owners: ['mark', 'sarah', 'hakan', 'ridvan'], keys: { AMAOS_SYNC_KEY: 'AMA OS sync key (from Tate): nightly copy, Black Belt Oaths and grading photos', ANTHROPIC_API_KEY: 'AI feedback on move videos (Anthropic API key from console.anthropic.com)' } };
 function conn_(who, b) {
   const me = String((who && who.name) || '').toLowerCase().split(' ')[0]; if (CONN.owners.indexOf(me) < 0) return { ok: false, error: 'Owners only.' };
   const P = PropertiesService.getScriptProperties(), act = String(b.act || 'list');
