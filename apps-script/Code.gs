@@ -23618,7 +23618,7 @@ function mhub2Extra_(who, b, today) {
     Object.keys(by).forEach(function (s) {
       if (!s || !efcKey_(s)) { by[s].forEach(function (i) { out.kids[i].err = 'EFC is not connected for this school yet.'; }); return; }
       const loc = efcLoc_(s), ix = by[s], paths = [];
-      ix.forEach(function (i) { const id = encodeURIComponent(kids[i].id); paths.push('/version/1/locations/' + loc + '/members/' + id + '/bookings?startDate=' + earliest + '&endDate=' + to); paths.push('/version/1/locations/' + loc + '/members/' + id + '/payments?limit=8'); });
+      ix.forEach(function (i) { const id = encodeURIComponent(kids[i].id); paths.push('/version/1/locations/' + loc + '/members/' + id + '/bookings?startDate=' + earliest + '&endDate=' + to); paths.push('/version/1/locations/' + loc + '/members/' + id + '/payments?limit=50'); });
       let res = []; try { res = efcFetchMany_(s, paths); } catch (e) { }
       ix.forEach(function (i, j) {
         const K = out.kids[i], bk = res[j * 2], pay = res[j * 2 + 1];
@@ -23629,7 +23629,7 @@ function mhub2Extra_(who, b, today) {
         K.att.sort(function (a, c) { return (c.d + c.t).localeCompare(a.d + a.t); });
         K.progs.forEach(function (p) { p.classes = p.since ? K.att.filter(function (a) { return a.d >= p.since; }).length : null; p.classesKnown = !!p.since && p.since >= earliest; });
         const arr = Array.isArray(pay) ? pay : ((pay && (pay.records || pay.items)) || []);
-        K.payments = arr.slice(0, 8).map(function (p) { const st = String(p.status || ''); return { d: String(p.dateProcessed || p.dateFailed || p.dueDate || p.date || '').slice(0, 10), amt: Number(p.amount) || 0, st: st === 'failed' ? 'Failed' : /success|processed|paid|settled/i.test(st) ? 'Paid' : st ? st.charAt(0).toUpperCase() + st.slice(1) : '', why: st === 'failed' ? String(p.statusDescription || '') : '', how: p.paymentMethod === 'eft' ? 'Bank account' : p.paymentMethod === 'creditCard' ? 'Card' : '' }; });
+        K.payments = arr.slice().sort(function (a, c) { return String(c.dateProcessed || c.dateFailed || c.dueDate || c.date || '').localeCompare(String(a.dateProcessed || a.dateFailed || a.dueDate || a.date || '')); }).slice(0, 8).map(function (p) { const st = String(p.status || ''); return { d: String(p.dateProcessed || p.dateFailed || p.dueDate || p.date || '').slice(0, 10), amt: Number(p.amount) || 0, st: st === 'failed' ? 'Failed' : /success|processed|paid|settled/i.test(st) ? 'Paid' : st ? st.charAt(0).toUpperCase() + st.slice(1) : '', why: st === 'failed' ? String(p.statusDescription || '') : '', how: p.paymentMethod === 'eft' ? 'Bank account' : p.paymentMethod === 'creditCard' ? 'Card' : '' }; });
         K.att = K.att.slice(0, 40);
       });
     });
@@ -23640,7 +23640,7 @@ function mhub2Extra_(who, b, today) {
     out.kids.forEach(function (K) {
       const fn = String(K.name).split(' ')[0];
       K.progs.forEach(function (p) { if (p.since && p.since >= cut && !/white|entry|no belt/i.test(p.belt)) F.push({ d: p.since, kid: fn, i: '🥋', t: 'Earned ' + p.belt + ' in ' + p.programme, proud: 1 }); if (p.ready) F.push({ d: today, kid: fn, i: '🎉', t: 'Ready for the next ' + p.programme + ' grading', proud: 1 }); });
-      K.att.slice(0, 6).forEach(function (a) { F.push({ d: a.d, kid: fn, i: '✔️', t: 'Trained' + (a.n ? ': ' + a.n : '') + (a.t ? ' at ' + a.t : '') }); });
+      K.att.slice(0, 6).forEach(function (a) { F.push({ d: a.d, kid: fn, i: '✔️', t: 'Trained' + (a.n ? ': ' + a.n : '') + (a.t ? ' at ' + (function (h, m) { return (h % 12 || 12) + (m !== '00' ? ':' + m : '') + (h < 12 ? 'am' : 'pm'); })(+a.t.slice(0, 2), a.t.slice(3, 5)) : '') }); });
     });
     S.forEach(function (x) {
       const fn = String(x.student).split(' ')[0], d = String(x.rev || x.at).slice(0, 10);
