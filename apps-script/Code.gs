@@ -3727,6 +3727,7 @@ function hubRouteIn_(body, who) {
   if (body.kind === 'mediaopt') return mediaopt_(who, body);
   if (body.kind === 'ionb') return ionb_(who, body);
   if (body.kind === 'myavail') return myavail_(who, body);
+  if (body.kind === 'conn') return conn_(who, body);
   if (body.kind === 'mhub') return mhub_(who, body); if (body.kind === 'staff') return staff_(who, body); if (body.kind === 'caudit') return caudit_(who, body); if (body.kind === 'partners') return partners_(who, body); if (body.kind === 'ihub') return ihub_(who, body); if (body.kind === 'upcoming') return upcoming_(who, body); if (body.kind === 'upclass') return upClass_(who, body);
     if (body.kind === 'camphub') return campHub_(who, body);
   if (body.kind === 'xmashub') return xmasHub_(who, body);
@@ -5843,6 +5844,7 @@ function hubMgmt_(who, b) {
 
 function hubMgmtWarm() {
   try { amaosSyncTick_(); } catch (e) { } /* 26 Nov 2026: AMA OS nightly copy (1am-4am only, needs AMAOS_SYNC_KEY) */
+  try { tkphTick_(); } catch (e) { } /* 26 Nov 2026: Toolkit grading photos onto Member Hub profiles (needs AMAOS_SYNC_KEY) */
   const out = mgmtBuild_(true);
   mgmtKeepMonths_(out);
   try { CacheService.getScriptCache().put(MGMT.cacheKey, JSON.stringify(out), MGMT.cacheSecs); } catch (err) { Logger.log('mgmt cache: ' + err); }
@@ -9552,7 +9554,7 @@ function hubInstrLocs_(who) {
   return out;
 }
 function hubInstrGuard_(body, who) {
-  const okKinds = ['mvid', 'ionb', 'mediaopt', 'stocklist', 'whoami', 'myaccess', 'instrday', 'trainreq', 'trainmine', 'trialinfoev', 'trialopts', 'trialslots', 'trialbook', 'trialff', 'ui', 'dashboard', 'check', 'checksave', 'trialinfo', 'links', 'absvideo', 'absaction', 'nmlist', 'nmaction', 'liveatt', 'hubreq', 'promo', 'ldg', 'shifts', 'ihub', 'staff', 'caudit', 'ppf', 'skills', 'myavail']; // 25 Nov 2026: extra shifts for instructors too. 17 Nov 2026: hub change requests + promotions + Little Dragons grading nominations for instructors too
+  const okKinds = ['conn', 'mvid', 'ionb', 'mediaopt', 'stocklist', 'whoami', 'myaccess', 'instrday', 'trainreq', 'trainmine', 'trialinfoev', 'trialopts', 'trialslots', 'trialbook', 'trialff', 'ui', 'dashboard', 'check', 'checksave', 'trialinfo', 'links', 'absvideo', 'absaction', 'nmlist', 'nmaction', 'liveatt', 'hubreq', 'promo', 'ldg', 'shifts', 'ihub', 'staff', 'caudit', 'ppf', 'skills', 'myavail']; // 25 Nov 2026: extra shifts for instructors too. 17 Nov 2026: hub change requests + promotions + Little Dragons grading nominations for instructors too
   if (okKinds.indexOf(body.kind) < 0) return { ok: false, error: 'This is not available on the instructor view.' };
   const locs = hubInstrLocs_(who);
   if (body.kind === 'dashboard') {
@@ -23766,7 +23768,7 @@ function mhph_(who, b, act) {
   const key = String(b.key || '');
   if (act === 'photos') {
     const rows = mhphRows_(key).sort(function (a, c) { return (c.date || '').localeCompare(a.date || ''); }).slice(0, 40);
-    return { ok: true, photos: rows.map(function (x) { let t = ''; try { t = mhphData_(x.thumb || x.file); } catch (e) { } return { id: x.id, sid: x.sid, student: x.student, caption: x.caption, date: x.date, thumb: t }; }) };
+    return { ok: true, photos: rows.map(function (x) { let t = ''; try { t = x.thumb ? mhphData_(x.thumb) : (function () { const tb = DriveApp.getFileById(x.file).getThumbnail(); return tb ? 'data:image/png;base64,' + Utilities.base64Encode(tb.getBytes()) : ''; })(); } catch (e) { } return { id: x.id, sid: x.sid, student: x.student, caption: x.caption, date: x.date, thumb: t }; }) };
   }
   if (act === 'photo') {
     const x = mhphRows_(key).filter(function (r) { return r.id === String(b.id); })[0]; if (!x) return { ok: false, error: 'Photo not found.' };
@@ -23789,4 +23791,56 @@ function mhph_(who, b, act) {
     return { ok: true };
   }
   return { ok: false, error: 'Unknown photo action.' };
+}
+
+/* 26 Nov 2026 (Mark): grading photos from Tate's Toolkit go onto the student's Member Hub profile automatically.
+   Every run of hubMgmtWarm (30 min): ask AMA OS (amaos-photos) for photos taken since last time, get each image from the Toolkit
+   with a short-lived link, and keep a copy in the private Member Hub photos folder (the Toolkit removes its copies after 30 days).
+   Matched to the student by EFC member ID. Needs AMAOS_SYNC_KEY. Each photo is copied once (Id = tk:<photo id>). */
+const TKPH = { list: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-photos', get: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/cb', curProp: 'TKPH_SINCE', perTick: 15 };
+function tkphTick_() {
+  const P = PropertiesService.getScriptProperties(), key = P.getProperty(AMAOS_SYNC.keyProp); if (!key) return { ok: false, error: 'No sync key yet.' };
+  const H = { 'x-amaos-sync-key': key }, since = P.getProperty(TKPH.curProp) || '2026-01-01T00:00:00Z';
+  const lr = UrlFetchApp.fetch(TKPH.list, { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ since: since, limit: TKPH.perTick }), muteHttpExceptions: true });
+  let L = {}; try { L = JSON.parse(lr.getContentText() || '{}'); } catch (e) { } if (!L.ok) return { ok: false, error: L.error || ('list ' + lr.getResponseCode()) };
+  const have = {}; mhphRows_('').forEach(function (r) { have[r.id] = 1; });
+  try { staffSheet_(MHPH.tab, MHPH.cols).getRange(2, 1, Math.max(1, staffSheet_(MHPH.tab, MHPH.cols).getLastRow() - 1), 1).getValues().forEach(function (r) { have[String(r[0])] = 1; }); } catch (e) { }
+  const efc = mhubEfc_(), out = { ok: true, copied: 0, skipped: 0, failed: 0 };
+  let cur = since;
+  for (let i = 0; i < (L.photos || []).length; i++) {
+    const p = L.photos[i], id = 'tk:' + p.photo_id;
+    if (have[id]) { cur = p.photo_at; out.skipped++; continue; }
+    const kid = efc.filter(function (k) { return String(k.id).toLowerCase() === String(p.id).toLowerCase() || (p.efc_reference && false); })[0];
+    if (!kid) { cur = p.photo_at; out.skipped++; continue; } // not an active EFC member any more
+    const ur = UrlFetchApp.fetch(TKPH.get, { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ act: 'amaos-photo', path: p.photo_path }), muteHttpExceptions: true });
+    let U = {}; try { U = JSON.parse(ur.getContentText() || '{}'); } catch (e) { }
+    if (!U.url) { out.failed++; break; } // try again next run, from this photo
+    const img = UrlFetchApp.fetch(U.url, { muteHttpExceptions: true }); if (img.getResponseCode() !== 200) { out.failed++; break; }
+    const ext = (String(p.photo_path).match(/\.(jpe?g|png|webp)$/i) || [, 'jpg'])[1].toLowerCase();
+    const f = mhphFolder_().createFile(img.getBlob().setName((kid.student + ' ' + (p.kind === 'group' ? 'group ' : '') + (p.belt_to || 'grading') + ' ' + String(p.grading_date || '').slice(0, 10)).replace(/[^A-Za-z0-9 -]+/g, '') + '.' + ext));
+    const cap = (p.kind === 'group' ? 'Group photo: ' : 'Grading: ') + (p.belt_to || '') + (p.location ? ' · ' + p.location : '');
+    staffSheet_(MHPH.tab, MHPH.cols).appendRow([id, kid.key || kid.id, "'" + String(kid.id), kid.student, cap, String(p.grading_date || '').slice(0, 10), f.getId(), '', 'Toolkit (automatic)', new Date(), '', '']);
+    have[id] = 1; cur = p.photo_at; out.copied++;
+  }
+  if (cur !== since) P.setProperty(TKPH.curProp, cur);
+  return out;
+}
+/* Run by hand from the editor to copy everything now (after the key is in). */
+function tkphNow() { for (let i = 0; i < 20; i++) { const r = tkphTick_(); Logger.log(JSON.stringify(r)); if (!r.ok || (!r.copied && !r.skipped)) break; } }
+
+/* 26 Nov 2026 (Mark): Connections. Owners paste a connection key (e.g. the AMA OS sync key) in the hub; it is saved straight into
+   Script Properties and never shown or sent back. Only the names below can be set. */
+const CONN = { owners: ['mark', 'sarah', 'hakan', 'ridvan'], keys: { AMAOS_SYNC_KEY: 'AMA OS sync key (from Tate): nightly copy, Black Belt Oaths and grading photos' } };
+function conn_(who, b) {
+  const me = String((who && who.name) || '').toLowerCase().split(' ')[0]; if (CONN.owners.indexOf(me) < 0) return { ok: false, error: 'Owners only.' };
+  const P = PropertiesService.getScriptProperties(), act = String(b.act || 'list');
+  if (act === 'set') {
+    const name = String(b.name || ''), v = String(b.value || '').trim();
+    if (!CONN.keys[name]) return { ok: false, error: 'Unknown connection.' };
+    if (!/^[A-Za-z0-9._~+\/=-]{24,400}$/.test(v)) return { ok: false, error: 'That does not look like a key. Paste the whole key, with no spaces.' };
+    P.setProperty(name, v); P.setProperty(name + '_SET', JSON.stringify({ at: new Date().toISOString(), by: String(who.name || '') }));
+    if (name === 'AMAOS_SYNC_KEY') { let t = {}; try { t = amaosSyncTab_('Hub staff'); } catch (e) { t = { ok: false, error: String(e.message || e) }; } return { ok: true, test: t.ok ? 'Connected: AMA OS accepted the key (' + (t.staff || 0) + ' staff copied).' : 'Saved, but AMA OS did not accept it yet (' + (t.error || t.code || 'no reply') + '). Check the same key is in Supabase.' }; }
+    return { ok: true };
+  }
+  return { ok: true, list: Object.keys(CONN.keys).map(function (k) { let s = null; try { s = JSON.parse(P.getProperty(k + '_SET') || 'null'); } catch (e) { } return { name: k, label: CONN.keys[k], set: !!P.getProperty(k), at: s ? s.at : '', by: s ? s.by : '' }; }) };
 }
