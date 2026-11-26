@@ -38,3 +38,6 @@ jobs:
           echo "== Database timers: last beat and recent calls =="
           psql -c "select key, at, case when key in ('dash_m','trials_live') then coalesce(data->'needs', to_jsonb(jsonb_array_length(data->'trials'))) else data end from ama_os.cache where key in ('timer_beat','trials_live','absent_counts','dash_m') order by key" -P format=wrapped | cut -c1-160 || true
           psql -c "select status_code, count(*), max(created) from net._http_response where created > now() - interval '30 minutes' group by 1" || true
+          echo "== Timer detail =="
+          psql -c "select id, status_code, left(coalesce(error_msg,''),120) err, left(content::text,140) body, created from net._http_response where created > now() - interval '40 minutes' and (content::text like '%\"ok\"%' or error_msg is not null) order by created desc limit 15" || true
+          psql -c "select jobid, status, left(return_message,140) msg, start_time from cron.job_run_details where jobid in (select jobid from cron.job where jobname like 'amaos-%') order by start_time desc limit 10" || true
