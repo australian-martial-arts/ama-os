@@ -10656,19 +10656,20 @@ function absReplies_(items) {
       if (c) { x.cid = c.id; props.setProperty('abscid_' + x.e164, c.id); } else cache.put('absnoc_' + x.e164, '1', 21600);
     });
   }
-  const needMsg = [];
+  /* 27 Nov 2026: one call for the 100 most recently active conversations replaces most per-family look-ups (was about 1,000
+     outside calls an hour). A family whose conversation is not in that list has had nothing new, so its saved copy (2 hours) still holds. */
+  const absH = function (c) { const raw = c.lastMessageDate, ms = raw ? (isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw)) : 0;
+    return { conv: c.id || '', dir: c.lastMessageDirection || '', t: String(c.lastMessageBody || '').replace(/\s+/g, ' ').replace(/\s*(On (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*|-+\s*Original Message.*|From: .*)$/i, '').trim().slice(0, 300), ms: ms || 0 }; };
+  const recent = {};
+  try { const rr = leadFetchAll_(['/conversations/search?locationId=' + CONFIG.locationId + '&sortBy=last_message_date&sort=desc&limit=100'])[0]; ((rr && rr.conversations) || []).forEach(function (c) { if (c.contactId && !recent[c.contactId]) recent[c.contactId] = c; }); } catch (e) { }
+  const needMsg = [], fresh = {};
   const hits = cache.getAll(want.filter(function (x) { return x.cid; }).map(function (x) { return 'absr2_' + x.cid; }));
-  want.forEach(function (x) { if (!x.cid) return; const hit = hits['absr2_' + x.cid]; if (hit) x._c = JSON.parse(hit); else needMsg.push(x); });
+  want.forEach(function (x) { if (!x.cid) return; if (recent[x.cid]) { x._c = absH(recent[x.cid]); fresh['absr2_' + x.cid] = JSON.stringify(x._c); return; } const hit = hits['absr2_' + x.cid]; if (hit) x._c = JSON.parse(hit); else needMsg.push(x); });
   if (needMsg.length) {
     const res = leadFetchAll_(needMsg.map(function (x) { return '/conversations/search?locationId=' + CONFIG.locationId + '&contactId=' + x.cid; }));
-    needMsg.forEach(function (x, i) {
-      const c = (((res[i] || {}).conversations) || [])[0] || {};
-      const raw = c.lastMessageDate, ms = raw ? (isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw)) : 0;
-      const h = { conv: c.id || '', dir: c.lastMessageDirection || '', t: String(c.lastMessageBody || '').replace(/\s+/g, ' ').replace(/\s*(On (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*|-+\s*Original Message.*|From: .*)$/i, '').trim().slice(0, 300), ms: ms || 0 };
-      cache.put('absr2_' + x.cid, JSON.stringify(h), 1800); /* 27 Nov 2026: 30 min (was 10) to keep outside calls well under Google's daily limit */
-      x._c = h;
-    });
+    needMsg.forEach(function (x, i) { x._c = absH((((res[i] || {}).conversations) || [])[0] || {}); fresh['absr2_' + x.cid] = JSON.stringify(x._c); });
   }
+  try { if (Object.keys(fresh).length) cache.putAll(fresh, 7200); } catch (e) { }
   /* 10 Nov 2026 (Tate/Mark): a reply to a GRADING text is not an absentee reply. The grading app handles it (pauses the grading
      sequence, puts it on the grading call list), so it must not show on the absentee card or move the family's absentee stage.
      A reply counts as a grading reply when the last text we sent before it was a grading text, or the reply itself is about grading. */
