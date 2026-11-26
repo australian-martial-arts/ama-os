@@ -7414,6 +7414,7 @@ body.pf-saving #pfWrap button,body.pf-saving #pfSheet button{opacity:.45;pointer
     var root=document.querySelector('main')||document.body;
     [].forEach.call(root.querySelectorAll('b:not([data-si]),strong:not([data-si])'),function(el){
       el.setAttribute('data-si','1');
+      if(el.closest('#mhWrap,.mh-app,[id^="kj"],.kj-app'))return; /* 26 Nov 2026: never in the Member Hub (family view) */
       var k=nameOf(el);if(!k||k.indexOf(' ')<0)return;var x=DB[k];if(!x)return;
       var host=el.closest('.hb-fu-meta,.hb-fu-top,li,tr,div')||el.parentElement;if(!host||host.closest('.si-line'))return;
       var card=el.closest('.hb-fu,.hb-card')||host.parentElement;
@@ -10631,7 +10632,7 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
   function kidsTab(){
     var d=MH.d,x=X(); if(MH.kp) return kidPage();
     return d.kids.map(function(k,ki){ var K=x&&x.kids?x.kids[ki]:null, ago=k.days===''||k.days==null?'':(+k.days===0?'today':+k.days===1?'yesterday':k.days+' days ago');
-      return '<div class="mh-card"><div class="mh-h"><div style="display:flex;gap:10px;align-items:center"><div class="mh-av">'+esc(fn(k.name).charAt(0))+'</div><div><b style="font-size:17px">'+esc(k.name)+'</b><div class="ao-m">'+esc(k.school)+(k.groups?' · '+esc(k.groups):'')+'</div></div></div></div>'
+      return '<div class="mh-card"><div class="mh-h"><div style="display:flex;gap:10px;align-items:center;min-width:0;flex:1"><div class="mh-av">'+esc(fn(k.name).charAt(0))+'</div><div><b style="font-size:17px">'+esc(k.name)+'</b><div class="ao-m">'+esc(k.school)+(k.groups?' · '+esc(k.groups):'')+'</div></div></div></div>'
         +'<div style="display:flex;gap:10px;margin-top:10px;text-align:center"><div style="flex:1"><b style="font-size:20px">'+k.month+'</b><div class="ao-m">this month</div></div><div style="flex:1"><b style="font-size:20px">'+k.total+'</b><div class="ao-m">in total</div></div><div style="flex:1"><b style="font-size:15px">'+esc(ago||'–')+'</b><div class="ao-m">last class</div></div></div>'
         +belts(k)
         +'<div class="mh-menu" style="margin-top:8px">'+[['kj','🥋 Belt journey and videos'],['up','📅 Classes coming up'],['att','✔️ Attendance'],['qr','🔳 Check-in QR code'],['abs','🤒 Report an absence'],['mk','🔁 Book a make-up class'],['det','✏️ Update their details']].map(function(a){ return '<button data-mh="kp" data-i="'+ki+'" data-p="'+a[0]+'">'+a[1]+'<small>›</small></button>'; }).join('')+'</div>'
