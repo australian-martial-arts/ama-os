@@ -211,6 +211,15 @@
     var canPk = !!(window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn());
     function startMfa(passkeys) {
       show('stepMfa');
+      if (PK_OK) { // Shared passkeys (same as the Toolkit): one passkey signs in on both sites and counts as the second step
+        $('mfaForm').hidden = true; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; $('pkUseBtn').hidden = true;
+        return sb.auth.passkey.list().then(function (r) { return (r && r.data && (r.data.passkeys || r.data).length) || 0; }).catch(function () { return 0; }).then(function (n) {
+          $('mfaIntro').textContent = n ? "Confirm it's you with Face ID, fingerprint or your device PIN." : "One-time set-up: add a passkey so you can confirm it's you with Face ID or your fingerprint. It also works on the AMA Toolkit.";
+          $('pkUseBtn').textContent = n ? 'Use Face ID / fingerprint (passkey)' : 'Set up Face ID / fingerprint (passkey)';
+          $('pkUseBtn').dataset.mode = n ? 'native' : 'nativeSetup'; $('pkUseBtn').hidden = false;
+          $('totpShowBtn').textContent = 'Use my authenticator app instead'; $('totpShowBtn').hidden = false;
+        });
+      }
       $('pkUseBtn').hidden = !(canPk && passkeys > 0);
       if (canPk && passkeys > 0) { $('mfaIntro').textContent = "Confirm it's you with Face ID, fingerprint or your device PIN."; $('mfaForm').hidden = true; $('totpShowBtn').hidden = false; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; return Promise.resolve(); }
       if (canPk) { // first time: offer Face ID / fingerprint set-up, or the authenticator app
@@ -407,7 +416,7 @@
       var say = function (t, ok) { var m = $('pkMsg'); m.textContent = t || ''; m.style.color = ok ? 'var(--ok)' : 'var(--err)'; };
       var list = function () {
         sb.auth.passkey.list().then(function (r) {
-          var L = (r && r.data) || [];
+          var L = r && r.data ? (Array.isArray(r.data) ? r.data : r.data.passkeys || []) : [];
           if (r && r.error) { $('pkList').innerHTML = '<p class="msg err">Could not load your passkeys.</p>'; return; }
           $('pkList').innerHTML = L.length ? '<table class="t"><tr><th>Passkey</th><th style="text-align:left">Added</th><th style="text-align:left">Last used</th><th></th></tr>' + L.map(function (k) {
             return '<tr><td style="white-space:normal">' + esc(k.friendly_name || 'Passkey') + '</td><td style="text-align:left">' + esc(k.created_at ? when(k.created_at) : '') + '</td><td style="text-align:left">' + esc(k.last_used_at ? when(k.last_used_at) : 'Not yet') + '</td><td><button class="chip" type="button" data-del="' + esc(k.id) + '">Remove</button></td></tr>'; }).join('') + '</table>'
@@ -624,6 +633,21 @@
     };
     $('totpShowBtn').onclick = function () { startTotp(); };
     $('pkUseBtn').onclick = function () {
+      var mode = $('pkUseBtn').dataset.mode;
+      if (mode === 'native' || mode === 'nativeSetup') {
+        var bt = $('pkUseBtn'); bt.disabled = true; msg(mode === 'nativeSetup' ? 'Follow the prompt on your device…' : 'Waiting for your passkey…', 'ok');
+        var added = false;
+        var fail = function (e) { bt.disabled = false; if (added) msg('Passkey added. Tap the button to confirm with it.', 'ok'); else if (pkCancelled(e)) msg(''); else if (pkGone(e)) msg('That passkey has been removed. Set up a new one, or use your authenticator app.', 'err'); else msg(mode === 'nativeSetup' ? 'Could not add a passkey. Try again, or use your authenticator app.' : 'Passkey did not work. Try again, or use your authenticator app.', 'err'); };
+        (mode === 'nativeSetup' ? sb.auth.registerPasskey().then(function (r) {
+          if (r.error) throw r.error;
+          added = true; lsSet('ama_passkey_here', '1'); bt.dataset.mode = 'native'; bt.textContent = 'Use Face ID / fingerprint (passkey)';
+          var id = r.data && r.data.id; return id ? sb.auth.passkey.update({ passkeyId: id, friendlyName: deviceName() }).catch(function () {}) : null;
+        }).then(function () { msg('Passkey added. Now confirm with it once.', 'ok'); }) : Promise.resolve())
+          .then(function () { return sb.auth.signInWithPasskey(); })
+          .then(function (r) { if (r.error) throw r.error; if (!(r.data && r.data.session)) throw new Error('no session'); bt.disabled = false; msg(''); return pkFinish(r); })
+          .catch(fail);
+        return;
+      }
       $('pkUseBtn').disabled = true; msg('Waiting for your passkey…');
       var setup = $('pkUseBtn').dataset.mode === 'setup';
       (setup ? pk('reg-options').then(function (o) { if (!o.ok) throw new Error(o.error); return SimpleWebAuthnBrowser.startRegistration(o.options); })
