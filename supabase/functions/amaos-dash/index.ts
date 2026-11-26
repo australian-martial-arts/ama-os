@@ -203,6 +203,14 @@ async function refresh(what: string, school: string) {
       await sql`insert into ama_os.cache (key, data, at) values (${m ? "dash_m" : "dash_n"}, ${sql.json(d as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`; }
     return { dash: true, ms };
   }
+  if (what === "probe") {
+    const t: Record<string, number> = {}, t0 = Date.now(), lap = (k: string) => { t[k] = Date.now() - t0; };
+    const h = await src("Holds"); lap("holds");
+    const raw = await sql`select key, length(data::text) as n from ama_os.cache where key like 'efc_school_%'`; lap("sizes");
+    const ms = await membersSaved({}); lap("membersSaved");
+    for (const n of ["EFC live", "Cancellations", "New members", "Hub trial bookings", "Trial follow-up", "Absentees", "GHL trials"]) { await src(n); lap(n); }
+    return { t, holds: h.length, sizes: raw.map((r) => r.key + ":" + r.n), members: ms ? ms.rows.length : 0 };
+  }
   return { error: "unknown" };
 }
 async function dashFast(money: boolean) {
