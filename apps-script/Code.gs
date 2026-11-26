@@ -13902,6 +13902,7 @@ function mhub_(who, b) {
   b = b || {}; const me = String((who && who.name) || '').toLowerCase().split(' ')[0], act = String(b.act || 'find');
   if (MHUB.viewers.indexOf(me) < 0) return { ok: false, error: 'The Member Hub is coming soon. Only the leadership team can see it for now.' };
   if (['extra', 'makeups', 'request', 'team', 'teamsave'].indexOf(act) > -1) return mhub2_(who, b, act);
+  if (['photos', 'photo', 'photoadd', 'photohide'].indexOf(act) > -1) return mhph_(who, b, act);
   if (act === 'find') {
     const q = String(b.q || '').trim().toLowerCase(), qd = q.replace(/\D/g, ''); if (q.length < 2) return { ok: true, list: [] };
     const fam = {};
@@ -23741,3 +23742,51 @@ function amaosSyncTick_() {
 }
 /* Run by hand from the editor to send everything now (after the key is added). */
 function amaosSyncNow() { AMAOS_SYNC.tabs.forEach(function (t) { Logger.log(t + ': ' + JSON.stringify(amaosSyncTab_(t))); }); }
+
+/* 26 Nov 2026 (Mark): Member Hub photos. Photos of students (e.g. with the GM at gradings) kept on their profile so parents can see and
+   download them once the Member Hub is live. Staff with Member Hub access add them; files live in a private Drive folder (never shared),
+   and the hub serves them only to someone viewing that family. Removing a photo hides it; nothing is deleted from Drive. */
+const MHPH = { tab: 'Member photos', cols: ['Id', 'Family', 'Student id', 'Student', 'Caption', 'Taken on', 'File id', 'Thumb id', 'Added by', 'Added at', 'Removed at', 'Removed by'], folderProp: 'MHPH_FOLDER', maxB64: 8000000 };
+function mhphFolder_() {
+  const P = PropertiesService.getScriptProperties(); let id = P.getProperty(MHPH.folderProp);
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { } }
+  const f = DriveApp.createFolder('AMA Member Hub - student photos (private)'); P.setProperty(MHPH.folderProp, f.getId()); return f;
+}
+function mhphRows_(fam) {
+  const sh = staffSheet_(MHPH.tab, MHPH.cols); if (sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, MHPH.cols.length).getValues().map(function (r, i) { return { row: i + 2, id: String(r[0]), fam: String(r[1]), sid: String(r[2]), student: String(r[3]), caption: String(r[4] || ''), date: r[5] instanceof Date ? mhub2Ymd_(r[5]) : String(r[5] || '').slice(0, 10), file: String(r[6]), thumb: String(r[7]), by: String(r[8] || ''), removed: !!r[10] }; })
+    .filter(function (x) { return x.id && !x.removed && (!fam || x.fam === fam); });
+}
+function mhphData_(fileId) { const b = DriveApp.getFileById(fileId).getBlob(); return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()); }
+function mhphBlob_(dataUrl, name) {
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(dataUrl || '')); if (!m) return null;
+  return Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], name);
+}
+function mhph_(who, b, act) {
+  const key = String(b.key || '');
+  if (act === 'photos') {
+    const rows = mhphRows_(key).sort(function (a, c) { return (c.date || '').localeCompare(a.date || ''); }).slice(0, 40);
+    return { ok: true, photos: rows.map(function (x) { let t = ''; try { t = mhphData_(x.thumb || x.file); } catch (e) { } return { id: x.id, sid: x.sid, student: x.student, caption: x.caption, date: x.date, thumb: t }; }) };
+  }
+  if (act === 'photo') {
+    const x = mhphRows_(key).filter(function (r) { return r.id === String(b.id); })[0]; if (!x) return { ok: false, error: 'Photo not found.' };
+    return { ok: true, data: mhphData_(x.file), name: (x.student + ' ' + (x.caption || 'AMA photo') + ' ' + x.date).replace(/[^A-Za-z0-9 -]+/g, '').trim().replace(/\s+/g, '-') + '.jpg' };
+  }
+  if (act === 'photoadd') {
+    const kid = mhub2Fam_(key).filter(function (k) { return String(k.id) === String(b.sid); })[0]; if (!kid) return { ok: false, error: 'Pick the student.' };
+    if (String(b.full || '').length > MHPH.maxB64) return { ok: false, error: 'That photo is too big.' };
+    const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), f = mhphFolder_(), nm = (kid.student + ' ' + id).replace(/[^A-Za-z0-9 -]+/g, '');
+    const full = mhphBlob_(b.full, nm + '.jpg'), small = mhphBlob_(b.thumb, nm + ' thumb.jpg'); if (!full) return { ok: false, error: 'That file is not a photo.' };
+    const ff = f.createFile(full), tf = small ? f.createFile(small) : null;
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? String(b.date) : mhub2Ymd_(new Date());
+    staffSheet_(MHPH.tab, MHPH.cols).appendRow([id, key, "'" + String(kid.id), kid.student, String(b.caption || '').slice(0, 120), date, ff.getId(), tf ? tf.getId() : '', String((who && who.name) || ''), new Date(), '', '']);
+    try { CacheService.getScriptCache().remove('mh2x_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, key)).slice(0, 16)); } catch (e) { }
+    return { ok: true, id: id };
+  }
+  if (act === 'photohide') {
+    const x = mhphRows_(key).filter(function (r) { return r.id === String(b.id); })[0]; if (!x) return { ok: false, error: 'Photo not found.' };
+    staffSheet_(MHPH.tab, MHPH.cols).getRange(x.row, 11, 1, 2).setValues([[new Date(), String((who && who.name) || '')]]);
+    return { ok: true };
+  }
+  return { ok: false, error: 'Unknown photo action.' };
+}
