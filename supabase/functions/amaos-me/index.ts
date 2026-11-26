@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
       where active and ((${u.digits} <> '' and regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = ${u.digits})
                         or (${u.email} <> '' and email = ${u.email}))
       limit 1`;
-    if (!rows.length) return json({ ok: false, error: "This login isn't set up for AMA OS yet." }, 403);
+    if (!rows.length) return json({ ok: false, error: "This login isn't set up for AMA OS yet (" + (u.email || "+" + u.digits) + ")." }, 403);
     const s = rows[0];
     if (!s.preview) return json({ ok: false, error: "AMA OS is coming soon." }, 403);
 

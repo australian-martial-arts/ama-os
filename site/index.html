@@ -37,11 +37,13 @@
     <h1>AMA OS</h1>
 
     <section id="stepEmail">
-      <p>Staff sign-in. Coming soon for the whole team.</p>
+      <p>Staff sign-in, with the same mobile and PIN as the hub and the Toolkit.</p>
       <form id="emailForm">
         <label for="email">Your mobile number</label>
-        <input id="email" type="tel" inputmode="tel" autocomplete="tel" required placeholder="04xx xxx xxx">
-        <button id="sendBtn" type="submit">Text me a sign-in code</button>
+        <input id="email" type="tel" inputmode="tel" autocomplete="username" required placeholder="04xx xxx xxx">
+        <label for="pin">Your hub PIN</label>
+        <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="PIN">
+        <button id="sendBtn" type="submit">Sign in</button>
       </form>
     </section>
 
@@ -146,13 +148,23 @@
     $('emailForm').onsubmit = function (e) {
       e.preventDefault(); email = toPhone($('email').value);
       if (!email) { msg('Enter your Australian mobile, e.g. 0412 345 678.', 'err'); return; }
-      $('sendBtn').disabled = true; msg('Sending…');
-      sb.auth.signInWithOtp({ phone: email, options: { shouldCreateUser: false } })
-        .then(function (r) {
-          $('sendBtn').disabled = false;
-          if (r.error) { msg("We couldn't send a code to that number. Use the mobile you sign in to the Toolkit with.", 'err'); return; }
-          show('stepCode'); msg('Code sent to ' + $('email').value.trim() + '.', 'ok'); $('code').focus();
-        });
+      var pin = $('pin').value.trim(); if (!pin) { msg('Enter your PIN.', 'err'); return; }
+      $('sendBtn').disabled = true; msg('Signing in…');
+      // One login for AMA OS and the Toolkit: the Toolkit's "hub" function checks the mobile + PIN
+      // against the hub (lockouts and Active status included) and returns a Supabase session.
+      fetch(C.supabaseUrl + '/functions/v1/hub', { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.supabaseAnonKey },
+        body: JSON.stringify({ mobile: $('email').value.replace(/\D/g, ''), pin: pin }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          $('pin').value = '';
+          if (!j || !j.ok || !j.session) { $('sendBtn').disabled = false; msg((j && j.error) || "That mobile and PIN didn't match.", 'err'); return; }
+          return sb.auth.setSession({ access_token: j.session.access_token, refresh_token: j.session.refresh_token }).then(function (r) {
+            $('sendBtn').disabled = false;
+            if (r.error) { msg('Signed in, but the session could not start. Please try again.', 'err'); return; }
+            justSignedIn = true; whoAmI();
+          });
+        })
+        .catch(function () { $('sendBtn').disabled = false; $('pin').value = ''; msg('Could not reach the sign-in service. Please try again.', 'err'); });
     };
     $('codeForm').onsubmit = function (e) {
       e.preventDefault(); $('codeBtn').disabled = true; msg('Checking…');
@@ -191,7 +203,7 @@
     };
     $('backBtn').onclick = function () { show('stepEmail'); msg(''); };
     $('outBtn').onclick = function () { setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); }); };
-    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN') { justSignedIn = true; whoAmI(); } });
+
     whoAmI();
   })();
   </script>
