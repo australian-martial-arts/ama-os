@@ -219,12 +219,12 @@ async function find(q: string, money: boolean) {
 async function refresh(what: string, school: string) {
   if (what === "efc") return await pullSchool(EFC_SCHOOLS.includes(school) ? school : "Marrickville");
   if (what === "hubwarm") {
-    // Keeps each preview person's Approvals and My Day ready, so they open instantly (7am to 9pm).
+    // Keeps each preview person's Approvals, My Day and Instructor Hub ready, so they open instantly (7am to 9pm).
     const h = Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hourCycle: "h23" }).format(new Date()));
     if (h < 7 || h > 21) return { skipped: "night" };
     const ppl = await sql`select name, phone from ama_os.staff where active and coalesce(phone, '') <> ''`, done: string[] = [];
     for (const p of ppl) { const first = String(p.name).trim().split(/\s+/)[0].toLowerCase(); if (!HUB_PREVIEW.includes(first)) continue;
-      for (const kind of ["approvals", "mywork"]) { const body = { kind }; const o = await hubCall(String(p.name), String(p.phone), body).catch(() => ({ ok: false })) as Record<string, unknown>; if (o.ok) { await hubSave(hubKey(first, body), o); done.push(first + ":" + kind); } } }
+      for (const kind of ["approvals", "mywork", "ihub"]) { const body = { kind }; const o = await hubCall(String(p.name), String(p.phone), body).catch(() => ({ ok: false })) as Record<string, unknown>; if (o.ok) { await hubSave(hubKey(first, body), o); done.push(first + ":" + kind); } } }
     return { warmed: done };
   }
   if (what === "efcnext") {
