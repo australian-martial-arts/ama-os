@@ -18,15 +18,19 @@ async function test(name: string) {
   const v = await get(name); if (!v) return { ok: false, result: "Not set yet" };
   try {
     if (name === "GHL_TOKEN") {
-      const r = await fetch(`${GHL.base}/locations/${GHL.location}`, { headers: { Authorization: "Bearer " + v, Version: GHL.version, Accept: "application/json" } });
-      return { ok: r.ok, result: r.ok ? "Connected to GHL" : "GHL said " + r.status };
+      // Same call the hub makes (calendar groups), so it only needs the access the hub's key already has.
+      const r = await fetch(`${GHL.base}/calendars/groups?locationId=${GHL.location}`, { headers: { Authorization: "Bearer " + v, Version: GHL.version, Accept: "application/json" } });
+      const j = r.ok ? await r.json().catch(() => ({})) : {};
+      return { ok: r.ok, result: r.ok ? "Connected to GHL (" + ((j as { groups?: unknown[] }).groups ?? []).length + " calendar groups)" : "GHL said " + r.status + (r.status === 401 ? " (key not accepted)" : "") };
     }
+    // Try every EFC address the hub knows; the key only works on one of them.
+    const tried: string[] = [];
     for (const base of EFC_BASES) {
       const r = await fetch(base + "/version/1/identity", { headers: { "X-API-KEY": v, Accept: "application/json" } });
       if (r.ok) { const j = await r.json().catch(() => ({})); const loc = j?.locations?.[0]?.name ?? j?.locations?.[0]?.id ?? ""; return { ok: true, result: "Connected to EFC" + (loc ? " (" + loc + ")" : "") }; }
-      if (r.status === 401 || r.status === 403) return { ok: false, result: "EFC said the key is not allowed (" + r.status + ")" };
+      tried.push(base.replace("https://api.", "") + " " + r.status);
     }
-    return { ok: false, result: "EFC did not answer" };
+    return { ok: false, result: "EFC did not accept the key (" + tried.join(", ") + ")" };
   } catch (_e) { return { ok: false, result: "Could not reach it" }; }
 }
 
