@@ -23746,8 +23746,8 @@ function mhub2DocsWrite_(rows) {
 /* 26 Nov 2026 (Mark): AMA OS nightly copy. Sends a read-only copy of the hub's main sheets to AMA OS (Supabase, amaos-sync)
    between 1am and 4am, three tabs per run of hubMgmtWarm. Does nothing until AMAOS_SYNC_KEY is in Script Properties (Tate adds it,
    the same value as in Supabase). Columns that look like PINs, passwords, tokens, card or bank details are never sent. Nothing comes back. */
-const AMAOS_SYNC = { url: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-sync', keyProp: 'AMAOS_SYNC_KEY', curProp: 'AMAOS_SYNC_CUR', perTick: 3, hours: [1, 2, 3],
-  tabs: ['Hub staff', 'EFC live', 'Holds', 'Cancellations', 'New members', 'Hub trial bookings', 'Trial follow-up', 'Recommendations', 'Sales chase', 'Membership changes', 'LD grading', 'Promotions', 'Media opt-out', 'Member docs', 'Stars ledger', 'Absentees', 'Failed payments', 'Instructor onboarding'],
+const AMAOS_SYNC = { url: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-sync', keyProp: 'AMAOS_SYNC_KEY', curProp: 'AMAOS_SYNC_CUR', perTick: 4, hours: [1, 2, 3], /* 26 Nov 2026: 4 per tick so 19 tabs fit the night window */
+  tabs: ['Hub staff', 'EFC live', 'Holds', 'Cancellations', 'New members', 'Hub trial bookings', 'Trial follow-up', 'Recommendations', 'Sales chase', 'Membership changes', 'LD grading', 'Promotions', 'Media opt-out', 'Member docs', 'Stars ledger', 'Absentees', 'Failed payments', 'Instructor onboarding', 'Enrolments'], /* 26 Nov 2026: Enrolments for AMA OS trial statuses */
   skip: /pin|password|passcode|token|secret|api.?key|card|bsb|account.?number/i };
 /* 26 Nov 2026 (Mark): every GHL trial shows on the AMA OS dashboard exactly like the hub's list. Sends the hub's own cached
    trial list (hubDashboard_, already read from GHL) every 10 minutes, only when it has changed: no extra GHL calls, at most one outside call. */
