@@ -82,6 +82,9 @@
     .tday { padding: 9px 14px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; color: var(--gold-ink); background: var(--warn-bg); border-bottom: 1px solid var(--line); }
     .trial { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
     .trial .t { font-weight: 700; font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-size: 16px; } .trial .w > span { display: block; color: var(--ink-2); font-size: 13px; margin-top: 1px; }
+    .bkf label { display: block; margin: 12px 0 4px; font-weight: 700; font-size: 13px; } .bkf .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } @media (max-width: 560px) { .bkf .g2 { grid-template-columns: 1fr; } }
+    .bkf input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid var(--line-2); border-radius: 12px; font: inherit; background: var(--card, #fff); color: inherit; min-height: 46px; }
+    .bkf select { width: 100%; padding: 12px; border: 1px solid var(--line-2); border-radius: 12px; font: inherit; background: var(--card, #fff); color: inherit; }
     .tright { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; } .tchk { margin: 0; }
     .tform { padding: 12px 14px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2, rgba(0,0,0,.03)); }
     .tform .tnote { width: 100%; box-sizing: border-box; margin: 6px 0 10px; padding: 10px; border: 1px solid var(--line-2); border-radius: 10px; font: inherit; background: var(--card, #fff); color: inherit; }
@@ -189,6 +192,7 @@
       <section id="tabDay" hidden></section>
       <section id="tabChk" hidden></section>
       <section id="tabReq" hidden></section>
+      <section id="tabBook" hidden></section>
     </div>
   </div>
 
@@ -270,7 +274,7 @@
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
       myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
-      book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
+      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
       ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
@@ -297,10 +301,11 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'book') { $('tabBook').hidden = false; loadBook(); window.scrollTo(0, 0); }
       else if (view === 'checkday') { $('tabChk').hidden = false; loadChk(); window.scrollTo(0, 0); }
       else if (view === 'requests') { $('tabReq').hidden = false; loadReq(); window.scrollTo(0, 0); }
       else if (view === 'myday') { $('tabDay').hidden = false; loadDay(false); window.scrollTo(0, 0); }
@@ -312,7 +317,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -529,6 +534,50 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
       var f = box.querySelector('.tform'); if (f) wireChk(f);
     }
+    /* Book a trial (preview on Mark's login): the hub books it in GHL and sends its usual confirmation, exactly as in the hub. */
+    var BK = { opts: null, loc: 'Marrickville', cal: '', slots: null, slot: null, kids: 1 };
+    function loadBook() {
+      var el = $('tabBook');
+      if (!BK.opts) { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="note">Loading classes…</p>';
+        hubAct({ kind: 'trialopts' }).then(function (j) { if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="msg err">' + esc((j && j.error) || 'Could not load the classes.') + '</p>'; return; } BK.opts = j; drawBook(); })
+          .catch(function () { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; }); return; }
+      drawBook();
+    }
+    function bkVal(id) { var e = $(id); return e ? e.value.trim() : ''; }
+    function drawBook() {
+      var el = $('tabBook'), O = BK.opts, keep = {}; ['bkFirst', 'bkLast', 'bkPhone', 'bkEmail', 'bkK1', 'bkD1', 'bkK2', 'bkD2', 'bkWhy', 'bkWc'].forEach(function (k) { keep[k] = bkVal(k); });
+      var cals = (O.cals || []).filter(function (c) { return c.loc === BK.loc; });
+      var inp = function (id, lab, type, ph) { return '<div><label for="' + id + '">' + lab + '</label><input id="' + id + '" type="' + (type || 'text') + '" placeholder="' + (ph || '') + '" value="' + esc(keep[id] || '') + '"></div>'; };
+      var h = '<h2 class="sec">Book a trial</h2><p class="note">Booked in GHL by the hub, with the hub\'s usual confirmation text to the family.</p><div class="box bkf">' +
+        '<div class="g2">' + inp('bkFirst', 'Parent first name') + inp('bkLast', 'Parent last name') + '</div><div class="g2">' + inp('bkPhone', 'Mobile', 'tel', '04xx xxx xxx') + inp('bkEmail', 'Email', 'email') + '</div>' +
+        '<div class="g2">' + inp('bkK1', 'Student name') + inp('bkD1', 'Date of birth', 'date') + '</div>' +
+        (BK.kids > 1 ? '<div class="g2">' + inp('bkK2', 'Second student') + inp('bkD2', 'Date of birth', 'date') + '</div>' : '<button type="button" class="link" id="bkAdd">+ Add a second student (same class and time)</button>') +
+        '<label>School</label><div class="chips">' + ['Marrickville', 'Concord', 'Sydenham', 'Auburn', 'Sylvania'].map(function (l) { return '<button type="button" class="chip" data-bl="' + l + '" aria-pressed="' + (l === BK.loc) + '">' + l + '</button>'; }).join('') + '</div>' +
+        '<label>Class</label><div class="chips">' + (cals.length ? cals.map(function (c) { return '<button type="button" class="chip" data-bc="' + esc(c.id) + '" aria-pressed="' + (c.id === BK.cal) + '">' + esc(c.cls) + '</button>'; }).join('') : '<span class="note">No trial classes at this school.</span>') + '</div>' +
+        (BK.cal ? '<label>Day and time</label><div id="bkSlots">' + (BK.slots ? (BK.slots.length ? BK.slots.slice(0, 14).map(function (d) { return '<div class="tsum" style="margin:8px 0 4px">' + esc(d.label) + '</div><div class="chips">' + d.slots.map(function (x) { return '<button type="button" class="chip" data-bs="' + esc(x.iso) + '|' + esc(x.cal) + '" aria-pressed="' + (BK.slot && BK.slot.iso === x.iso && BK.slot.cal === x.cal) + '">' + esc(x.t) + '</button>'; }).join('') + '</div>'; }).join('') : '<p class="note">No free times in the next six weeks.</p>') : '<p class="note">Loading times…</p>') + '</div>' : '') +
+        '<label for="bkWc">Why are they looking at martial arts?</label><select id="bkWc"><option value="">Choose…</option>' + (O.why || []).map(function (w) { var v = typeof w === 'string' ? w : (w.value || w.name || ''); return '<option' + (keep.bkWc === v ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select>' +
+        inp('bkWhy', 'In their words (optional)') +
+        '<button type="button" class="btn" id="bkGo" style="margin-top:14px">Book the trial</button><p class="tmsg note" id="bkMsg"></p></div>';
+      el.innerHTML = h;
+      if ($('bkAdd')) $('bkAdd').onclick = function () { BK.kids = 2; drawBook(); };
+      Array.prototype.forEach.call(el.querySelectorAll('[data-bl]'), function (b) { b.onclick = function () { BK.loc = b.dataset.bl; BK.cal = ''; BK.slots = null; BK.slot = null; drawBook(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-bc]'), function (b) { b.onclick = function () { BK.cal = b.dataset.bc; BK.slots = null; BK.slot = null; drawBook();
+        var want = BK.cal; hubAct({ kind: 'trialslots', calendarId: want }).then(function (j) { if (BK.cal !== want) return; BK.slots = j && j.ok ? j.days || [] : []; drawBook(); }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-bs]'), function (b) { b.onclick = function () { var p = b.dataset.bs.split('|'); BK.slot = { iso: p[0], cal: p[1] }; drawBook(); }; });
+      $('bkGo').onclick = function () {
+        var m = $('bkMsg'), first = bkVal('bkFirst'), phone = bkVal('bkPhone'), k1 = bkVal('bkK1');
+        if (!first || !phone || !k1) { m.textContent = 'Add the parent\'s first name, mobile and the student\'s name.'; return; }
+        if (!BK.slot) { m.textContent = 'Choose a class and a time.'; return; }
+        var studs = [{ name: k1, dob: bkVal('bkD1'), calendarId: BK.slot.cal, slot: BK.slot.iso }]; if (BK.kids > 1 && bkVal('bkK2')) studs.push({ name: bkVal('bkK2'), dob: bkVal('bkD2'), calendarId: BK.slot.cal, slot: BK.slot.iso });
+        $('bkGo').disabled = true; m.textContent = 'Booking through the hub…';
+        hubAct({ kind: 'trialbook', first: first, last: bkVal('bkLast'), phone: phone, email: bkVal('bkEmail'), students: studs, whyCat: bkVal('bkWc'), why: bkVal('bkWhy') }).then(function (r) {
+          if (!r || !r.ok) { $('bkGo').disabled = false; m.textContent = (r && r.error) || 'Not booked.'; return; }
+          $('tabBook').innerHTML = '<h2 class="sec">Book a trial</h2><div class="box"><p><b>Booked.</b> ' + esc([r.cls, r.loc, r.when].filter(Boolean).join(' · ')) + '</p>' + (r.warn ? '<p class="msg err">' + esc(r.warn) + '</p>' : '') + '<button type="button" class="btn" id="bkNew" style="width:auto;padding:10px 18px">Book another</button></div>';
+          BK.cal = ''; BK.slots = null; BK.slot = null; BK.kids = 1; $('bkNew').onclick = function () { drawBook(); };
+          try { sessionStorage.removeItem('amaosDash'); } catch (e) {}
+        }).catch(function () { $('bkGo').disabled = false; m.textContent = 'Could not reach AMA OS. Please try again.'; });
+      };
+    }
     /* After-trial check (preview on Mark's login): the hub's own check list per school and day; saved by the hub
        (a No-show sends the hub's usual text, once). Instructors only see the schools they're rostered at, as in the hub. */
     var CK = { loc: 'Marrickville', date: '', open: '', pick: {} };
@@ -599,7 +648,7 @@
       }).catch(function () { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     /* My Day (preview on Mark's login): the hub's own "Your work today" list, ticks saved by the hub. */
-    var HUBMAP = { '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
+    var HUBMAP = { '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
     function openHref(u) { u = String(u || ''); if (!u) return; if (/^https?:/.test(u)) { window.open(u, '_blank', 'noopener'); return; } var k = u.split('?')[0]; if (HUBMAP[k]) return go(HUBMAP[k]); window.open(HUB_URL + u, '_blank', 'noopener'); }
     function loadDay(fresh) {
       var el = $('tabDay'); if (!el.innerHTML || fresh) el.innerHTML = '<h2 class="sec">My Day</h2><p class="note">Loading your work…</p>';
