@@ -205,6 +205,8 @@
       <section id="tabPv" hidden></section>
       <section id="tabCamp" hidden></section>
       <section id="tabStock" hidden></section>
+      <section id="tabPb" hidden></section>
+      <section id="tabIh" hidden></section>
       <section id="tabSec" hidden></section>
     </div>
   </div>
@@ -290,7 +292,7 @@
       book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties', os2: 'parties' }, camp: { l: 'Holiday camp', h: '#camp', os2: 'camp' }, privates: { l: 'Private lessons', h: '', os2: 'privates' }, shop: { l: 'Shop and stock', h: '#stock', os2: 'stock' },
-      ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
+      ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', os2: 'sec:sales', can: isMgmt },
       marketing: { l: 'Marketing', h: '#marketing', os2: 'sec:marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', os2: 'sec:retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', os2: 'failpay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } },
@@ -314,12 +316,14 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
       else if (view.indexOf('sec:') === 0) { $('tabSec').hidden = false; loadSec(view.slice(4)); window.scrollTo(0, 0); }
       else if (view === 'camp') { $('tabCamp').hidden = false; loadCamp(); window.scrollTo(0, 0); }
+      else if (view === 'playbook') { $('tabPb').hidden = false; loadPb(); window.scrollTo(0, 0); }
+      else if (view === 'ihub') { $('tabIh').hidden = false; loadIh(); window.scrollTo(0, 0); }
       else if (view === 'stock') { $('tabStock').hidden = false; loadStock(); window.scrollTo(0, 0); }
       else if (view === 'parties') { $('tabParty').hidden = false; loadParty(); window.scrollTo(0, 0); }
       else if (view === 'privates') { $('tabPv').hidden = false; loadPv(); window.scrollTo(0, 0); }
@@ -342,7 +346,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -617,6 +621,80 @@
       var sv = el.querySelector('.sks'); if (sv) sv.onclick = function () { var f = sv.closest('.tform'), m = f.querySelector('.tmsg'), n = +$('skN').value; sv.disabled = true; m.textContent = 'Saving…';
         hubAct({ kind: 'stockmove', loc: SK.loc, reason: SK.reason, lines: [{ sku: SK.open, n: n }], note: $('skNote').value }).then(function (r) {
           if (r && r.ok) { SK.open = ''; hubAct({ kind: 'stocklist' }, true).then(function (j2) { if (j2 && j2.ok) { SK.data = j2; drawStock(); } }); m.textContent = 'Saved.'; } else { sv.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); };
+    }
+    /* AMA Playbook (everyone): the hub's playbook, same content, searchable. Each play links to the screen it belongs to. */
+    var PBV = { sec: 'Sales', q: '' };
+    function openItem(id) { var x = I[id]; if (!x) return; if (x.can && !x.can()) return; if (x.os2 && DJ && DJ.me && DJ.me.hub) return go(x.os2); if (x.x) { window.open(x.x, '_blank', 'noopener'); return; } if (x.os) go(x.os); else hubCard(id); }
+    function loadPb(target) {
+      var el = $('tabPb');
+      if (!window.AMA_PB) { el.innerHTML = '<h2 class="sec">AMA Playbook</h2><p class="note">Loading…</p>'; var s = document.createElement('script'); s.src = 'playbook.js?v=1'; s.onload = function () { if (CUR === 'playbook') loadPb(target); }; s.onerror = function () { el.innerHTML = '<h2 class="sec">AMA Playbook</h2><p class="msg err">Could not load the playbook. Check your connection and try again.</p>'; }; document.head.appendChild(s); return; }
+      var PB = window.AMA_PB, S = Object.keys(PB), hit = '';
+      if (target) S.forEach(function (s) { if (s === target) { PBV.sec = s; PBV.q = ''; } PB[s].forEach(function (it) { if (it.id === target) { PBV.sec = s; PBV.q = ''; hit = it.id; } }); });
+      el.innerHTML = '<h2 class="sec">AMA Playbook</h2><p class="note">How we do everything at AMA: the steps, what to say and the checklist for each.</p><input id="pbQ" type="search" placeholder="Search, for example: hold, cancel, trial, sick" value="' + esc(PBV.q) + '" style="width:100%;margin:4px 0 10px"><div class="chips" id="pbSecs"></div><div id="pbList"></div>';
+      $('pbQ').oninput = function () { PBV.q = this.value; drawPb(); };
+      drawPb(); if (hit) { var d = $('pb-' + hit); if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); } }
+    }
+    function drawPb() {
+      var PB = window.AMA_PB, S = Object.keys(PB), q = PBV.q.trim().toLowerCase(), L = [];
+      if (q) S.forEach(function (s) { PB[s].forEach(function (it) { if ((it.t + ' ' + it.why + ' ' + it.steps.join(' ') + ' ' + (it.script || '')).toLowerCase().indexOf(q) > -1) L.push(it); }); }); else L = PB[PBV.sec] || [];
+      $('pbSecs').innerHTML = S.map(function (s) { return '<button type="button" class="chip" data-pbs="' + esc(s) + '" aria-pressed="' + (!q && s === PBV.sec) + '">' + esc(s) + ' (' + PB[s].length + ')</button>'; }).join('');
+      $('pbList').innerHTML = L.length ? L.map(function (it) {
+        return '<details class="box" id="pb-' + esc(it.id) + '" style="margin:8px 0"><summary style="cursor:pointer"><b>' + esc(it.t) + '</b><span class="tsum" style="display:block;margin-top:2px">' + esc(it.who) + '</span></summary>' +
+          '<div class="chips" style="margin:10px 0 6px"><span class="chip">When: ' + esc(it.when) + '</span></div><p>' + esc(it.why) + '</p><b>Steps</b><ol>' + it.steps.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' +
+          (it.script ? '<b>What to say</b>' + it.script.split('\n\n').map(function (s) { return '<p class="note" style="white-space:pre-wrap;font-style:italic;border-left:3px solid var(--line-2);padding-left:10px">' + esc(s) + '</p>'; }).join('') : '') +
+          (it.check ? '<b>Checklist</b><ul>' + it.check.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '') +
+          (it.hub && I[it.hub] && (!I[it.hub].can || I[it.hub].can()) ? '<button type="button" class="btn pbgo" data-v="' + esc(it.hub) + '" style="width:auto;padding:9px 16px">Open ' + esc(I[it.hub].l) + '</button>' : '') + '</details>';
+      }).join('') : '<div class="box"><p>Nothing matches. Try another word.</p></div>';
+      Array.prototype.forEach.call($('pbSecs').querySelectorAll('[data-pbs]'), function (b) { b.onclick = function () { PBV.sec = b.dataset.pbs; PBV.q = ''; $('pbQ').value = ''; drawPb(); }; });
+      Array.prototype.forEach.call($('pbList').querySelectorAll('.pbgo'), function (b) { b.onclick = function () { openItem(b.dataset.v); }; });
+    }
+    /* Instructor Hub (preview): today's huddle, your next shifts, today's classes, your courses and your development, from the hub as you. */
+    var IHV = { tab: 'today' }, IH_CL = { ldcurr: 'Little Dragons Curriculum', ldres: 'Little Dragons Instructor Resources', onboard: 'Staff Onboarding 2026', academy: 'Instructor Academy', saleslab: 'Sales Lab' };
+    function loadIh() {
+      var el = $('tabIh'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Instructor Hub</h2><p class="note">Loading your day…</p>';
+      hubRead({ kind: 'ihub' }, 'ihub', function (j) { IHV.d = j; drawIh(); });
+      hubRead({ kind: 'staff', act: 'me' }, 'ihub', function (j) { IHV.me = j && j.ok ? j : null; if (IHV.d) drawIh(); });
+    }
+    function ihAsked(lbl) { var a = ((IHV.d && IHV.d.asked) || []).filter(function (x) { return x.p === lbl; })[0]; return a ? a.s : ''; }
+    function ihNice(s) { var d = new Date(String(s).length === 10 ? s + 'T12:00' : s); return isNaN(d) ? String(s || '') : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    function drawIh() {
+      var el = $('tabIh'), j = IHV.d;
+      if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Instructor Hub</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var T = [['today', 'Today'], ['curr', 'Curriculum'], ['dev', 'My development'], ['pb', 'Playbook'], ['tools', 'Tools']], h = '<h2 class="sec">Instructor Hub</h2><div class="chips">' +
+        T.map(function (t) { return '<button type="button" class="chip" data-iht="' + t[0] + '" aria-pressed="' + (IHV.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>';
+      if (IHV.tab === 'today') {
+        var up = j.up || {}, cls = up.classes || [], by = {};
+        h += '<div class="box"><div class="tsum">Today\'s huddle · 15 minutes</div><div style="font-size:26px;font-weight:800;margin:4px 0">' + esc(j.value || '') + '</div><ol style="margin:6px 0 0"><li>One specific win from your last class.</li><li>One thing you are learning right now.</li><li>How will we show <b>' + esc(j.value || '') + '</b> on the mat today?</li></ol></div>';
+        h += '<div class="box"><b>Your next shifts</b>' + ((j.shifts || []).length ? j.shifts.map(function (s) { return '<p style="margin:8px 0 0"><b>' + esc(s.when) + '</b><span class="tsum" style="display:block">' + esc(s.where) + '</span></p>'; }).join('') : '<p class="note">No shifts in Deputy for the next two weeks.</p>') +
+          '<button type="button" class="chip ihgo" data-v="shifts" style="margin-top:10px">Offer an extra shift</button></div>';
+        (up.gdays || []).forEach(function (g) { h += '<div class="box"><b>Grading today · ' + esc(g.s || '') + '</b><p class="note">' + esc((g.t || '') + (g.a ? ' · ' + g.a : '')) + '</p><button type="button" class="chip ihgo" data-v="grading">Open gradings</button></div>'; });
+        cls.forEach(function (c) { (by[c.s] = by[c.s] || []).push(c); });
+        h += '<div class="tday" style="margin-top:12px">Classes today</div>' + (Object.keys(by).length ? Object.keys(by).map(function (s) {
+          return '<div class="box"><b>' + esc(s) + '</b>' + by[s].map(function (c) { var past = c.b && up.now && c.b < up.now; return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);margin-top:8px"><div><b>' + esc(c.a || '') + '</b> ' + esc(c.n || '') + '<span class="tsum" style="display:block">' + (c.c ? c.c + ' signed in' : 'Nobody signed in yet') + '</span></div>' + (past ? '<span class="chip">Done</span>' : '<button type="button" class="chip ihgo" data-v="attendance">Sign students in</button>') + '</div>'; }).join('') + '</div>'; }).join('') : '<div class="box"><p>No classes today at your schools.</p></div>');
+        var ev = (up.events || []).slice(0, 5); if (ev.length) h += '<div class="tday" style="margin-top:12px">Coming up</div><div class="box">' + ev.map(function (e) { return '<p style="margin:6px 0"><b>' + esc(e.t) + '</b><span class="tsum" style="display:block">' + esc(e.w || '') + '</span></p>'; }).join('') + '</div>';
+      } else if (IHV.tab === 'curr') {
+        h += '<p class="note">Courses live in the AMA course portal. Sign in with your AMA email. No access yet? Tap Ask for access and you will be added.</p>' + (j.courses || []).map(function (c) {
+          var st = IH_CL[c.key] ? ihAsked(IH_CL[c.key]) : '';
+          return '<div class="box"><b>' + esc(c.name) + '</b><p class="tsum" style="margin:2px 0 8px">For: ' + esc(c.who) + '</p>' + (c.live ? '<div class="chips"><a class="btn" style="width:auto;padding:9px 16px;display:inline-block" target="_blank" rel="noopener" href="' + esc(j.portal + (c.pid ? 'courses/products/' + c.pid : '')) + '">Open course</a>' + (st ? '<span class="chip" aria-pressed="' + (st === 'approved' || st === 'given') + '">Access ' + esc(st) + '</span>' : '<button type="button" class="chip ihask" data-v="' + esc(c.key) + '">Ask for access</button>') + '</div>' : '<span class="chip">Being built</span>') + '</div>';
+        }).join('');
+      } else if (IHV.tab === 'dev') {
+        var m = IHV.me && IHV.me.me, row = function (a, b) { return '<p style="margin:6px 0;display:flex;justify-content:space-between;gap:10px"><span class="tsum">' + a + '</span><b style="text-align:right">' + b + '</b></p>'; };
+        h += !m ? '<div class="box"><b>Your profile</b><p class="note">' + (IHV.me === undefined ? 'Loading…' : 'Your hub name does not match your name in Deputy yet, so your profile cannot load. Let management know.') + '</p></div>'
+          : '<div class="box"><b>Your profile</b>' + row('Pathway', esc(m.path || 'Not set yet')) + row('Your manager', esc(m.mgrName || 'Not assigned yet')) + row('Roles', esc((m.roles || []).join(', ') || '–')) + row('Schools', esc((m.schools || []).join(', ') || '–')) +
+            row('Working With Children Check expires', esc(m.wwcc ? ihNice(m.wwcc) : 'Not recorded')) + row('First aid expires', esc(m.fa ? ihNice(m.fa) : 'Not recorded')) + '</div>' +
+            '<div class="box"><b>Your one-on-ones and recognition</b>' + ((IHV.me.recs || []).length ? IHV.me.recs.map(function (r) { return '<p style="margin:8px 0 0"><span class="tsum">' + esc(r.type) + ' · ' + esc(ihNice(r.at)) + '</span><br>' + esc(r.title) + (r.actions ? '<span class="tsum" style="display:block">Actions: ' + esc(r.actions) + '</span>' : '') + '</p>'; }).join('') : '<p class="note">Nothing yet. Your monthly one-on-ones will show here.</p>') + '</div>';
+        h += '<div class="box"><b>Grow your skills</b>' + [['academy', 'Instructor Academy', '52 weeks: teaching, presence, age groups, leadership.'], ['saleslab', 'Sales Lab', 'Trials, enrolments and parent conversations.']].map(function (p) { var st = ihAsked(p[1]);
+          return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);margin-top:8px"><div><b>' + p[1] + '</b><span class="tsum" style="display:block">' + p[2] + '</span></div>' + (st ? '<span class="chip">' + esc(st) + '</span>' : '<button type="button" class="chip ihask" data-v="' + p[0] + '">Ask to join</button>') + '</div>'; }).join('') + '</div>';
+      } else if (IHV.tab === 'tools') {
+        h += '<div class="trials">' + [['attendance', 'Sign students in, add anyone who forgot'], ['trials', 'Who is trialling and how it went'], ['absvideo', 'Personal videos for students who have been away'], ['newmem', 'Students in their first 90 days'], ['grading', 'Grading days and prep sessions'], ['shifts', 'Offer a shift or pick up an open one'], ['clock', 'Open Deputy'], ['toolkit', 'Grading floor and black belt prep'], ['hubreq', 'Ask for a change to the hub']]
+          .filter(function (t) { return I[t[0]] && (!I[t[0]].can || I[t[0]].can()); }).map(function (t) { return '<button type="button" class="trial ihgo" data-v="' + t[0] + '" style="text-align:left;width:100%"><div class="w"><b>' + esc(I[t[0]].l) + '</b><span>' + t[1] + '</span></div></button>'; }).join('') + '</div>' +
+          '<p class="note" style="margin-top:12px">Onboarding, move reviews, your availability, Grow and earn and class audits are still in the hub: <a href="' + HUB_URL + '" target="_blank" rel="noopener">open the hub &#8599;</a></p>';
+      }
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('[data-iht]'), function (b) { b.onclick = function () { if (b.dataset.iht === 'pb') { CUR = 'playbook'; go('playbook'); loadPb('Team'); return; } IHV.tab = b.dataset.iht; drawIh(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.ihgo'), function (b) { b.onclick = function () { openItem(b.dataset.v); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.ihask'), function (b) { b.onclick = function () { b.disabled = true; b.textContent = 'Sending…';
+        hubAct({ kind: 'trainreq', program: b.dataset.v }).then(function (r) { if (r && r.ok) { (IHV.d.asked = IHV.d.asked || []).push({ p: IH_CL[b.dataset.v], s: r.status || 'requested' }); drawIh(); } else { b.disabled = false; b.textContent = 'Try again'; alert((r && r.error) || 'That did not work.'); } }); }; });
     }
     /* Birthday parties (preview): every party by stage, its details, stage, checklist and notes. Placing a party in a time slot stays in the hub. */
     var PT = { open: '', st: 'Open' };
