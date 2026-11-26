@@ -12,6 +12,17 @@ import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMem
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
 // 27 Nov 2026 (Mark): Tate tests every new system as it comes across, so he gets each preview too.
 const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook"];
+const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600 }; // seconds a saved copy may be shown
+const hubKey = (first: string, body: Record<string, unknown>) => "hub:" + first + ":" + String(body.kind) + (body.kind === "check" ? ":" + String(body.loc ?? "") + ":" + String(body.date ?? "") : "");
+async function hubCall(who: string, mobile: string, body: Record<string, unknown>) {
+  const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return { ok: false, error: "AMA OS can't reach the hub yet (no sync key)." } as Record<string, unknown>;
+  const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
+    body: JSON.stringify({ kind: "amaoswrite", key, who, act: "route", mobile, body }) });
+  return await r.json().catch(() => ({ ok: false, error: "The hub didn't answer properly (" + r.status + ")." })) as Record<string, unknown>;
+}
+async function hubSave(ck: string, data: Record<string, unknown>) {
+  await sql`insert into ama_os.cache (key, data, at) values (${ck}, ${sql.json(data as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+}
 const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
 const MGMT = ["mark", "sarah", "hakan", "ridvan"];
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
@@ -207,6 +218,15 @@ async function find(q: string, money: boolean) {
    what: "efc" (one school), "trials" (GHL), "dash" (both home page versions). */
 async function refresh(what: string, school: string) {
   if (what === "efc") return await pullSchool(EFC_SCHOOLS.includes(school) ? school : "Marrickville");
+  if (what === "hubwarm") {
+    // Keeps each preview person's Approvals and My Day ready, so they open instantly (7am to 9pm).
+    const h = Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+    if (h < 7 || h > 21) return { skipped: "night" };
+    const ppl = await sql`select name, phone from ama_os.staff where active and coalesce(phone, '') <> ''`, done: string[] = [];
+    for (const p of ppl) { const first = String(p.name).trim().split(/\s+/)[0].toLowerCase(); if (!HUB_PREVIEW.includes(first)) continue;
+      for (const kind of ["approvals", "mywork"]) { const body = { kind }; const o = await hubCall(String(p.name), String(p.phone), body).catch(() => ({ ok: false })) as Record<string, unknown>; if (o.ok) { await hubSave(hubKey(first, body), o); done.push(first + ":" + kind); } } }
+    return { warmed: done };
+  }
   if (what === "efcnext") {
     // Database timer, every minute: carry on a half-done school, else refresh the school saved longest ago (if over 10 minutes old).
     const c = await sql`select key, at from ama_os.cache where key like 'efc_pull_%' or key like 'efc_school_%'`;
@@ -294,17 +314,28 @@ Deno.serve(async (req) => {
       return json({ ok: true, sending: sw[0]?.value ?? "off", list: rows });
     }
     if (b.act === "hub") {
-      // 27 Nov 2026: hub actions run AS this staff member through the hub (its permissions, texts and logs apply). Preview on Mark's login first.
+      // 27 Nov 2026: hub actions run AS this staff member through the hub (its permissions, texts and logs apply). Preview list only.
+      // Screens that only read (approvals, My Day...) answer instantly from this person's last copy; the screen then asks again with fresh: true.
       if (!HUB_PREVIEW.includes(me.first)) return json({ ok: false, error: "Not switched on for you yet." }, 403);
-      const body = (b as { body?: Record<string, unknown> }).body ?? {}, kind = String(body.kind ?? "");
+      const body = (b as { body?: Record<string, unknown> }).body ?? {}, kind = String(body.kind ?? ""), fresh = !!(b as { fresh?: boolean }).fresh;
       if (!HUB_KINDS.includes(kind)) return json({ ok: false, error: "Not available in AMA OS yet." });
-      const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return json({ ok: false, error: "AMA OS can't reach the hub yet (no sync key)." });
-      const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
-        body: JSON.stringify({ kind: "amaoswrite", key, who: me.name, act: "route", mobile: String(me.login ?? ""), body }) });
-      const out = await r.json().catch(() => ({ ok: false, error: "The hub didn't answer properly (" + r.status + ")." })) as Record<string, unknown>;
-      if (!["approvals", "mywork", "mwtick", "check", "reqlist", "trialopts", "trialslots"].includes(kind)) await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body, ok: !!out.ok, error: out.error ?? null } as never)})`;
+      const ttl = HUB_READ[kind];
+      if (ttl) {
+        const ck = hubKey(me.first, body), hit = await sql`select data, at from ama_os.cache where key = ${ck}`;
+        const age = hit.length ? Date.now() - new Date(hit[0].at as string).getTime() : Infinity;
+        if (!fresh && age < ttl * 1000) {
+          return json({ ...(hit[0].data as Record<string, unknown>), cachedAt: new Date(hit[0].at as string).toISOString() });
+        }
+        const out = await hubCall(me.name, String(me.login ?? ""), body); if (out.ok) await hubSave(ck, out);
+        return json(out);
+      }
+      const out = await hubCall(me.name, String(me.login ?? ""), body);
+      if (!["trialslots"].includes(kind)) await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body, ok: !!out.ok, error: out.error ?? null } as never)})`;
+      // Something changed: this person's saved copies are out of date (class lists stay).
+      if (out.ok && kind !== "trialslots") await sql`delete from ama_os.cache where key like ${"hub:" + me.first + ":%"} and key not like ${"hub:" + me.first + ":trialopts%"}`;
       return json(out);
     }
+
     if (b.act === "checksave") {
       // Preview on Mark's login only (26 Nov 2026). Saved by the hub, exactly as if done in the hub.
       if (!HUB_PREVIEW.includes(me.first)) return json({ ok: false, error: "Not switched on for you yet." }, 403);

@@ -539,7 +539,7 @@
     function loadBook() {
       var el = $('tabBook');
       if (!BK.opts) { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="note">Loading classes…</p>';
-        hubAct({ kind: 'trialopts' }).then(function (j) { if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="msg err">' + esc((j && j.error) || 'Could not load the classes.') + '</p>'; return; } BK.opts = j; drawBook(); })
+        hubRead({ kind: 'trialopts' }, 'book', function (j) { if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="msg err">' + esc((j && j.error) || 'Could not load the classes.') + '</p>'; return; } BK.opts = j; drawBook(); })
           .catch(function () { el.innerHTML = '<h2 class="sec">Book a trial</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; }); return; }
       drawBook();
     }
@@ -588,7 +588,7 @@
         '<div class="chips"><button type="button" class="chip" data-cd="-1">&#8592; Day before</button><span class="tsum" style="margin:8px 6px">' + esc(nice(CK.date)) + '</span><button type="button" class="chip" data-cd="1">Next day &#8594;</button></div><div id="ckBody"><p class="note">Loading…</p></div>';
       Array.prototype.forEach.call(el.querySelectorAll('[data-cl]'), function (b) { b.onclick = function () { CK.loc = b.dataset.cl; CK.open = ''; loadChk(); }; });
       Array.prototype.forEach.call(el.querySelectorAll('[data-cd]'), function (b) { b.onclick = function () { CK.date = ymdAdd(CK.date, +b.dataset.cd); CK.open = ''; loadChk(); }; });
-      hubAct({ kind: 'check', loc: CK.loc, date: CK.date }).then(function (j) { CK.data = j; drawChk(); }).catch(function () { $('ckBody').innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+      hubRead({ kind: 'check', loc: CK.loc, date: CK.date }, 'checkday', function (j) { if (j && j.ok && j.loc && j.loc !== CK.loc) return; CK.data = j; drawChk(); }).catch(function () { $('ckBody').innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     function drawChk() {
       var j = CK.data, box = $('ckBody'); if (!box) return;
@@ -629,7 +629,7 @@
     /* Requests to log (preview on Mark's login): hold and cancellation requests that came in by email or text, from the hub. */
     function loadReq() {
       var el = $('tabReq'); el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="note">Loading…</p>';
-      hubAct({ kind: 'reqlist' }).then(function (j) {
+      hubRead({ kind: 'reqlist' }, 'requests', function (j) {
         if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
         var O = j.open || [], R = j.recent || [];
         var card = function (r, open) {
@@ -652,7 +652,9 @@
     function openHref(u) { u = String(u || ''); if (!u) return; if (/^https?:/.test(u)) { window.open(u, '_blank', 'noopener'); return; } var k = u.split('?')[0]; if (HUBMAP[k]) return go(HUBMAP[k]); window.open(HUB_URL + u, '_blank', 'noopener'); }
     function loadDay(fresh) {
       var el = $('tabDay'); if (!el.innerHTML || fresh) el.innerHTML = '<h2 class="sec">My Day</h2><p class="note">Loading your work…</p>';
-      hubAct({ kind: 'mywork', fresh: !!fresh }).then(function (j) {
+      (fresh ? hubAct({ kind: 'mywork' }, true).then(function (j) { return j; }) : Promise.resolve(null)).then(function (pre) { return pre ? (dayDraw(pre), null) : hubRead({ kind: 'mywork' }, 'myday', dayDraw); }).catch(function () { $('tabDay').innerHTML = '<h2 class="sec">My Day</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function dayDraw(j) { var el = $('tabDay');
         if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">My Day</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
         var groups = (j.groups || []).filter(function (g) { return g.items && g.items.length; }), all = [];
         var h = '<h2 class="sec">Your work today, ' + esc(String(j.name || ME.name || '').split(' ')[0]) + '</h2><div class="chips">' + (j.approvals ? '<button type="button" class="btn" id="dayAp" style="width:auto;padding:10px 18px">Approvals · ' + j.approvals + '</button>' : '') + '<button type="button" class="chip" id="dayRf">Refresh</button></div>';
@@ -676,13 +678,17 @@
             c.style.opacity = '.4'; hubAct({ kind: 'mwtick', k: it.stage + '|' + it.who }).then(function () { c.remove(); }).catch(function () { c.style.opacity = ''; });
           };
         });
-      }).catch(function () { el.innerHTML = '<h2 class="sec">My Day</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     /* Approvals (preview on Mark's login): the hub's own approvals list and buttons, run as you through the hub. */
-    function hubAct(body) { return api('amaos-dash', { act: 'hub', body: body }); }
+    function hubAct(body, fresh) { return api('amaos-dash', { act: 'hub', body: body, fresh: !!fresh }); }
+    /* Read screens show the last saved copy at once, then quietly fetch the latest from the hub and redraw if anything changed. */
+    function hubRead(body, view, cb) {
+      return hubAct(body).then(function (j) { cb(j);
+        if (j && j.cachedAt) hubAct(body, true).then(function (j2) { if (CUR !== view || !j2 || !j2.ok) return; var a = Object.assign({}, j); delete a.cachedAt; if (JSON.stringify(a) !== JSON.stringify(j2)) cb(j2); }).catch(function () {}); });
+    }
     function loadAppr() {
       var el = $('tabAppr'); el.innerHTML = '<h2 class="sec">Approvals</h2><p class="note">Loading what is waiting on you…</p>';
-      hubAct({ kind: 'approvals' }).then(function (j) {
+      hubRead({ kind: 'approvals' }, 'approvals', function (j) {
         if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Approvals</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
         var items = j.items || [];
         el.innerHTML = '<h2 class="sec">Approvals</h2><p class="note">Saved by the hub exactly as if you tapped it there: the same texts go to families, once.</p>' +
