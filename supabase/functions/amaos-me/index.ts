@@ -1,7 +1,7 @@
 // amaos-me: who is signed in, and what can they see in AMA OS?
 // Owners, full-access admins and admins must also confirm with a passkey or an authenticator app.
 // Uses the ama_os_app database login only (never the service-role key), so it cannot see Toolkit tables.
-import { claims, cors, getUser, hasStepUp, sql } from "../_shared/amaos.ts";
+import { claims, cors, getUser, hasStepUp, passkeySignIn, sql } from "../_shared/amaos.ts";
 
 const SECOND_STEP_ROLES = ["owner", "full", "admin"];
 
@@ -23,7 +23,8 @@ Deno.serve(async (req) => {
 
     const needs = SECOND_STEP_ROLES.includes(s.role);
     const aal = String(claims(auth).aal ?? "aal1");
-    const passkey = needs && aal !== "aal2" ? await hasStepUp(req, u.id) : false;
+    const native = passkeySignIn(auth);
+    const passkey = needs && aal !== "aal2" ? (native || await hasStepUp(req, u.id)) : false;
     if (needs && aal !== "aal2" && !passkey) {
       const pk = await sql`select count(*)::int as n from ama_os.passkeys where user_id = ${u.id}`;
       return json({ ok: false, mfa: true, passkeys: pk[0].n, name: s.name, role: s.role, error: "Confirm it's you." }, 403);
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     if (req.headers.get("x-amaos-event") === "signin") {
       await sql`insert into ama_os.audit (actor, actor_login, role, action, detail)
         values (${s.name}, ${u.digits || u.email}, ${s.role}, 'signin',
-                ${sql.json({ second_step: needs ? (aal === "aal2" ? "authenticator" : "passkey") : "none", ua: (req.headers.get("user-agent") ?? "").slice(0, 160) })})`;
+                ${sql.json({ second_step: needs ? (aal === "aal2" ? "authenticator" : native ? "passkey sign-in" : "passkey") : (native ? "passkey sign-in" : "none"), ua: (req.headers.get("user-agent") ?? "").slice(0, 160) })})`;
     }
     return json({ ok: true, email: s.email, name: s.name, role: s.role, secondStep: needs });
   } catch (_e) {

@@ -35,6 +35,12 @@ export async function getUser(authHeader: string) {
   return { id: data.user.id, email: hub ? "" : email, digits };
 }
 
+/** 26 Nov 2026: signing in with a passkey (Supabase Auth passkeys, shared with the Toolkit) is itself a strong sign-in
+ *  (the device plus face/fingerprint/PIN), so it counts as the second step for owners and admins. */
+export function passkeySignIn(authHeader: string) {
+  const amr = (claims(authHeader).amr ?? []) as ({ method?: string } | string)[];
+  return Array.isArray(amr) && amr.some((x) => /passkey|webauthn/i.test(typeof x === "string" ? x : String(x?.method ?? "")));
+}
 export async function sha256(s: string) {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -60,7 +66,7 @@ export async function requireStaff(req: Request): Promise<{ staff?: Staff; error
     order by (role = 'full') desc, preview desc limit 1`;
   if (!rows.length || !rows[0].preview) return { error: "Not allowed.", status: 403 };
   const s = rows[0];
-  if (SECOND_STEP.includes(s.role) && String(claims(auth).aal ?? "aal1") !== "aal2" && !(await hasStepUp(req, u.id))) return { error: "Confirm it's you first.", status: 403 };
+  if (SECOND_STEP.includes(s.role) && String(claims(auth).aal ?? "aal1") !== "aal2" && !passkeySignIn(auth) && !(await hasStepUp(req, u.id))) return { error: "Confirm it's you first.", status: 403 };
   return { staff: { name: s.name, role: s.role, email: s.email, first: String(s.name).trim().split(/\s+/)[0].toLowerCase(), login: u.digits || u.email } };
 }
 

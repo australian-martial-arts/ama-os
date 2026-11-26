@@ -115,10 +115,15 @@
       <img class="logo" src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="AMA">
       <h1>AMA <span>OS</span></h1>
       <section id="stepEmail">
+        <div id="pkSignWrap" hidden style="margin-bottom:16px">
+          <button class="btn" type="button" id="pkSignBtn" style="width:100%">Sign in with a passkey</button>
+          <p class="note" style="margin:8px auto 0">Sign in with your face, fingerprint or phone instead of your mobile and PIN. One passkey works on the AMA Toolkit and AMA OS.</p>
+          <p class="note" style="margin:10px auto 0">or</p>
+        </div>
         <p>Staff sign-in, with the same mobile and PIN as the hub and the Toolkit.</p>
         <form id="emailForm">
           <label for="email">Your mobile number</label>
-          <input id="email" type="tel" inputmode="tel" autocomplete="username" required placeholder="04xx xxx xxx">
+          <input id="email" type="tel" inputmode="tel" autocomplete="tel webauthn" required placeholder="04xx xxx xxx">
           <label for="pin">Your hub PIN</label>
           <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="PIN">
           <button class="btn" id="sendBtn" type="submit">Sign in</button>
@@ -155,7 +160,7 @@
     <aside class="side" id="side">
       <div class="top"><img src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="AMA"><span class="brand">AMA <span>OS</span></span></div>
       <nav class="scroll" id="nav"></nav>
-      <div class="foot">Signed in as <b id="whoName"></b> · <span id="whoRole"></span><br><button class="link" type="button" id="outBtn" style="padding:4px 0">Sign out</button></div>
+      <div class="foot">Signed in as <b id="whoName"></b> · <span id="whoRole"></span><br><button class="link" type="button" id="pkSettingsBtn" style="padding:4px 0">Passkeys</button> · <button class="link" type="button" id="outBtn" style="padding:4px 0">Sign out</button></div>
     </aside>
     <div class="scrim" id="scrim"></div>
     <div class="main">
@@ -175,11 +180,12 @@
       <section id="tabHub" hidden></section>
       <section id="tabConn" hidden></section>
       <section id="tabAuto" hidden></section>
+      <section id="tabPk" hidden></section>
     </div>
   </div>
 
   <script src="config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
   <script>
   (function () {
@@ -274,17 +280,18 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'passkeys') { $('tabPk').hidden = false; loadPasskeys(); window.scrollTo(0, 0); }
       else if (view === 'autos') { $('tabAuto').hidden = false; loadAutos(); window.scrollTo(0, 0); }
       else if (view === 'conns') { $('tabConn').hidden = false; loadConns(); window.scrollTo(0, 0); }
       else if (view.indexOf('list:') === 0) { $('tabList').hidden = false; loadList(view.slice(5)); window.scrollTo(0, 0); }
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -324,6 +331,103 @@
           '<div class="box"><table class="t"><tr><th>Automation</th><th style="text-align:left">Sends</th><th style="text-align:left">Run by</th></tr>' + j.list.map(function (a) {
             return '<tr><td style="white-space:normal">' + esc(a.name) + '</td><td style="text-align:left">' + esc(a.what) + '</td><td style="text-align:left"><span class="st' + (a.owner === 'amaos' ? ' en' : '') + '">' + (a.owner === 'amaos' ? 'AMA OS' : 'Hub') + '</span></td></tr>'; }).join('') + '</table></div>';
       }).catch(function () { el.innerHTML = '<h2 class="sec">Automations</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    /* ---------- Passkeys (Supabase Auth, shared with the AMA Toolkit: same login, Relying Party train-ama.com) ----------
+       They only work on the addresses Tate listed (app.train-ama.com, ama-os.train-ama.com), so the buttons only show there. */
+    var PK_OK = !!window.PublicKeyCredential && /(^|\.)train-ama\.com$/.test(location.hostname);
+    function pkCancelled(e) { var t = [e && e.name, e && e.code, e && e.message, e && e.cause && e.cause.name].join(' '); return /NotAllowed|ABORT|cancel/i.test(t); }
+    function pkGone(e) { return /credential_not_found/i.test([e && e.code, e && e.message].join(' ')); }
+    function deviceName() {
+      var u = navigator.userAgent, dev = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1) ? 'iPad' : /Android/.test(u) ? 'Android' : /Macintosh|Mac OS X/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : /CrOS/.test(u) ? 'Chromebook' : /Linux/.test(u) ? 'Linux' : 'This device';
+      var br = /Edg\//.test(u) ? 'Edge' : /SamsungBrowser/.test(u) ? 'Samsung Internet' : /Firefox|FxiOS/.test(u) ? 'Firefox' : /Chrome|CriOS/.test(u) ? 'Chrome' : /Safari/.test(u) ? 'Safari' : 'Browser';
+      return dev + ' · ' + br;
+    }
+    if (PK_OK) $('pkSignWrap').hidden = false;
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+    function ssSet(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) {} }
+    var PK_LABEL = 'Sign in with a passkey', pkCtl = null, pkBusy = false;
+    // Passkey worked: remember this device, start the session, carry on as a normal sign-in.
+    function pkFinish(r) {
+      var ses = r && r.data && r.data.session; if (!ses) return Promise.reject(new Error('no session'));
+      lsSet('ama_passkey_here', '1'); stopCond();
+      return sb.auth.setSession({ access_token: ses.access_token, refresh_token: ses.refresh_token }).then(function () { justSignedIn = true; whoAmI(); });
+    }
+    function pkFail(e) { if (pkGone(e)) msg('That passkey has been removed. Sign in the normal way with your mobile and PIN.', 'err'); else if (!pkCancelled(e)) msg('Passkey sign-in did not work. Try again, or use your mobile and PIN.', 'err'); }
+    function pkBtn(waiting) { var b = $('pkSignBtn'); b.disabled = !!waiting; b.textContent = waiting ? 'Waiting for your passkey…' : PK_LABEL; }
+    // 3. Autofill: the passkey appears in the mobile box's autofill list.
+    function stopCond() { if (pkCtl) { try { pkCtl.abort(); } catch (e) {} pkCtl = null; } }
+    function startCond() {
+      if (!PK_OK || pkCtl || pkBusy || !PublicKeyCredential.isConditionalMediationAvailable) return;
+      PublicKeyCredential.isConditionalMediationAvailable().then(function (ok) {
+        if (!ok || pkCtl || pkBusy || $('stepEmail').hidden) return;
+        var c = pkCtl = new AbortController();
+        sb.auth.signInWithPasskey({ options: { mediation: 'conditional', signal: c.signal } }).then(function (r) {
+          if (pkCtl === c) pkCtl = null;
+          if (r && !r.error && r.data && r.data.session) return pkFinish(r);
+        }).catch(function () { if (pkCtl === c) pkCtl = null; });
+      }).catch(function () {});
+    }
+    // 2. On a device that has used a passkey, ask for it straight away (once per tab).
+    var pkGateDone = false;
+    function pkGate() {
+      if (!PK_OK) return;
+      if (pkGateDone) { startCond(); return; }
+      pkGateDone = true;
+      if (lsGet('ama_passkey_here') !== '1' || ssGet('ama_pk_asked')) { startCond(); return; }
+      ssSet('ama_pk_asked', '1'); pkBusy = true; pkBtn(true);
+      var t0 = Date.now();
+      var done = function (e) {
+        pkBusy = false; pkBtn(false);
+        if (Date.now() - t0 < 600) ssSet('ama_pk_asked', null); // browser wouldn't ask without a tap (Safari): fall back quietly
+        else if (e && pkGone(e)) pkFail(e);                       // otherwise cancelled: say nothing
+        startCond();
+      };
+      sb.auth.signInWithPasskey().then(function (r) {
+        if (r && !r.error && r.data && r.data.session) { pkBusy = false; pkBtn(false); return pkFinish(r); }
+        done(r && r.error);
+      }).catch(done);
+    }
+    // 4. The button: drop the autofill request first (one passkey request at a time), then ask.
+    $('pkSignBtn').onclick = function () {
+      stopCond(); pkBusy = true; pkBtn(true); msg('');
+      sb.auth.signInWithPasskey().then(function (r) {
+        pkBusy = false; pkBtn(false);
+        if (r.error) { pkFail(r.error); startCond(); return; }
+        if (!(r.data && r.data.session)) { msg('Passkey sign-in did not work. Try again, or use your mobile and PIN.', 'err'); startCond(); return; }
+        return pkFinish(r);
+      }).catch(function (e) { pkBusy = false; pkBtn(false); pkFail(e); startCond(); });
+    };
+    $('pkSettingsBtn').onclick = function () { go('passkeys'); };
+    function loadPasskeys() {
+      var el = $('tabPk'), head = '<h2 class="sec">Passkeys</h2><p class="note">Sign in with your face, fingerprint or phone instead of your mobile and PIN. One passkey works on the AMA Toolkit and AMA OS.</p>';
+      if (!PK_OK) { el.innerHTML = head + '<div class="box"><p>' + (window.PublicKeyCredential ? 'Passkeys work on <b>ama-os.train-ama.com</b> (and the AMA Toolkit). Open AMA OS there to add or use one.' : 'This browser does not support passkeys.') + '</p></div>'; return; }
+      el.innerHTML = head + '<div class="box"><button class="btn" type="button" id="pkAddNative">Add a passkey on this device</button><p class="tsum" id="pkMsg" style="margin-top:10px"></p><div id="pkList"><p class="note">Loading…</p></div></div>';
+      var say = function (t, ok) { var m = $('pkMsg'); m.textContent = t || ''; m.style.color = ok ? 'var(--ok)' : 'var(--err)'; };
+      var list = function () {
+        sb.auth.passkey.list().then(function (r) {
+          var L = (r && r.data) || [];
+          if (r && r.error) { $('pkList').innerHTML = '<p class="msg err">Could not load your passkeys.</p>'; return; }
+          $('pkList').innerHTML = L.length ? '<table class="t"><tr><th>Passkey</th><th style="text-align:left">Added</th><th style="text-align:left">Last used</th><th></th></tr>' + L.map(function (k) {
+            return '<tr><td style="white-space:normal">' + esc(k.friendly_name || 'Passkey') + '</td><td style="text-align:left">' + esc(k.created_at ? when(k.created_at) : '') + '</td><td style="text-align:left">' + esc(k.last_used_at ? when(k.last_used_at) : 'Not yet') + '</td><td><button class="chip" type="button" data-del="' + esc(k.id) + '">Remove</button></td></tr>'; }).join('') + '</table>'
+            : '<p class="note">No passkeys yet.</p>';
+          Array.prototype.forEach.call($('pkList').querySelectorAll('[data-del]'), function (x) { x.onclick = function () {
+            if (!confirm('Remove this passkey? You will not be able to sign in with it on any device or site.')) return;
+            x.disabled = true; sb.auth.passkey.delete({ passkeyId: x.dataset.del }).then(function (d) { if (d && d.error) { x.disabled = false; say('Could not remove it. Please try again.'); return; } say('Passkey removed.', true); list(); }); }; });
+        }).catch(function () { $('pkList').innerHTML = '<p class="msg err">Could not load your passkeys.</p>'; });
+      };
+      $('pkAddNative').onclick = function () {
+        var b = $('pkAddNative'); b.disabled = true; say('Follow the prompt on your device…', true);
+        sb.auth.registerPasskey().then(function (r) {
+          b.disabled = false;
+          if (r.error) { if (pkCancelled(r.error)) say(''); else say('Could not add a passkey. Please try again.'); return; }
+          var id = r.data && r.data.id, nm = deviceName();
+          lsSet('ama_passkey_here', '1');
+          return (id ? sb.auth.passkey.update({ passkeyId: id, friendlyName: nm }) : Promise.resolve()).then(function () { say('Passkey added (' + nm + '). Next time, tap Sign in with a passkey.', true); list(); });
+        }).catch(function (e) { b.disabled = false; if (pkCancelled(e)) say(''); else say('Could not add a passkey. Please try again.'); });
+      };
+      list();
     }
     function appStart(j) {
       ME = { name: j.name, role: j.role, first: String(j.name || '').trim().split(/\s+/)[0].toLowerCase() };
@@ -468,14 +572,14 @@
 
     function whoAmI() {
       return sb.auth.getSession().then(function (r) {
-        var s = r.data && r.data.session; if (!s) { show('stepEmail'); return; }
+        var s = r.data && r.data.session; if (!s) { show('stepEmail'); pkGate(); return; }
         var hdr = { Authorization: 'Bearer ' + s.access_token, apikey: C.supabaseAnonKey }; var su = getStep(); if (su) hdr['x-amaos-stepup'] = su; if (justSignedIn) { hdr['x-amaos-event'] = 'signin'; justSignedIn = false; }
         return fetch(C.supabaseUrl + '/functions/v1/amaos-me', { method: 'POST', headers: hdr })
           .then(function (res) { return res.json(); })
           .then(function (j) {
             if (!j.ok && j.mfa) { msg(''); return startMfa(j.passkeys || 0); }
             if (!j.ok) { msg(j.error || 'Not allowed.', 'err'); sb.auth.signOut(); show('stepEmail'); return; }
-            idle(); $('pkAddBtn').hidden = true; if (j.secondStep && window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn()) pk('status').then(function (p) { $('pkAddBtn').hidden = !(p.ok && p.count === 0); });
+            idle(); $('pkAddBtn').hidden = true;
             appStart(j);
           });
       }).catch(function () { msg('Could not reach AMA OS. Please try again.', 'err'); });
@@ -485,7 +589,7 @@
       e.preventDefault(); email = toPhone($('email').value);
       if (!email) { msg('Enter your Australian mobile, e.g. 0412 345 678.', 'err'); return; }
       var pin = $('pin').value.trim(); if (!pin) { msg('Enter your PIN.', 'err'); return; }
-      $('sendBtn').disabled = true; msg('Signing in…');
+      stopCond(); $('sendBtn').disabled = true; msg('Signing in…');
       // One login for AMA OS and the Toolkit: the Toolkit's "hub" function checks the mobile + PIN
       // against the hub (lockouts and Active status included) and returns a Supabase session.
       fetch(C.supabaseUrl + '/functions/v1/hub', { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.supabaseAnonKey },
@@ -542,7 +646,7 @@
         .catch(function (e) { $('pkAddBtn').disabled = false; msg((e && e.message && !/NotAllowed|abort/i.test(e.name || '')) ? e.message : 'Passkey set-up cancelled.', 'err'); });
     };
     $('backBtn').onclick = function () { show('stepEmail'); msg(''); };
-    $('outBtn').onclick = function () { try { sessionStorage.removeItem('amaosDash'); } catch (e) {} setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); }); };
+    $('outBtn').onclick = function () { try { sessionStorage.removeItem('amaosDash'); } catch (e) {} setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); pkGate(); }); };
 
     whoAmI();
   })();
