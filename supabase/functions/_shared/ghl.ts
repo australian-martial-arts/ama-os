@@ -90,6 +90,10 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
   const absent = new Set(Object.keys(fu).filter((id) => fu[id]["Attended"] === "Absent"));
   const byC: Record<string, Record<string, string[]>> = {};
   raw.forEach(({ e }) => { if (!e.contactId) return; const d = ymd(new Date(e.startTime).getTime()); ((byC[e.contactId] ??= {})[d] ??= []).push(e.id); });
+  // Walk-ins count as visits too (hub tcTrialNums_): event IDs starting with W, by trial date.
+  Object.values(fu).forEach((r) => { const id = String(r["Event ID"]), cid = String(r["Contact ID"] ?? ""); if (id.charAt(0) !== "W" || !cid) return;
+    const d0 = String(r["Trial date"] ?? ""), m = /^(\d{4}-\d{2}-\d{2})/.exec(d0); const d = m ? m[1] : (d0 ? ymd(new Date(d0).getTime()) : ""); if (!d || sydMidnight(d) < from) return;
+    ((byC[cid] ??= {})[d] ??= []).push(id); });
   const num = (cid: string, d: string) => { const days = Object.keys(byC[cid] ?? {}).sort(); if (!days.includes(d)) return "";
     const counted = days.filter((x) => !byC[cid][x].every((id) => absent.has(id))); const k = counted.filter((x) => x < d).length + 1, n = counted.length;
     return n === 2 ? "Trial " + Math.min(k, 2) + " of 2" : (k === 1 ? "1st" : k === 2 ? "2nd" : k === 3 ? "3rd" : k + "th") + " trial"; };
@@ -108,7 +112,8 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
   // Walk-ins: recommendations logged with no trial booked (event IDs start with W), as on the hub.
   Object.values(fu).forEach((r) => { const id = String(r["Event ID"]); if (id.charAt(0) !== "W") return;
     const at = new Date(String(r["Reported at"] || r["Trial date"] || "")).getTime(); if (!at || at < showFrom || at >= showTo) return;
-    trials.push({ t: at, id, cid: String(r["Contact ID"] ?? ""), src: "", day: dayText(at), time: timeText(at), loc: String(r["Location"] ?? ""), who: String(r["Child"] || r["Parent"] || ""), cls: "Walk-in (no trial booked)", num: "", past: true,
+    const wcid = String(r["Contact ID"] ?? "");
+    trials.push({ t: at, id, cid: wcid, src: "", day: dayText(at), time: timeText(at), loc: String(r["Location"] ?? ""), who: String(r["Child"] || r["Parent"] || ""), cls: "Walk-in (no trial booked)", num: wcid ? num(wcid, ymd(at)) : "", past: true,
       status: rec.enrolledCids.has(String(r["Contact ID"] ?? "")) ? "Enrolled" : "Rec sent", walkin: true } as never); });
   return trials.sort((a, b) => a.t - b.t);
 }
