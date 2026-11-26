@@ -27,7 +27,12 @@ export async function getUser(authHeader: string) {
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
   const { data, error } = await sb.auth.getUser();
   if (error || !data?.user) return null;
-  return { id: data.user.id, email: (data.user.email ?? "").toLowerCase(), digits: (data.user.phone ?? "").replace(/\D/g, "") };
+  const email = (data.user.email ?? "").toLowerCase();
+  let digits = (data.user.phone ?? "").replace(/\D/g, "");
+  // Toolkit logins are named after the mobile: hub-<9 digits>@staff.amatoolkit.local (0432 917 313 -> hub-432917313).
+  const hub = email.match(/^hub-(\d{9})@staff\.amatoolkit\.local$/);
+  if (!digits && hub) digits = "61" + hub[1];
+  return { id: data.user.id, email: hub ? "" : email, digits };
 }
 
 export async function sha256(s: string) {
