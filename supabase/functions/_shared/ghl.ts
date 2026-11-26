@@ -21,6 +21,22 @@ async function ghl(path: string, q: Record<string, string | number> = {}) {
   if (!r.ok) throw new Error("GHL " + path + " " + r.status);
   return await r.json();
 }
+async function ghlPost(path: string, body: unknown) {
+  const r = await fetch(BASE + path, { method: "POST", headers: { Authorization: "Bearer " + (await token()), Version: VERSION, Accept: "application/json", "content-type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error("GHL " + path + " " + r.status);
+  return await r.json();
+}
+/** Contacts on paid promotions (hub promoCids_): they skip the trial process, so their bookings don't count as trials. Cached 1 hour. */
+async function promoCids(): Promise<string[]> {
+  return await cached("ghl_promo_cids", 3600, async () => {
+    const ids = new Set<string>();
+    for (const tag of PROMO_TAGS) for (let page = 1; page <= 20; page++) {
+      const r = await ghlPost("/contacts/search", { locationId: LOCATION, pageLimit: 100, page, filters: [{ field: "tags", operator: "contains", value: tag }] });
+      const cs = (r.contacts ?? []) as { id: string }[]; cs.forEach((c) => ids.add(c.id)); if (cs.length < 100) break;
+    }
+    return [...ids];
+  });
+}
 export async function cached<T>(key: string, secs: number, fn: () => Promise<T>): Promise<T> {
   const hit = await sql`select data, at from ama_os.cache where key = ${key}`;
   if (hit.length && Date.now() - new Date(hit[0].at as string).getTime() < secs * 1000) return hit[0].data as T;
@@ -89,7 +105,8 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
   const fu: Record<string, Record<string, unknown>> = {}; rec.followup.forEach((r) => { if (r["Event ID"]) fu[String(r["Event ID"])] = r; });
   const absent = new Set(Object.keys(fu).filter((id) => fu[id]["Attended"] === "Absent"));
   const byC: Record<string, Record<string, string[]>> = {};
-  raw.forEach(({ e }) => { if (!e.contactId) return; const d = ymd(new Date(e.startTime).getTime()); ((byC[e.contactId] ??= {})[d] ??= []).push(e.id); });
+  const promoSet = new Set(await promoCids().catch(() => [] as string[]));
+  raw.forEach(({ e }) => { if (!e.contactId || promoSet.has(e.contactId)) return; const d = ymd(new Date(e.startTime).getTime()); ((byC[e.contactId] ??= {})[d] ??= []).push(e.id); });
   // Walk-ins count as visits too (hub tcTrialNums_): event IDs starting with W, by trial date.
   Object.values(fu).forEach((r) => { const id = String(r["Event ID"]), cid = String(r["Contact ID"] ?? ""); if (id.charAt(0) !== "W" || !cid) return;
     const d0 = String(r["Trial date"] ?? ""), m = /^(\d{4}-\d{2}-\d{2})/.exec(d0); const d = m ? m[1] : (d0 ? ymd(new Date(d0).getTime()) : ""); if (!d || sydMidnight(d) < from) return;
