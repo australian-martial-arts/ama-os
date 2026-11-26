@@ -1830,7 +1830,7 @@ function auditOverlaps() {
 // ---------------------------------------------------------------- TOKEN SETTER
 // Paste the new GHL token between the quotes, save, then run setTokenOnce.
 function setTokenOnce() {
-  const TOKEN = 'pit-968e3a16-e3e9-424f-8ff9-40ee8d0b2915';
+  const TOKEN = 'PASTE_TOKEN_HERE'; // 26 Nov 2026: never paste a token here (this file is backed up). Use the hub's Connections page instead.
 
   if (TOKEN.indexOf('PASTE_') === 0) {
     Logger.log('No token pasted yet - replace PASTE_TOKEN_HERE with the token from GHL.');
@@ -3141,7 +3141,7 @@ function testSelfHeal() { const p = PropertiesService.getScriptProperties(); con
 const HOLD = {
 sheetId: '1niFP6iyjEbWINasYw2S3mMBy6j-uV_s2vEFgCsbyq6s',
 tab: 'Holds',
-secret: 'ama-freeze-7f3a91',
+secret: PropertiesService.getScriptProperties().getProperty('HOLD_SECRET') || ('unset-' + Utilities.getUuid()), /* 26 Nov 2026: kept in Script Properties (HOLD_SECRET), never in this file */
 sendToMembers: true,
 approvers: [
 { name: 'Mark', mobile: '+61432917313' },
@@ -23915,7 +23915,7 @@ function tkphNow() { for (let i = 0; i < 20; i++) { const r = tkphTick_(); Logge
 
 /* 26 Nov 2026 (Mark): Connections. Owners paste a connection key (e.g. the AMA OS sync key) in the hub; it is saved straight into
    Script Properties and never shown or sent back. Only the names below can be set. */
-const CONN = { owners: ['mark', 'sarah', 'hakan', 'ridvan'], keys: { AMAOS_SYNC_KEY: 'AMA OS sync key (from Tate): nightly copy, Black Belt Oaths and grading photos', ANTHROPIC_API_KEY: 'AI feedback on move videos (Anthropic API key from console.anthropic.com)' } };
+const CONN = { owners: ['mark', 'sarah', 'hakan', 'ridvan'], keys: { GHL_TOKEN: 'GoHighLevel private integration token (every GHL read and text). Also sent to AMA OS.', AMAOS_SYNC_KEY: 'AMA OS sync key (from Tate): nightly copy, Black Belt Oaths and grading photos', ANTHROPIC_API_KEY: 'AI feedback on move videos (Anthropic API key from console.anthropic.com)' } };
 function conn_(who, b) {
   const me = String((who && who.name) || '').toLowerCase().split(' ')[0]; if (CONN.owners.indexOf(me) < 0) return { ok: false, error: 'Owners only.' };
   const P = PropertiesService.getScriptProperties(), act = String(b.act || 'list');
@@ -23932,6 +23932,7 @@ function conn_(who, b) {
     if (!CONN.keys[name]) return { ok: false, error: 'Unknown connection.' };
     if (!/^[A-Za-z0-9._~+\/=-]{24,400}$/.test(v)) return { ok: false, error: 'That does not look like a key. Paste the whole key, with no spaces.' };
     P.setProperty(name, v); P.setProperty(name + '_SET', JSON.stringify({ at: new Date().toISOString(), by: String(who.name || '') }));
+    if (name === 'GHL_TOKEN') { let t = {}; try { t = conn_(who, { act: 'toamaos' }); } catch (e) { t = { ok: false }; } return { ok: true, test: t && t.ok ? 'Saved, and sent to AMA OS.' : 'Saved. Tap Send EFC and GHL keys to AMA OS.' }; }
     if (name === 'AMAOS_SYNC_KEY') { let t = {}; try { t = amaosSyncTab_('Hub staff'); } catch (e) { t = { ok: false, error: String(e.message || e) }; } return { ok: true, test: t.ok ? 'Connected: AMA OS accepted the key (' + (t.staff || 0) + ' staff copied).' : 'Saved, but AMA OS did not accept it yet (' + (t.error || t.code || 'no reply') + '). Check the same key is in Supabase.' }; }
     return { ok: true };
   }
