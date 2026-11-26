@@ -81,7 +81,7 @@ async function dash(money: boolean) {
   const wkOf = (d: string) => { for (let i = weeks.length - 1; i >= 0; i--) if (d >= weeks[i].wk) return i; return -1; };
   nm.forEach((r) => { const d = ymd(r["Start date"], today); const i = d && d <= today ? wkOf(d) : -1; if (i > -1) weeks[i].joined++; });
   cx.forEach((r) => { const d = ymd(r["Logged at"], today); const i = d ? wkOf(d) : -1; if (i > -1) weeks[i].left++; });
-  const at = runs.reduce((m: string, r) => (String(r.at) > m ? String(r.at) : m), "");
+  const at = runs.reduce((m: string, r) => { const t = r.at ? new Date(r.at as string).toISOString() : ""; return t > m ? t : m; }, "");
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
