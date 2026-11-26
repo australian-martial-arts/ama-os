@@ -5928,7 +5928,9 @@ html,body,.bgCover{background:#0b100d!important}
 (function(){
   function E(id){return document.getElementById(id)}
   function openUpcoming(){
-    var d=E('mwOldTrials');if(!d)return;d.open=true;
+    var d=E('mwOldTrials');if(!d)return;
+    /* 26 Nov 2026 (Mark): the list lived in a hidden old section, so the button showed nothing. Move it under Today's trials (or above the home grid). */
+    var t=E('mwTrials'),g=E('mwGrid');if(t&&t.parentNode&&getComputedStyle(t).display!=='none'){if(t.nextSibling!==d)t.parentNode.insertBefore(d,t.nextSibling)}else if(g&&g.parentNode){g.parentNode.insertBefore(d,g)}d.style.marginTop='12px';d.open=true;
     var b=[].filter.call(document.querySelectorAll('#hbTrialMode button'),function(x){return /coming up/i.test(x.textContent)})[0];if(b)b.click();
     setTimeout(function(){d.scrollIntoView({behavior:'smooth',block:'start'})},150);
   }
