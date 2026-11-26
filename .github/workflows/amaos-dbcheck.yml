@@ -54,3 +54,5 @@ jobs:
           echo "== Preview testers on the hub staff list =="
           psql -c "select data->>'Name' name, data->>'Active' active, data->>'Role' role, right(regexp_replace(coalesce(data->>'Mobile',''),'\D','','g'),3) mob_end from ama_os.mirror where source='Hub staff' and lower(data->>'Name') ~ '^(mark|tate)'" || true
           psql -c "select name, role, preview, active, right(regexp_replace(coalesce(phone,''),'\D','','g'),3) phone_end from ama_os.staff where lower(name) ~ '^(mark|tate)'" || true
+          echo "== Saved hub screens =="
+          psql -c "select key, at, round(extract(epoch from now()-at)) secs_old, length(data::text) size from ama_os.cache where key like 'hub:%' order by key" || true
