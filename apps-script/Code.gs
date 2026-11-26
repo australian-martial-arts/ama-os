@@ -4681,10 +4681,18 @@ function cxLookup_(b) {
   };
 }
 
+/* 26 Nov 2026 (Mark): head instructors (by hub role, by name, or Head Instructor in Staff levels) can take notice in person. Busra could not. */
+const CX_HEAD_NAMES = ['mark', 'sarah', 'hakan', 'ridvan', 'busra'];
+function cxCanInPerson_(who) {
+  if (CANCEL.headRoles.indexOf(String((who && who.role) || '')) > -1) return true;
+  if (CX_HEAD_NAMES.indexOf(String((who && who.name) || '').toLowerCase().split(' ')[0]) > -1) return true;
+  try { const A = staffAccess_(who), lv = A.me ? staffLevels_()[A.me.id] : null; if (lv && (lv.roles || []).some(function (r) { return /Head Instructor/i.test(r); })) return true; } catch (e) { }
+  return false;
+}
 // Hub: log a cancellation (or a save).
 function cxSubmitRaw_(b, who) {
   const inPerson = b.emailIn === 'inperson' && !b.saved;
-  if (inPerson && CANCEL.headRoles.indexOf(String(who.role)) < 0) return { ok: false, error: 'Only head instructors can take notice in person. Ask them to email instead.' };
+  if (inPerson && !cxCanInPerson_(who)) return { ok: false, error: 'Only head instructors can take notice in person. Ask them to email instead.' };
   if (!b.saved && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.email || '').trim())) return { ok: false, error: 'Add the parent\'s email so they can sign the cancellation.' };
   const sh = cxSheet_(), C = cxCols_(), id = cxNewId_(), now = new Date();
   const r = CANCEL.headers.map(function () { return ''; });
