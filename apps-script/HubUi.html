@@ -11184,7 +11184,7 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
         var L=m.last;
         h+='<div class="kj-mv"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>'+esc(m.text)+'</b>'+(m.subs.length?'<div class="kj-m">'+m.subs.map(esc).join(' · ')+'</div>':'')+'</div><div>'+statusChip(m)+'</div></div>';
         if(L&&!m.done&&L.coach==='work'&&L.coachFb) h+='<div class="kj-fb"><b>What to work on</b> ('+esc(first(L.coachBy))+'): '+esc(L.coachFb)+'</div>';
-        else if(L&&!m.done&&!L.coach&&L.aiFb&&(L.status==='ai_achieved'||L.status==='ai_work')) h+='<div class="kj-fb"><b>First look:</b> '+esc(L.aiFb)+' <span class="kj-m">Your instructor will confirm.</span></div>';
+        else if(L&&!m.done&&!L.coach&&L.aiFb&&(L.status==='ai_achieved'||L.status==='ai_work')) h+='<div class="kj-fb"><b>First look:</b> '+esc(L.aiFb)+'</div>';
         else if(m.done&&L&&L.coachFb) h+='<div class="kj-fb"><b>Instructor note</b>: '+esc(L.coachFb)+'</div>';
         h+='<div class="kj-row">'+(m.video?'<button class="kj-b" data-kj="tut" data-p="'+pi+'" data-m="'+mi+'">▶ Watch how</button>':(m.cls?'':'<span class="kj-m">Tutorial video coming soon</span>'))
           +(m.done||m.cls?'':'<button class="kj-b p" data-kj="send" data-p="'+pi+'" data-m="'+mi+'">'+(L?'Send a new video':'Send a video')+'</button>')
@@ -11192,7 +11192,7 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
       });
       h+='</div>';
     });
-    h+='<div class="kj-card"><b>How this works</b><p class="kj-m">Watch the tutorial, practise at home, then film the move and send it. You get a quick first look straight away, and your instructor signs it off as <b>Intention achieved</b> or tells you <b>what to work on</b>. Partner work, sparring, meditation and life skills are checked in class. When every video move is signed off, you are ready to grade.'+(r.starsOn?' You earn 5 AMA Stars for each move you send (up to '+r.weekCap+' a week) and 20 more when the whole belt is signed off.':'')+'</p><p class="kj-m">Sent this week: '+r.sentWeek+' of '+r.weekCap+'.</p></div></div>';
+    h+='<div class="kj-card"><b>How this works</b><p class="kj-m">Watch the tutorial, practise at home, then film the move and send it. You get feedback straight away: either <b>Intention achieved</b> and the move is signed off, or <b>what to work on</b> so you can try again. Partner work, sparring, meditation and life skills are checked in class. When every video move is signed off, you are ready to grade.'+(r.starsOn?' You earn 5 AMA Stars for each move you send (up to '+r.weekCap+' a week) and 20 more when the whole belt is signed off.':'')+'</p><p class="kj-m">Sent this week: '+r.sentWeek+' of '+r.weekCap+'.</p></div></div>';
     p.innerHTML=h;
   }
   document.addEventListener('click',function(e){
@@ -11206,7 +11206,7 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
     if(a==='send'){ var pr2=KJ.d.progs[+t.getAttribute('data-p')], m2=pr2.moves[+t.getAttribute('data-m')]; if(!KJ.d.consent) consent(function(){ send(pr2,m2); }); else send(pr2,m2); }
   });
   function consent(next){
-    var md=modal('<b style="font-size:17px">Before you send videos</b><p>Your videos are only seen by you and AMA instructors.</p><p>We use an AI tool to give each move a quick first look. An AMA instructor always makes the final call.</p><p>Videos are deleted once the move is signed off, and after 12 months at the latest.</p><p>Please only film your own child, somewhere safe, with nobody else in the shot.</p><label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px"><input type="checkbox" id="kjAgree"> <span>I am the parent or guardian and I agree.</span></label><div class="kj-row" style="margin-top:12px"><button class="kj-b p" id="kjAgreeGo">Continue</button><button class="kj-b" data-x>Not now</button></div>');
+    var md=modal('<b style="font-size:17px">Before you send videos</b><p>Your videos are only seen by you and AMA instructors.</p><p>We use an AI tool to check each move.</p><p>Videos are deleted once the move is signed off, and after 12 months at the latest.</p><p>Please only film your own child, somewhere safe, with nobody else in the shot.</p><label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px"><input type="checkbox" id="kjAgree"> <span>I am the parent or guardian and I agree.</span></label><div class="kj-row" style="margin-top:12px"><button class="kj-b p" id="kjAgreeGo">Continue</button><button class="kj-b" data-x>Not now</button></div>');
     md.querySelector('[data-x]').onclick=function(){ md.remove(); };
     md.querySelector('#kjAgreeGo').onclick=function(){ if(!md.querySelector('#kjAgree').checked){ toast('Please tick the box to agree.'); return; } this.disabled=true; post({kind:'mvid',act:'consent',key:KJ.key,sid:KJ.sid}).then(function(r){ md.remove(); if(!r||!r.ok){ toast((r&&r.error)||'Could not save.'); return; } KJ.d.consent=true; next(); }); };
   }
@@ -11224,9 +11224,9 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
         return next(); })
       .then(function(file){ st.textContent='Taking a first look…'; return post({kind:'mvid',act:'submit',key:KJ.key,sid:KJ.sid,prog:pr.programme,belt:pr.belt,mkey:m.key,file:file,frames:fr||[]}); })
       .then(function(r){ if(!r||!r.ok) throw new Error((r&&r.error)||'Could not send.');
-        var ai=r.ai, msg='<p class="kj-ok">Sent! Your instructor will check it.</p>';
-        if(ai&&ai.verdict==='achieved') msg+='<div class="kj-fb"><b>First look: looking good.</b> '+esc(ai.feedback)+'</div>';
-        else if(ai&&ai.verdict==='work') msg+='<div class="kj-fb"><b>First look: something to work on.</b> '+esc(ai.feedback)+'</div>';
+        var ai=r.ai, msg='<p class="kj-ok">Sent!</p>';
+        if(ai&&ai.verdict==='achieved') msg+='<div class="kj-fb"><b>Intention achieved. Move signed off!</b> '+esc(ai.feedback)+'</div>';
+        else if(ai&&ai.verdict==='work') msg+='<div class="kj-fb"><b>Something to work on.</b> '+esc(ai.feedback)+'</div>';
         else if(ai&&ai.verdict==='unclear') msg+='<div class="kj-fb">'+esc(ai.feedback||'We could not see the move clearly. Your instructor will take a look.')+'</div>';
         if(r.stars) msg+='<p class="kj-m">+'+r.stars+' AMA Stars</p>';
         md.querySelector('.kj-box').innerHTML='<b>'+esc(m.text)+'</b>'+msg+'<div class="kj-row"><button class="kj-b p" data-x>Done</button></div>';
@@ -11240,7 +11240,7 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
   window.AMA_MREV_RENDER=function(m){ RV.root=m; m.innerHTML='<p class="kj-m">Loading move reviews…</p>'; post({kind:'mvid',act:'queue'}).then(function(r){ RV.d=r; rvPaint(); }); };
   function rvPaint(){
     var r=RV.d, m=RV.root; if(!m) return; if(!r||!r.ok){ m.innerHTML='<p class="kj-err">'+esc((r&&r.error)||'Could not load.')+'</p>'; return; }
-    var h='<div class="kj-card"><b>Move reviews</b><p class="kj-m">Students send videos of their moves from the Member Hub. '+(r.aiOn?'AI gives a first look; you make the final call.':'AI first looks start once the AI key is added.')+' Pick <b>Intention achieved</b> when the move is recognisably right for their level, or <b>What to work on</b> with one clear thing to fix. Signed-off videos are deleted straight away.</p></div>';
+    var h='<div class="kj-card"><b>Move reviews</b><p class="kj-m">Students send videos of their moves from the Member Hub. '+(r.aiOn?'AI signs off moves it can clearly see are right. Only moves to work on, or videos it could not see, come here.':'AI first looks start once the AI key is added.')+' Pick <b>Intention achieved</b> when the move is recognisably right for their level, or <b>What to work on</b> with one clear thing to fix. Signed-off videos are deleted straight away.</p></div>';
     if(!r.open.length) h+='<div class="kj-card"><p class="kj-m">Nothing waiting. Nice work, team.</p></div>';
     r.open.forEach(function(x){
       h+='<div class="kj-card" data-rid="'+esc(x.id)+'"><div style="display:flex;justify-content:space-between;gap:8px"><div><b>'+esc(x.student)+'</b> <span class="kj-m">'+esc(x.school)+' · '+esc(x.g)+'</span></div><span class="kj-m">'+esc(x.at)+'</span></div><div style="margin-top:4px">'+esc(x.move)+'</div>'

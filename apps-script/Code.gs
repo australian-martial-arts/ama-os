@@ -1,3 +1,21 @@
+// 26 Nov 2026: outside-call counter. Google caps the hub's outside calls per day; this records which function makes them.
+// Run ufReport in the editor (or hub act 'ufreport') to see today's counts by function and hour.
+var UF_ = {
+  tag_: function () { try { const st = String(new Error().stack || '').split('\n'), out = []; for (let i = 3; i < st.length && out.length < 2; i++) { const m = st[i].match(/at (\S+) \(/); if (m && !/^UF_|^Object\./.test(m[1])) out.push(m[1]); } return out.join('<') || 'top'; } catch (e) { return '?'; } },
+  add_: function (n) { try { const C = CacheService.getScriptCache(), d = Utilities.formatDate(new Date(), 'Australia/Sydney', 'yyyyMMdd'), h = Utilities.formatDate(new Date(), 'Australia/Sydney', 'HH'), t = UF_.tag_();
+    const k = 'uf_' + d + '_' + h + '_' + t, ik = 'ufi_' + d, idx = C.get(ik) || ''; if (idx.indexOf('|' + h + '_' + t + '|') < 0) C.put(ik, (idx || '|') + h + '_' + t + '|', 21600);
+    C.put(k, String((+C.get(k) || 0) + n), 21600); } catch (e) { } },
+  fetch: function (u, o) { UF_.add_(1); return o === undefined ? UrlFetchApp.fetch(u) : UrlFetchApp.fetch(u, o); },
+  fetchAll: function (r) { UF_.add_((r || []).length); return UrlFetchApp.fetchAll(r); }
+};
+function ufReport() {
+  const C = CacheService.getScriptCache(), d = Utilities.formatDate(new Date(), 'Australia/Sydney', 'yyyyMMdd'), idx = (C.get('ufi_' + d) || '').split('|').filter(String);
+  const rows = idx.map(function (x) { return [x, +C.get('uf_' + d + '_' + x) || 0]; }).sort(function (a, b) { return b[1] - a[1]; });
+  const byFn = {}; rows.forEach(function (r) { const f = r[0].slice(3); byFn[f] = (byFn[f] || 0) + r[1]; });
+  const out = { total: rows.reduce(function (a, r) { return a + r[1]; }, 0), byFn: Object.keys(byFn).map(function (f) { return [f, byFn[f]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 25), byHour: rows.slice(0, 25) };
+  Logger.log(JSON.stringify(out)); return out;
+}
+
 /**
  * AMA Trial Notifications
  * -----------------------
@@ -145,7 +163,7 @@ function ghlFetch_(path, params) {
     .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
     .join('&');
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + path + (qs ? '?' + qs : ''), {
+  const res = UF_.fetch(CONFIG.ghlBase + path + (qs ? '?' + qs : ''), {
     method: 'get',
     muteHttpExceptions: true,
     headers: {
@@ -313,7 +331,7 @@ function sendSms_(e164, body) {
   }
   if (smsLimited_()) return smsEmailFallback_(contactId, body);
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', {
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', {
     method: 'post',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -382,7 +400,7 @@ function smsEmailFallback_(contactId, body) {
   body = String(body || '').replace(/Reply YES to approve,? (or )?NO to decline\.?/i, 'Approve or decline it in the hub (Holds to action): https://train.australianmartialarts.com.au/admin#holdlist');
   const first = String(body || '').split('\n')[0].replace(/^AMA:?\s*/, '');
   const html = String(body || '').split('\n').map(function (l) { return l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/(https?:\/\/\S+)/g, '<a href="$1">$1</a>'); }).join('<br>') + '<br><br><i>Sent by email because GHL has reached its daily text limit.</i>';
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
     payload: JSON.stringify({ type: 'Email', contactId: contactId, emailTo: c.email, subject: 'AMA: ' + first.slice(0, 70), html: html, message: body }) });
   const ok = res.getResponseCode() >= 200 && res.getResponseCode() < 300;
@@ -1413,7 +1431,7 @@ function auditOverlaps() {
   if (!t) { Logger.log('Tricking calendar not found, aborting write probe.'); return; }
   Logger.log('Write probe target: ' + t.name);
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + t.id, {
+  const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + t.id, {
     method: 'put',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -1461,7 +1479,7 @@ function auditOverlaps() {
   const t = all.filter(function (c) { return c.name.indexOf('Tricking') > -1; })[0];
   if (!t) { Logger.log('Tricking calendar not found; skipping write probe.'); return; }
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + t.id, {
+  const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + t.id, {
     method: 'put',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -1511,7 +1529,7 @@ function auditOverlaps() {
   const t = all.filter(function (c) { return c.name.indexOf('Tricking') > -1; })[0];
   if (!t) { Logger.log('Tricking calendar not found; skipping write probe.'); return; }
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + t.id, {
+  const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + t.id, {
     method: 'put',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -1561,7 +1579,7 @@ function auditOverlaps() {
     ]
   };
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + CAL, {
+  const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + CAL, {
     method: 'put',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -1599,7 +1617,7 @@ function auditOverlaps() {
     return all.filter(function (c) { return c.name.indexOf(frag) > -1; })[0];
   }
   function put(cal, body) {
-    const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + cal.id, {
+    const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + cal.id, {
       method: 'put', contentType: 'application/json', muteHttpExceptions: true,
       headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' },
       payload: JSON.stringify(body)
@@ -1654,7 +1672,7 @@ function auditOverlaps() {
   Logger.log('Target: ' + cub.name);
 
   function put(body, label) {
-    const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + cub.id, {
+    const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + cub.id, {
       method: 'put', contentType: 'application/json', muteHttpExceptions: true,
       headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' },
       payload: JSON.stringify(body)
@@ -1763,7 +1781,7 @@ function auditOverlaps() {
   const all = list.calendars || list.data || [];
   const cub = all.filter(function (c) { return c.name.indexOf('Cubs') > -1; })[0];
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + cub.id, {
+  const res = UF_.fetch(CONFIG.ghlBase + '/calendars/' + cub.id, {
     method: 'put', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' },
     payload: JSON.stringify({ allowBookingFor: 4, allowBookingForUnit: 'weeks' })
@@ -1863,7 +1881,7 @@ function auditOverlaps() {
     permissions: { calendarsEnabled: true }
   };
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/users/', {
+  const res = UF_.fetch(CONFIG.ghlBase + '/users/', {
     method: 'post',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -1897,7 +1915,7 @@ function auditOverlaps() {
     permissions: { calendarsEnabled: true }
   };
 
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/users/', {
+  const res = UF_.fetch(CONFIG.ghlBase + '/users/', {
     method: 'post',
     contentType: 'application/json',
     muteHttpExceptions: true,
@@ -1918,7 +1936,7 @@ function auditOverlaps() {
 const COMPANY_ID = '5zNEyoU91HUjkRdMA1B8';
 
 function ghlPost_(path, body) {
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + path, {
+  const res = UF_.fetch(CONFIG.ghlBase + path, {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' },
     payload: JSON.stringify(body)
@@ -1927,7 +1945,7 @@ function ghlPost_(path, body) {
 }
 
 function ghlPut_(path, body) {
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + path, {
+  const res = UF_.fetch(CONFIG.ghlBase + path, {
     method: 'put', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' },
     payload: JSON.stringify(body)
@@ -4262,7 +4280,7 @@ function trialRemove_(who, b) {
   if (!CONFIG.locations[loc] || !day || !/^[A-Za-z0-9_-]{8,60}$/.test(id)) return { ok: false, error: 'Missing details.' };
   const t = tcTrials_(loc, day).filter(function (x) { return x.id === id; })[0];
   if (!t) return { ok: false, error: 'That trial is no longer in the calendar. Reload the page.' };
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/events/' + encodeURIComponent(id), { method: 'delete', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' } });
+  const res = UF_.fetch(CONFIG.ghlBase + '/calendars/events/' + encodeURIComponent(id), { method: 'delete', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' } });
   const code = res.getResponseCode();
   if (code < 200 || code >= 300) return { ok: false, error: 'GHL did not remove it (' + code + '). Nothing was changed.' };
   let had = '';
@@ -4897,7 +4915,7 @@ function cxSendConfirm_(mobile, email, msg) {
   const contactId = ghlContactIdByPhone_(normalisePhone_(mobile));
   if (!contactId) return 'not sent - no GHL contact for that mobile';
   const html = msg.text.split('\n').map(function (l) { return l ? l.replace(/&/g, '&amp;').replace(/</g, '&lt;') : ''; }).join('<br>');
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', {
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
     payload: JSON.stringify({ type: 'Email', contactId: contactId, emailTo: email, subject: msg.subject, html: html, message: msg.text })
@@ -5147,7 +5165,7 @@ function cxGhlEmail_(mobile, email, subject, text, extra) {
   if (email) payload.emailTo = email;
   if (extra && extra.cc && extra.cc.length) payload.emailCc = extra.cc;
   if (extra && extra.attachments && extra.attachments.length) payload.attachments = extra.attachments;
-  let res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', {
+  let res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
     payload: JSON.stringify(payload)
@@ -5156,7 +5174,7 @@ function cxGhlEmail_(mobile, email, subject, text, extra) {
   // GHL compares emailTo exactly (e.g. capital letters). When the contact was matched on this email, send to its own email instead.
   if (!ok && who.match && /not under contact/i.test(res.getContentText())) {
     delete payload.emailTo;
-    res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify(payload) });
     ok = res.getResponseCode() >= 200 && res.getResponseCode() < 300;
   }
@@ -5178,7 +5196,7 @@ function cxContactForEmail_(mobile, email) {
       .filter(Boolean).map(function (x) { return String(x).toLowerCase(); });
     if (have.indexOf(want) > -1) return { id: pid, match: true };
     if (!c.email) {
-      const r = UrlFetchApp.fetch(CONFIG.ghlBase + '/contacts/' + pid, { method: 'put', contentType: 'application/json', muteHttpExceptions: true,
+      const r = UF_.fetch(CONFIG.ghlBase + '/contacts/' + pid, { method: 'put', contentType: 'application/json', muteHttpExceptions: true,
         headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify({ email: email }) });
       if (r.getResponseCode() < 300) return { id: pid, match: true };
     }
@@ -5198,7 +5216,7 @@ function cxGhlUpload_(contactId, blob) {
   const conv = ghlFetch_('/conversations/search', { locationId: CONFIG.locationId, contactId: contactId });
   const list = (conv && conv.conversations) || [];
   if (!list.length) return '';
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages/upload', {
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages/upload', {
     method: 'post', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
     payload: { conversationId: list[0].id, locationId: CONFIG.locationId, fileAttachment: blob }
@@ -6444,7 +6462,7 @@ function leadFetchAll_(urls) {
   const h = leadHeaders_(), out = [];
   for (let i = 0; i < urls.length; i += 10) {
     const batch = urls.slice(i, i + 10).map(function (u) { return { url: CONFIG.ghlBase + u, headers: h, muteHttpExceptions: true }; });
-    UrlFetchApp.fetchAll(batch).forEach(function (r) {
+    UF_.fetchAll(batch).forEach(function (r) {
       let j = null;
       try { if (r.getResponseCode() < 300) j = JSON.parse(r.getContentText()); } catch (e) { j = null; }
       out.push(j);
@@ -8036,7 +8054,7 @@ function chaseListRaw_(who) {
 }
 // GHL writes (PUT/POST). Same token as ghlFetch_.
 function ghlSend_(method, path, payload) {
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + path, { method: method, muteHttpExceptions: true, contentType: 'application/json', payload: JSON.stringify(payload || {}),
+  const res = UF_.fetch(CONFIG.ghlBase + path, { method: method, muteHttpExceptions: true, contentType: 'application/json', payload: JSON.stringify(payload || {}),
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' } });
   const code = res.getResponseCode(), t = res.getContentText();
   if (code < 200 || code >= 300) throw new Error('GHL ' + code + ' on ' + path + ' - ' + t.slice(0, 300));
@@ -8637,7 +8655,7 @@ function hubMkReq_(who, b) {
     if (!cid) sent = 'not sent - no GHL contact for Laurie';
     else {
       const html = text.split('\n').map(function (l) { return l ? l.replace(/&/g, '&amp;').replace(/</g, '&lt;') : ''; }).join('<br>');
-      const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', {
+      const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', {
         method: 'post', contentType: 'application/json', muteHttpExceptions: true,
         headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
         payload: JSON.stringify({ type: 'Email', contactId: cid, emailTo: MKREQ.to, subject: subject, html: html, message: text })
@@ -9110,7 +9128,7 @@ function staffDailyReport() {
       const cid = ghlContactIdByPhone_(p.mobile), c = cid ? ((ghlFetch_('/contacts/' + cid, {}).contact) || {}) : {};
       if (!c.email) { Logger.log('report email ' + p.name + ': no email on their GHL contact'); return; }
       const html = mail.split('\n').map(function (l) { return l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/^  /, '&nbsp;&nbsp;&nbsp;&nbsp;'); }).join('<br>');
-      const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
         headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
         payload: JSON.stringify({ type: 'Email', contactId: cid, emailTo: c.email, subject: 'AMA daily team report - ' + R.day, html: html, message: mail }) });
       Logger.log('report email ' + p.name + ' ' + c.email + ': ' + res.getResponseCode());
@@ -10831,7 +10849,7 @@ function hubReplyUndo_(who, b) {
   const cid = String(b.cid || ''), k = leadRead_()[cid];
   if (!k) return { ok: false, error: 'Enquiry not found.' };
   leadSheet_().getRange(k.row, 9, 1, 4).setValues([['', '', '', '']]);
-  if (/spam/i.test(String(b.how || ''))) { try { UrlFetchApp.fetch(CONFIG.ghlBase + '/contacts/' + cid + '/tags', { method: 'delete', contentType: 'application/json', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify({ tags: ['spam'] }) }); } catch (e) { Logger.log('undo spam tag: ' + e); } }
+  if (/spam/i.test(String(b.how || ''))) { try { UF_.fetch(CONFIG.ghlBase + '/contacts/' + cid + '/tags', { method: 'delete', contentType: 'application/json', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify({ tags: ['spam'] }) }); } catch (e) { Logger.log('undo spam tag: ' + e); } }
   Logger.log('replyundo ' + cid + ' by ' + (who && who.name));
   return { ok: true };
 }
@@ -10860,7 +10878,7 @@ function mailInAttach_(m, conv, cid) {
   atts.slice(0, 5).forEach(function (a) {
     try {
       if (a.getSize() > 10 * 1024 * 1024) { Logger.log('mailIn attach too big: ' + a.getName()); return; }
-      const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages/upload', { method: 'post', muteHttpExceptions: true,
+      const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages/upload', { method: 'post', muteHttpExceptions: true,
         headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion, 'Accept': 'application/json' },
         payload: { conversationId: conv, locationId: CONFIG.locationId, contactId: cid, fileAttachment: a.copyBlob().setName(a.getName()) } });
       const code = res.getResponseCode(), body = res.getContentText();
@@ -11116,7 +11134,7 @@ function trialMsgEmail_(first, kids, loc, start) {
     '</table></td></tr></table></body></html>';
 }
 function trialMsgSendEmail_(cid, to, subject, html, text) {
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
     payload: JSON.stringify({ type: 'Email', contactId: cid, emailTo: to, subject: subject, html: html, message: text }) });
   const ok = res.getResponseCode() >= 200 && res.getResponseCode() < 300;
@@ -11197,7 +11215,7 @@ function trialMsgTestToMark() {
 // READ-ONLY (31 Oct): can the GHL key read calendar notifications? Logs one trial calendar's notification settings.
 function calNotifPeek() {
   const cal = tbCalendars_().filter(function (c) { return c.loc === 'Sylvania'; })[0], id = cal.ids[0]; Logger.log(cal.loc + ' ' + cal.cls + ' ' + id);
-  const r = UrlFetchApp.fetch(CONFIG.ghlBase + '/calendars/' + id + '/notifications', { method: 'get', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion } });
+  const r = UF_.fetch(CONFIG.ghlBase + '/calendars/' + id + '/notifications', { method: 'get', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion } });
   Logger.log(r.getResponseCode()); const arr = JSON.parse(r.getContentText()); Logger.log('keys: ' + Object.keys(arr[0] || {}).join(',')); arr.filter(function (n) { return !n.deleted; }).forEach(function (n) { Logger.log(JSON.stringify(n).slice(0, 900)); });
 }
 
@@ -11227,7 +11245,7 @@ function calNotifCheckOne() {
 function calNotifReq_(method, path, body) {
   const o = { method: method, muteHttpExceptions: true, contentType: 'application/json', headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion } };
   if (body) o.payload = JSON.stringify(body);
-  const r = UrlFetchApp.fetch(CONFIG.ghlBase + path, o);
+  const r = UF_.fetch(CONFIG.ghlBase + path, o);
   return { code: r.getResponseCode(), text: r.getContentText() };
 }
 function calNotifSwitch_(live, limit) {
@@ -11793,7 +11811,7 @@ function gradeGhlNameFix_(live) {
     if (cf && f.kids.indexOf(cf) < 0) { other++; if (oth.length < 10) oth.push(c.firstName + ' (EFC: ' + f.first + ')'); return; }
     fixed++; if (ex.length < 12) ex.push((c.firstName || '(blank)') + ' ' + (c.lastName || '') + ' -> ' + f.first + ' ' + f.last);
     if (live) {
-      const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/contacts/' + id, { method: 'put', contentType: 'application/json', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify({ firstName: f.first, lastName: f.last }) });
+      const res = UF_.fetch(CONFIG.ghlBase + '/contacts/' + id, { method: 'put', contentType: 'application/json', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify({ firstName: f.first, lastName: f.last }) });
       if (res.getResponseCode() >= 300) Logger.log('update failed ' + id + ' ' + res.getResponseCode());
       else try { ghlPost_('/contacts/' + id + '/notes', { body: 'Name corrected from EFC (was "' + (c.firstName || '') + ' ' + (c.lastName || '') + '", the student\'s name).' }); } catch (e) { }
     }
@@ -12788,7 +12806,7 @@ function execEmail_(who, b) {
     if (b.dry) { out.push({ name: p.name, result: 'ready: ' + c.email }); return; }
     const html = text.split('\n').map(function (l) { return l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }).join('<br>');
     try {
-      const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
         headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
         payload: JSON.stringify({ type: 'Email', contactId: cid, emailTo: c.email, subject: subject, html: html, message: text }) });
       out.push({ name: p.name, result: res.getResponseCode() < 300 ? 'sent' : 'failed ' + res.getResponseCode() });
@@ -13107,7 +13125,7 @@ const DEPUTY_TOKEN_PASTE = '';
 function saveDeputyToken() {
   const t = String(DEPUTY_TOKEN_PASTE || '').trim();
   if (!t) throw new Error('Paste the Deputy token between the quotes on the DEPUTY_TOKEN_PASTE line first, then save and run again.');
-  const r = UrlFetchApp.fetch('https://748e6a11114707.au.deputy.com/api/v1/me', { headers: { Authorization: 'Bearer ' + t }, muteHttpExceptions: true });
+  const r = UF_.fetch('https://748e6a11114707.au.deputy.com/api/v1/me', { headers: { Authorization: 'Bearer ' + t }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) throw new Error('Deputy said ' + r.getResponseCode() + '. Token NOT saved. Check it was copied in full.');
   PropertiesService.getScriptProperties().setProperty('DEPUTY_TOKEN', t);
   let me = {}; try { me = JSON.parse(r.getContentText()); } catch (e) {}
@@ -13121,7 +13139,7 @@ function deputy_(path, payload) {
   if (!t) throw new Error('DEPUTY_TOKEN is not set');
   const o = { headers: { Authorization: 'Bearer ' + t, Accept: 'application/json' }, muteHttpExceptions: true };
   if (payload !== undefined) { o.method = 'post'; o.contentType = 'application/json'; o.payload = JSON.stringify(payload); }
-  const r = UrlFetchApp.fetch(DEPUTY.base + path, o), c = r.getResponseCode();
+  const r = UF_.fetch(DEPUTY.base + path, o), c = r.getResponseCode();
   if (c < 200 || c >= 300) throw new Error('Deputy ' + c + ' on ' + path + ': ' + r.getContentText().slice(0, 200));
   return JSON.parse(r.getContentText() || 'null');
 }
@@ -14605,7 +14623,7 @@ function payEmail_(subject, html) {
   let cid = '';
   try { const d = ghlFetch_('/contacts/search/duplicate', { locationId: CONFIG.locationId, email: PAYSEND.to }); if (d && d.contact && d.contact.id) cid = d.contact.id; } catch (e) { }
   if (!cid) throw new Error('No GHL contact has the email ' + PAYSEND.to);
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion },
     payload: JSON.stringify({ type: 'Email', contactId: cid, emailTo: PAYSEND.to, subject: subject, html: html }) });
   if (res.getResponseCode() >= 300) throw new Error('GHL email ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 200));
@@ -15223,7 +15241,7 @@ function epbSave_(who, b) {
   const P = PropertiesService.getScriptProperties(), vurl = P.getProperty('EPB_VAULT_URL'), vsec = P.getProperty('EPB_VAULT_SECRET');
   if (!vurl || !vsec) return { ok: false, error: 'The private staff folder is not connected yet.' };
   let vr = null;
-  try { const res = UrlFetchApp.fetch(vurl, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ secret: vsec, name: person.name, what: what, files: files }), muteHttpExceptions: true, followRedirects: true }); vr = JSON.parse(res.getContentText()); } catch (e) { return { ok: false, error: 'Could not reach the private staff folder: ' + String(e).slice(0, 120) }; }
+  try { const res = UF_.fetch(vurl, { method: 'post', contentType: 'application/json', payload: JSON.stringify({ secret: vsec, name: person.name, what: what, files: files }), muteHttpExceptions: true, followRedirects: true }); vr = JSON.parse(res.getContentText()); } catch (e) { return { ok: false, error: 'Could not reach the private staff folder: ' + String(e).slice(0, 120) }; }
   if (!vr || !vr.ok) return { ok: false, error: 'The private staff folder said: ' + ((vr && vr.error) || 'unknown') };
   const names = vr.files || [], link = vr.link;
   let note = 'Not added';
@@ -15262,12 +15280,12 @@ function epbVaultSave() {
 }
 function epbVaultPing() {
   const P = PropertiesService.getScriptProperties();
-  const res = UrlFetchApp.fetch(P.getProperty('EPB_VAULT_URL'), { method: 'post', contentType: 'application/json', payload: JSON.stringify({ secret: P.getProperty('EPB_VAULT_SECRET'), ping: true }), muteHttpExceptions: true });
+  const res = UF_.fetch(P.getProperty('EPB_VAULT_URL'), { method: 'post', contentType: 'application/json', payload: JSON.stringify({ secret: P.getProperty('EPB_VAULT_SECRET'), ping: true }), muteHttpExceptions: true });
   Logger.log(res.getResponseCode() + ' ' + res.getContentText().slice(0, 200));
 }
 function epbVaultTest() {
   const P = PropertiesService.getScriptProperties();
-  const res = UrlFetchApp.fetch(P.getProperty('EPB_VAULT_URL'), { method: 'post', contentType: 'application/json', payload: JSON.stringify({ secret: P.getProperty('EPB_VAULT_SECRET'), name: 'TEST - delete me', what: 'Connection test', files: [{ name: 'test.txt', mime: 'text/plain', b64: Utilities.base64Encode('Test file from the AMA hub. Safe to delete.') }] }), muteHttpExceptions: true });
+  const res = UF_.fetch(P.getProperty('EPB_VAULT_URL'), { method: 'post', contentType: 'application/json', payload: JSON.stringify({ secret: P.getProperty('EPB_VAULT_SECRET'), name: 'TEST - delete me', what: 'Connection test', files: [{ name: 'test.txt', mime: 'text/plain', b64: Utilities.base64Encode('Test file from the AMA hub. Safe to delete.') }] }), muteHttpExceptions: true });
   Logger.log(res.getResponseCode() + ' ' + res.getContentText().slice(0, 300));
 }
 
@@ -17511,7 +17529,7 @@ function vidStart_(who, b) {
   const tok = Utilities.getUuid().replace(/-/g, '').slice(0, 12);
   const ext = (type.split('/')[1] || 'mp4').replace('quicktime', 'mov').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4';
   const name = Utilities.formatDate(new Date(), 'Australia/Sydney', 'yyyy-MM-dd HHmm') + ' ' + String(b.family || 'family').replace(/[^\w ,'&-]/g, '').slice(0, 40) + ' (' + who.name + ').' + ext;
-  const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true', {
+  const res = UF_.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true', {
     method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'X-Upload-Content-Type': type, 'X-Upload-Content-Length': String(size) },
     payload: JSON.stringify({ name: name, parents: [vidFolder_().getId()], mimeType: type })
@@ -17533,7 +17551,7 @@ function vidChunk_(who, b) {
   const bytes = Utilities.base64Decode(String(b.data || ''));
   if (!bytes.length) return { ok: false, error: 'Empty piece' };
   const end = at + bytes.length - 1;
-  const res = UrlFetchApp.fetch(u.url, { method: 'put', muteHttpExceptions: true, contentType: u.type, payload: bytes, headers: { 'Content-Range': 'bytes ' + at + '-' + end + '/' + u.size } });
+  const res = UF_.fetch(u.url, { method: 'put', muteHttpExceptions: true, contentType: u.type, payload: bytes, headers: { 'Content-Range': 'bytes ' + at + '-' + end + '/' + u.size } });
   const code = res.getResponseCode();
   if (code === 308) {
     const h = res.getAllHeaders(); const rg = String(h['Range'] || h['range'] || '');
@@ -17847,7 +17865,7 @@ const CBSKIP_KEEP = ['077ddba7-06ce-4a1f-9bb1-d8381ceacb5b', '6308fd1a-ca67-4ebb
 function cbSkipSync() {
   const rows = cbSkipRows_(), key = PropertiesService.getScriptProperties().getProperty('CB_SKIP_KEY');
   if (!key) { Logger.log('No CB_SKIP_KEY yet. Would skip ' + rows.length + ': ' + rows.slice(0, 40).map(function (x) { return x.name + ' (' + x.reason + ')'; }).join('; ')); return { ok: false, n: rows.length }; }
-  const res = UrlFetchApp.fetch(CBSKIP.url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  const res = UF_.fetch(CBSKIP.url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { apikey: CBSKIP.anon, Authorization: 'Bearer ' + CBSKIP.anon }, payload: JSON.stringify({ p_key: key, p_rows: rows }) });
   Logger.log('cb_skip_sync ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 300) + ' (' + rows.length + ' sent)');
   return { ok: res.getResponseCode() === 200, n: rows.length };
@@ -17866,7 +17884,7 @@ function cbReply_(b) {
   const channel = String(b.channel || ''), email = String(b.email || '');
   if (!key) { Logger.log('cbReply_: no CB_REPLY_KEY yet (' + msg.slice(0, 40) + ')'); return { ok: true, queued: false }; }
   try {
-    const r = UrlFetchApp.fetch(CBREPLY.url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    const r = UF_.fetch(CBREPLY.url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { apikey: CBSKIP.anon, Authorization: 'Bearer ' + CBSKIP.anon }, payload: JSON.stringify({ action: 'reply', key: key, phone: phone, message: msg, channel: channel, email: email }) });
     const t = r.getContentText(); Logger.log('cbReply_ ' + r.getResponseCode() + ' ' + t.slice(0, 300));
     return { ok: r.getResponseCode() === 200 };
@@ -17941,7 +17959,7 @@ var PREP_RPC_URL = 'https://ptdrcxngaptcgswfbjhg.supabase.co/rest/v1/rpc';
 var PREP_ANON = 'sb_publishable_YsRY6SlgR7U_ohn_xxQD1A_lrowkIGS';
 function prepKey_() { return PropertiesService.getScriptProperties().getProperty('PREP_HUB_KEY') || ''; }
 function prepRpc_(fn, args) {
-  var res = UrlFetchApp.fetch(PREP_RPC_URL + '/' + fn, {
+  var res = UF_.fetch(PREP_RPC_URL + '/' + fn, {
     method: 'post', contentType: 'application/json',
     headers: { apikey: PREP_ANON, Authorization: 'Bearer ' + PREP_ANON },
     payload: JSON.stringify(args), muteHttpExceptions: true
@@ -18075,7 +18093,7 @@ function gmoneyFetch_() {
   if (!key) return { ok: false, error: 'No Toolkit key in the hub.' };
   const url = String(CBSKIP.url).replace(/cb_skip_sync\/?$/, GMONEY.fn);
   if (url === String(CBSKIP.url)) return { ok: false, error: 'Toolkit address not found.' };
-  const res = UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  const res = UF_.fetch(url, { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { apikey: CBSKIP.anon, Authorization: 'Bearer ' + CBSKIP.anon }, payload: JSON.stringify({ p_key: key }) });
   const code = res.getResponseCode(), txt = res.getContentText();
   if (code === 404 || /PGRST202|Could not find the function/i.test(txt)) return { ok: false, waiting: true, error: 'Waiting for Tate to add the Toolkit money report.' };
@@ -18498,7 +18516,7 @@ function sq_(path, payload) {
   if (!t) throw new Error('SQUARE_TOKEN is not set');
   const o = { headers: { Authorization: 'Bearer ' + t, 'Square-Version': SQ.version, Accept: 'application/json' }, muteHttpExceptions: true };
   if (payload !== undefined) { o.method = 'post'; o.contentType = 'application/json'; o.payload = JSON.stringify(payload); }
-  const r = UrlFetchApp.fetch(SQ.base + path, o), j = JSON.parse(r.getContentText() || '{}');
+  const r = UF_.fetch(SQ.base + path, o), j = JSON.parse(r.getContentText() || '{}');
   if (r.getResponseCode() >= 300) throw new Error('Square ' + r.getResponseCode() + ': ' + JSON.stringify(j.errors || j).slice(0, 300));
   return j;
 }
@@ -18508,7 +18526,7 @@ function campSquareSet_(who, b) {
   if (!mgmtCanSee_(who) || mgmtNoMoney_(who)) return { ok: false, error: 'Only management with money access can connect Square.' };
   const t = String((b && b.sqtoken) || '').trim(); // not 'token': that field is the hub sign-in
   if (!/^EAAA[\w-]{20,}$/.test(t)) return { ok: false, error: 'That does not look like a Square production access token (it starts with EAAA).' };
-  const r = UrlFetchApp.fetch(SQ.base + '/locations', { headers: { Authorization: 'Bearer ' + t, 'Square-Version': SQ.version }, muteHttpExceptions: true });
+  const r = UF_.fetch(SQ.base + '/locations', { headers: { Authorization: 'Bearer ' + t, 'Square-Version': SQ.version }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { ok: false, error: 'Square did not accept that token (' + r.getResponseCode() + '). Copy the Production access token again.' };
   const locs = (JSON.parse(r.getContentText()).locations || []).filter(function (l) { return l.status === 'ACTIVE'; });
   const P = PropertiesService.getScriptProperties(); P.setProperty('SQUARE_TOKEN', t); P.deleteProperty('SQUARE_LOCATION');
@@ -18838,7 +18856,7 @@ function efcGet_(school, path, base, write) {
   var key = efcKey_(school, write); if (!key) return { code: 0, error: 'No key yet' };
   base = base || PropertiesService.getScriptProperties().getProperty('EFC_API_BASE') || EFC_API.bases[0];
   try {
-    var r = UrlFetchApp.fetch(base + path, { method: 'get', headers: { 'X-API-KEY': key, 'Accept': 'application/json' }, muteHttpExceptions: true, followRedirects: true });
+    var r = UF_.fetch(base + path, { method: 'get', headers: { 'X-API-KEY': key, 'Accept': 'application/json' }, muteHttpExceptions: true, followRedirects: true });
     var code = r.getResponseCode(), txt = r.getContentText(), body = null; try { body = JSON.parse(txt); } catch (e) { }
     return { code: code, body: body, text: body ? '' : String(txt || '').slice(0, 200) };
   } catch (e) { return { code: -1, error: String(e.message || e).slice(0, 160) }; }
@@ -18990,7 +19008,7 @@ function efcFetchMany_(school, paths) {
   var out = [];
   for (var i = 0; i < paths.length; i += 25) {
     var reqs = paths.slice(i, i + 25).map(function (p) { return { url: base + p, method: 'get', headers: { 'X-API-KEY': key, 'Accept': 'application/json' }, muteHttpExceptions: true }; });
-    var res = []; try { res = UrlFetchApp.fetchAll(reqs); } catch (e) { res = reqs.map(function () { return null; }); }
+    var res = []; try { res = UF_.fetchAll(reqs); } catch (e) { res = reqs.map(function () { return null; }); }
     res.forEach(function (r) { var b = null; try { if (r && r.getResponseCode() === 200) b = JSON.parse(r.getContentText()); } catch (e) { } out.push(b); });
   }
   return out;
@@ -19109,7 +19127,7 @@ function efcWrite_(school, method, path, body) {
   var base = PropertiesService.getScriptProperties().getProperty('EFC_API_BASE') || EFC_API.bases[0];
   var o = { method: method, muteHttpExceptions: true, headers: { 'X-API-KEY': key, 'Accept': 'application/json' } };
   if (body) { o.contentType = 'application/json'; o.payload = JSON.stringify(body); }
-  try { var r = UrlFetchApp.fetch(base + path, o), t = r.getContentText(), b = null; try { b = JSON.parse(t); } catch (e) { } return { code: r.getResponseCode(), body: b, text: String(t || '').slice(0, 300) }; } catch (e) { return { code: -1, error: String(e.message || e).slice(0, 160) }; }
+  try { var r = UF_.fetch(base + path, o), t = r.getContentText(), b = null; try { b = JSON.parse(t); } catch (e) { } return { code: r.getResponseCode(), body: b, text: String(t || '').slice(0, 300) }; } catch (e) { return { code: -1, error: String(e.message || e).slice(0, 160) }; }
 }
 function efcAttRoute_(who, b) {
   var act = String(b.act || ''), school = efcSchoolOf_(String(b.school || '')), ymd = String(b.date || '').slice(0, 10);
@@ -21828,7 +21846,7 @@ function prepRptGroups_(belt, needs) {
 }
 function prepRptLogo_() {
   const c = CacheService.getScriptCache(); let d = c.get('prep_rpt_logo');
-  if (!d) { try { const b = UrlFetchApp.fetch(PREPRPT.logo, { muteHttpExceptions: true }); if (b.getResponseCode() === 200) { d = 'data:' + (b.getBlob().getContentType() || 'image/png') + ';base64,' + Utilities.base64Encode(b.getContent()); if (d.length < 90000) c.put('prep_rpt_logo', d, 21600); } } catch (e) { } }
+  if (!d) { try { const b = UF_.fetch(PREPRPT.logo, { muteHttpExceptions: true }); if (b.getResponseCode() === 200) { d = 'data:' + (b.getBlob().getContentType() || 'image/png') + ';base64,' + Utilities.base64Encode(b.getContent()); if (d.length < 90000) c.put('prep_rpt_logo', d, 21600); } } catch (e) { } }
   return d || PREPRPT.logo;
 }
 // One report body used by both the PDF and the email (inline styles so email apps keep the look).
@@ -21865,7 +21883,7 @@ function prepRptPdf_(st, belt, needs, note, by) {
 }
 function prepShortUrl_(url) {
   const tries = ['https://is.gd/create.php?format=simple&url=', 'https://tinyurl.com/api-create.php?url='];
-  for (let i = 0; i < tries.length; i++) { try { const r = UrlFetchApp.fetch(tries[i] + encodeURIComponent(url), { muteHttpExceptions: true }); const s = String(r.getContentText() || '').trim(); if (r.getResponseCode() === 200 && /^https:\/\/\S+$/.test(s) && s.length < 40) return s; } catch (e) { } }
+  for (let i = 0; i < tries.length; i++) { try { const r = UF_.fetch(tries[i] + encodeURIComponent(url), { muteHttpExceptions: true }); const s = String(r.getContentText() || '').trim(); if (r.getResponseCode() === 200 && /^https:\/\/\S+$/.test(s) && s.length < 40) return s; } catch (e) { } }
   return url;
 }
 function prepRptEmailOf_(mob) { const m9 = holdLast9_(String(mob || '')); const r = prepRows_().filter(function (x) { return holdLast9_(String(x.Mobile || '')) === m9 && String(x.Email || '').indexOf('@') > 0; })[0]; return r ? String(r.Email).trim() : ''; }
@@ -21875,7 +21893,7 @@ function prepRptEmail_(contactId, email, st, belt, needs, note, by, url) {
   const html = intro + prepRptBody_(st, belt, needs, note, by, true);
   const text = 'Hi ' + (adult ? first : pfirst) + ', here is ' + (adult ? 'your' : first + '\'s') + ' feedback report from today\'s Colour Belt Prep Session' + (url ? ': ' + url : '.') + ' Thanks, AMA';
   const payload = { type: 'Email', contactId: contactId, subject: (adult ? 'Your' : first + '\'s') + ' Colour Belt Prep Session report', html: html, message: text, emailTo: email };
-  const res = UrlFetchApp.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify(payload) });
+  const res = UF_.fetch(CONFIG.ghlBase + '/conversations/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'Authorization': 'Bearer ' + getToken_(), 'Version': CONFIG.ghlVersion }, payload: JSON.stringify(payload) });
   const ok = res.getResponseCode() >= 200 && res.getResponseCode() < 300; if (!ok) Logger.log('prep report email ' + res.getResponseCode() + ' ' + res.getContentText().slice(0, 200));
   return ok;
 }
@@ -22136,7 +22154,7 @@ function bbcfCall_(extra) {
   const P = PropertiesService.getScriptProperties(), key = P.getProperty('LDG_TOOLKIT_KEY'), api = P.getProperty('LDG_TOOLKIT_APIKEY');
   if (!key || !api) return { ok: false, error: 'Toolkit key not set' };
   const body = { action: 'bbc_feed', key: key }; if (extra) Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
-  const res = UrlFetchApp.fetch(LDG.url, { method: 'post', contentType: 'application/json', headers: { apikey: api, Authorization: 'Bearer ' + api }, payload: JSON.stringify(body), muteHttpExceptions: true });
+  const res = UF_.fetch(LDG.url, { method: 'post', contentType: 'application/json', headers: { apikey: api, Authorization: 'Bearer ' + api }, payload: JSON.stringify(body), muteHttpExceptions: true });
   let j = null; try { j = JSON.parse(res.getContentText()); } catch (e) { }
   return { ok: res.getResponseCode() < 300 && !!j && j.ok !== false, code: res.getResponseCode(), j: j, text: j ? '' : res.getContentText().slice(0, 200) };
 }
@@ -22178,7 +22196,7 @@ function photoPull_(all) {
     list.forEach(function (p) {
       const k = String(p.member_key || ''); if (!k || !p.url) return;
       try {
-        const res = UrlFetchApp.fetch(String(p.url), { muteHttpExceptions: true, followRedirects: true });
+        const res = UF_.fetch(String(p.url), { muteHttpExceptions: true, followRedirects: true });
         if (res.getResponseCode() >= 300) { errs.push(k + ' ' + res.getResponseCode()); return; }
         const blob = res.getBlob(); const ct = String(blob.getContentType() || ''); if (!/^image\//.test(ct)) { errs.push(k + ' not an image'); return; }
         const ext = /png/.test(ct) ? 'png' : /webp/.test(ct) ? 'webp' : 'jpg';
@@ -22469,7 +22487,7 @@ function ldgSend_(rows, remove) {
   const body = { action: 'ld_nominate', key: key, nominations: rows.map(function (r) { return { nomination_id: String(r['ID']), efc_reference: String(r['Reference'] || ''), full_name: String(r['Student'] || ''), school: String(r['School'] || ''), belt: ldgBelt_(r), current_belt: String(r['Current belt'] || ''), remove: !!remove }; }) };
   if (day) body.day_id = day;
   try {
-    const res = UrlFetchApp.fetch(LDG.url, { method: 'post', contentType: 'application/json', headers: { apikey: api, Authorization: 'Bearer ' + api }, payload: JSON.stringify(body), muteHttpExceptions: true });
+    const res = UF_.fetch(LDG.url, { method: 'post', contentType: 'application/json', headers: { apikey: api, Authorization: 'Bearer ' + api }, payload: JSON.stringify(body), muteHttpExceptions: true });
     let j = null; try { j = JSON.parse(res.getContentText()); } catch (e) { }
     return { ok: res.getResponseCode() < 300 && !!j && j.ok !== false, code: res.getResponseCode(), j: j };
   } catch (e) { return { ok: false, error: String(e).slice(0, 120) }; }
@@ -22936,7 +22954,7 @@ function shopStripe_(method, path, params) {
   const opt = { method: method, headers: { Authorization: 'Bearer ' + key }, muteHttpExceptions: true };
   if (params) { opt.contentType = 'application/x-www-form-urlencoded'; opt.payload = shopForm_(params).join('&'); }
   try {
-    const r = UrlFetchApp.fetch('https://api.stripe.com/v1' + path, opt), code = r.getResponseCode();
+    const r = UF_.fetch('https://api.stripe.com/v1' + path, opt), code = r.getResponseCode();
     let j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) { }
     if (code >= 200 && code < 300) return { ok: true, body: j };
     return { ok: false, error: 'Stripe: ' + String((j.error && j.error.message) || ('error ' + code)).slice(0, 200) };
@@ -23170,7 +23188,7 @@ function shopWebNewPrice_(name, web) { // 23 Nov 2026 price list for items the w
 function shopWebFetch_() {
   let all = [];
   for (let page = 1; page <= 5; page++) {
-    const r = UrlFetchApp.fetch(SHOPWEB.api + '?per_page=100&page=' + page, { muteHttpExceptions: true });
+    const r = UF_.fetch(SHOPWEB.api + '?per_page=100&page=' + page, { muteHttpExceptions: true });
     if (r.getResponseCode() !== 200) throw new Error('website ' + r.getResponseCode());
     const j = JSON.parse(r.getContentText()); all = all.concat(j); if (j.length < 100) break;
   }
@@ -23185,7 +23203,7 @@ function shopWebFetch_() {
     });
   });
   for (let i = 0; i < need.length; i += 40) {
-    const chunk = need.slice(i, i + 40), res = UrlFetchApp.fetchAll(chunk.map(function (o) { return { url: SHOPWEB.api + '/' + o.id, muteHttpExceptions: true }; }));
+    const chunk = need.slice(i, i + 40), res = UF_.fetchAll(chunk.map(function (o) { return { url: SHOPWEB.api + '/' + o.id, muteHttpExceptions: true }; }));
     res.forEach(function (r, k) { try { if (r.getResponseCode() === 200) { const j = JSON.parse(r.getContentText()); const pr = Number(j.prices && j.prices.price) / Math.pow(10, (j.prices && j.prices.currency_minor_unit) || 2); if (pr > 0) chunk[k].price = pr; } } catch (e) { } });
   }
   return out;
@@ -23322,11 +23340,11 @@ function mvAi_(p, g, move, subs, frames) {
   const model = PropertiesService.getScriptProperties().getProperty(MVID.modelProp) || MVID.model;
   const content = frames.slice(0, 10).map(function (f) { return { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: String(f).replace(/^data:image\/\w+;base64,/, '') } }; });
   content.push({ type: 'text', text: 'These are ' + content.length + ' frames, in order, from a short video of a martial arts student at Australian Martial Arts (AMA) doing one move from their ' + p + ' ' + g + ' curriculum.\n\nThe move: ' + move + (subs && subs.length ? '\nDetails: ' + subs.join('; ') : '') +
-    '\n\nYou are giving a friendly first look for their instructor, who will make the final call. Judge the intention of the move: is it recognisably the right technique, with the right stance, chamber and target? Do not expect black belt perfection from a junior.\n' +
+    '\n\nYou are giving a friendly check. If you say achieved, the move is signed off automatically with no instructor review, so only say achieved when it is clearly recognisable. Judge the intention of the move: is it recognisably the right technique, with the right stance, chamber and target? Do not expect black belt perfection from a junior.\n' +
     'If the frames do not show the move clearly (too dark, cut off, wrong move, nobody in frame) say so.\n' +
     'Reply with JSON only, no other text: {"verdict":"achieved" or "work" or "unclear","feedback":"one or two short, encouraging sentences written to the student. If work, name the one thing to fix first."}' });
   try {
-    const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    const res = UF_.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
       payload: JSON.stringify({ model: model, max_tokens: 300, messages: [{ role: 'user', content: content }] }) });
     const j = JSON.parse(res.getContentText() || '{}');
@@ -23353,7 +23371,7 @@ function mvid_(who, b) {
     const size = +b.size || 0; if (!size || size > MVID.maxMb * 1048576) return { ok: false, error: 'Please keep the video under ' + MVID.maxMb + ' MB (about 30 seconds).' };
     const wk = Date.now() - 7 * 864e5; if (mvSubs_().filter(function (x) { return x.fam === fam && x.sid === sid && x.atMs > wk; }).length >= MVID.stars.weekCap) return { ok: false, error: kid.student.split(' ')[0] + ' has sent ' + MVID.stars.weekCap + ' moves this week. Keep practising and send more next week!' };
     const name = kid.student + ' - ' + String(b.belt || '') + ' - ' + Utilities.formatDate(new Date(), CONFIG.timezone, 'yyyy-MM-dd HHmm') + '.' + (String(b.ext || 'mp4').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4');
-    const res = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', { method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
+    const res = UF_.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', { method: 'post', contentType: 'application/json; charset=UTF-8', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken(), 'X-Upload-Content-Type': String(b.mime || 'video/mp4'), 'X-Upload-Content-Length': String(size) },
       payload: JSON.stringify({ name: name, parents: [mvFolder_().getId()], mimeType: String(b.mime || 'video/mp4') }) });
     const loc = res.getHeaders()['Location'] || res.getHeaders()['location']; if (!loc) return { ok: false, error: 'Could not start the upload (' + res.getResponseCode() + ').' };
@@ -23364,7 +23382,7 @@ function mvid_(who, b) {
     const raw = CacheService.getScriptCache().get('mvup_' + String(b.up || '')); if (!raw) return { ok: false, error: 'Upload expired. Please try again.' };
     const U = JSON.parse(raw); if (U.fam !== fam) return { ok: false, error: 'Upload mismatch.' };
     const bytes = Utilities.base64Decode(String(b.data || '')), off = +b.off || 0, end = off + bytes.length - 1;
-    const res = UrlFetchApp.fetch(U.loc, { method: 'put', muteHttpExceptions: true, contentType: 'application/octet-stream', payload: bytes, headers: { 'Content-Range': 'bytes ' + off + '-' + end + '/' + U.size } });
+    const res = UF_.fetch(U.loc, { method: 'put', muteHttpExceptions: true, contentType: 'application/octet-stream', payload: bytes, headers: { 'Content-Range': 'bytes ' + off + '-' + end + '/' + U.size } });
     const code = res.getResponseCode();
     if (code === 308) return { ok: true, more: true };
     if (code === 200 || code === 201) { const j = JSON.parse(res.getContentText() || '{}'); return { ok: true, more: false, file: j.id }; }
@@ -23382,7 +23400,10 @@ function mvid_(who, b) {
     const st = ai && (ai.verdict === 'achieved' || ai.verdict === 'work') ? 'ai_' + ai.verdict : 'sent';
     const stars = mvStar_(kid, MVID.stars.send, 'Curriculum', 'mv:' + id, 'Sent a move: ' + mv.text, who.name);
     staffSheet_(MVID.subTab, MVID.subCols).appendRow([id, fam, sid, kid.student, kid.school, pr.programme, pr.belt, mv.key, (mv.sec ? mv.sec + ': ' : '') + mv.text, file, st, ai ? ai.verdict : '', ai ? ai.feedback : '', '', '', '', String(who.name || '') + (MHUB.live ? '' : ' (preview)'), new Date(), '', stars, '']);
-    return { ok: true, id: id, ai: ai, stars: stars };
+    /* 26 Nov 2026 (Mark): no instructor needed on every video. AI 'achieved' signs the move off automatically; instructors only see work/unclear. */
+    let auto = 0;
+    if (ai && ai.verdict === 'achieved') { try { const rv = mvid_({ name: 'AI check' }, { act: 'review', id: id, verdict: 'achieved', feedback: ai.feedback }); auto = (rv && rv.beltStars) || 0; } catch (e) { } }
+    return { ok: true, id: id, ai: ai, stars: stars + auto, signed: !!(ai && ai.verdict === 'achieved') };
   }
   if (act === 'watch' || act === 'watchmine') {
     const s = mvSubs_().filter(function (x) { return x.id === String(b.id || ''); })[0]; if (!s) return { ok: false, error: 'Not found.' };
@@ -23648,7 +23669,7 @@ function mhub2Extra_(who, b, today) {
     // Next debit and overdue from the EFC live pull (view only).
     try { const sh = SpreadsheetApp.openById(HUB.sheetId).getSheetByName(EFC_LIVE.tab), H = EFC_LIVE.headers; if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, H.length).getValues().forEach(function (r) { const i = kids.map(function (k) { return String(k.id); }).indexOf(String(r[H.indexOf('Member ID')])); if (i < 0) return; const ni = r[H.indexOf('Next invoice')]; out.kids[i].next = ni instanceof Date ? mhub2Ymd_(ni) : String(ni || '').slice(0, 10); out.kids[i].nextAmt = Number(r[H.indexOf('Next amount')]) || 0; out.kids[i].overdue = Number(r[H.indexOf('Overdue')]) || 0; out.kids[i].ref = String(r[H.indexOf('Reference')] || ''); }); } catch (e) { }
     // 26 Nov 2026 (Mark): Black Belt Oaths from Tate's Toolkit (ama_os.bb_oath, read-only through amaos-oath). Needs AMAOS_SYNC_KEY.
-    try { const sk = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp); if (sk) { const rr = UrlFetchApp.fetch(AMAOS_SYNC.url.replace('amaos-sync', 'amaos-oath'), { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': sk }, payload: JSON.stringify({ ids: kids.map(function (k) { return String(k.id); }), refs: out.kids.map(function (k) { return k.ref; }).filter(Boolean) }), muteHttpExceptions: true }); const jj = JSON.parse(rr.getContentText() || '{}'); if (jj.ok) out.oaths = (jj.oaths || []).filter(function (o) { return o.status === 'signed' || o.status === 'sent'; }).map(function (o) { const K = out.kids.filter(function (k) { return String(k.id).toLowerCase() === String(o.id).toLowerCase() || (k.ref && k.ref === o.efc_reference); })[0]; return { kid: K ? K.name : (o.full_name || ''), status: o.status, rank: o.rank || 'Probationary Black Belt', name: o.signed_name || '', date: String(o.signed_date || '').slice(0, 10), grading: String(o.grading_date || '').slice(0, 10), sig: /^data:image\/(png|jpeg);base64,/.test(String(o.signature_png || '')) ? String(o.signature_png) : '', version: o.oath_version || '' }; }); } } catch (e) { out.oathErr = String(e.message || e); }
+    try { const sk = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp); if (sk) { const rr = UF_.fetch(AMAOS_SYNC.url.replace('amaos-sync', 'amaos-oath'), { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': sk }, payload: JSON.stringify({ ids: kids.map(function (k) { return String(k.id); }), refs: out.kids.map(function (k) { return k.ref; }).filter(Boolean) }), muteHttpExceptions: true }); const jj = JSON.parse(rr.getContentText() || '{}'); if (jj.ok) out.oaths = (jj.oaths || []).filter(function (o) { return o.status === 'signed' || o.status === 'sent'; }).map(function (o) { const K = out.kids.filter(function (k) { return String(k.id).toLowerCase() === String(o.id).toLowerCase() || (k.ref && k.ref === o.efc_reference); })[0]; return { kid: K ? K.name : (o.full_name || ''), status: o.status, rank: o.rank || 'Probationary Black Belt', name: o.signed_name || '', date: String(o.signed_date || '').slice(0, 10), grading: String(o.grading_date || '').slice(0, 10), sig: /^data:image\/(png|jpeg);base64,/.test(String(o.signature_png || '')) ? String(o.signature_png) : '', version: o.oath_version || '' }; }); } } catch (e) { out.oathErr = String(e.message || e); }
     // Recent activity feed.
     const F = out.feed, cut = mhub2Ymd_(new Date(Date.now() - 120 * 864e5));
     out.kids.forEach(function (K) {
@@ -23727,7 +23748,7 @@ function amaosSyncTab_(tab) {
   const v = sh.getDataRange().getValues(); if (!v.length) return { ok: true, rows: 0 };
   const tz = CONFIG.timezone, H = v[0].map(function (h) { return String(h).trim(); }), keep = H.map(function (h) { return !!h && !AMAOS_SYNC.skip.test(h); });
   const rows = v.slice(1).map(function (r, i) { const d = {}; let any = false; r.forEach(function (x, j) { if (!keep[j] || x === '' || x === null) return; any = true; d[H[j]] = x instanceof Date ? Utilities.formatDate(x, tz, "yyyy-MM-dd'T'HH:mm:ssXXX") : x; }); return any ? { key: 'r' + (i + 2), data: d } : null; }).filter(Boolean);
-  const res = UrlFetchApp.fetch(AMAOS_SYNC.url, { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': key }, payload: JSON.stringify({ source: tab, rows: rows }), muteHttpExceptions: true });
+  const res = UF_.fetch(AMAOS_SYNC.url, { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': key }, payload: JSON.stringify({ source: tab, rows: rows }), muteHttpExceptions: true });
   let body = {}; try { body = JSON.parse(res.getContentText()); } catch (e) { }
   return { ok: res.getResponseCode() === 200 && !!body.ok, code: res.getResponseCode(), rows: rows.length, staff: body.staff || 0, error: body.error || '' };
 }
@@ -23801,7 +23822,7 @@ const TKPH = { list: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amao
 function tkphTick_() {
   const P = PropertiesService.getScriptProperties(), key = P.getProperty(AMAOS_SYNC.keyProp); if (!key) return { ok: false, error: 'No sync key yet.' };
   const H = { 'x-amaos-sync-key': key }, since = P.getProperty(TKPH.curProp) || '2026-01-01T00:00:00Z';
-  const lr = UrlFetchApp.fetch(TKPH.list, { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ since: since, limit: TKPH.perTick }), muteHttpExceptions: true });
+  const lr = UF_.fetch(TKPH.list, { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ since: since, limit: TKPH.perTick }), muteHttpExceptions: true });
   let L = {}; try { L = JSON.parse(lr.getContentText() || '{}'); } catch (e) { } if (!L.ok) return { ok: false, error: L.error || ('list ' + lr.getResponseCode()) };
   const have = {}; mhphRows_('').forEach(function (r) { have[r.id] = 1; });
   try { staffSheet_(MHPH.tab, MHPH.cols).getRange(2, 1, Math.max(1, staffSheet_(MHPH.tab, MHPH.cols).getLastRow() - 1), 1).getValues().forEach(function (r) { have[String(r[0])] = 1; }); } catch (e) { }
@@ -23812,10 +23833,10 @@ function tkphTick_() {
     if (have[id]) { cur = p.photo_at; out.skipped++; continue; }
     const kid = efc.filter(function (k) { return String(k.id).toLowerCase() === String(p.id).toLowerCase() || (p.efc_reference && false); })[0];
     if (!kid) { cur = p.photo_at; out.skipped++; continue; } // not an active EFC member any more
-    const ur = UrlFetchApp.fetch(TKPH.get, { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ act: 'amaos-photo', path: p.photo_path }), muteHttpExceptions: true });
+    const ur = UF_.fetch(TKPH.get, { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ act: 'amaos-photo', path: p.photo_path }), muteHttpExceptions: true });
     let U = {}; try { U = JSON.parse(ur.getContentText() || '{}'); } catch (e) { }
     if (!U.url) { out.failed++; break; } // try again next run, from this photo
-    const img = UrlFetchApp.fetch(U.url, { muteHttpExceptions: true }); if (img.getResponseCode() !== 200) { out.failed++; break; }
+    const img = UF_.fetch(U.url, { muteHttpExceptions: true }); if (img.getResponseCode() !== 200) { out.failed++; break; }
     const ext = (String(p.photo_path).match(/\.(jpe?g|png|webp)$/i) || [, 'jpg'])[1].toLowerCase();
     const f = mhphFolder_().createFile(img.getBlob().setName((kid.student + ' ' + (p.kind === 'group' ? 'group ' : '') + (p.belt_to || 'grading') + ' ' + String(p.grading_date || '').slice(0, 10)).replace(/[^A-Za-z0-9 -]+/g, '') + '.' + ext));
     const cap = (p.kind === 'group' ? 'Group photo: ' : 'Grading: ') + (p.belt_to || '') + (p.location ? ' · ' + p.location : '');
