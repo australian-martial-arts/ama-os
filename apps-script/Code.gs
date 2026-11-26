@@ -23802,8 +23802,22 @@ function amaosWrite_(b) {
     if (r && r.ok) { try { amaosSyncTab_(TRIALCHECK.tab); } catch (e) { } }
     return r;
   }
+  if (b.act === 'route') {
+    /* 27 Nov 2026 (Mark): AMA OS runs hub actions AS the signed-in staff member (matched by mobile on Hub staff, must be Active),
+       through the hub's own handler, so the hub's permissions, texts, notes and logs apply exactly as in the hub. Allow-listed kinds only. */
+    const sub = b.body || {}, kind = String(sub.kind || '');
+    if (AMAOS_ROUTE.indexOf(kind) < 0) return { ok: false, error: 'Not available from AMA OS yet.' };
+    const m9 = holdLast9_(String(b.mobile || '')); if (m9.length !== 9) return { ok: false, error: 'Who is this?' };
+    const sh = hubSheet_(), last = sh.getLastRow(), C = hubCols_(); let staff = null;
+    if (last > 1) sh.getRange(2, 1, last - 1, HUB.headers.length).getValues().some(function (v) { if (holdLast9_(v[C['Mobile']]) === m9 && hubActive_(v[C['Active']])) { staff = { name: String(v[C['Name']]).trim(), role: String(v[C['Role']] || 'staff').trim() }; return true; } return false; });
+    if (!staff) return { ok: false, error: 'Not an active hub staff member.' };
+    const res = hubRouteIn_(sub, staff);
+    try { actLog_(staff, sub, res); } catch (e) { }
+    return res;
+  }
   return { ok: false, error: 'Not available from AMA OS yet.' };
 }
+const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork']; // 27 Nov 2026: grows one feature at a time
 function amaosLiveNow() { Logger.log(JSON.stringify(amaosLiveTick_())); }
 function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
 function amaosSyncTab_(tab) {
