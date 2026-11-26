@@ -2,7 +2,9 @@
 name: AMA OS db check
 on:
   workflow_dispatch:
-    inputs: { test: { description: 'Also fire one timer call (efcnext/dash)', required: false, default: '' } }
+    inputs:
+      test: { description: 'Also fire one timer call (efcnext/dash)', required: false, default: '' }
+      timers: { description: 'pause or start the AMA OS database timers', required: false, default: '' }
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,6 +23,8 @@ jobs:
           psql -c "select has_schema_privilege('cron','usage') cron_usage" || true
           psql -c "select has_schema_privilege('net','usage') net_usage, has_function_privilege('net.http_post(text,jsonb,jsonb,jsonb,integer)','execute') net_post" || true
           psql -c "select jobid, schedule, jobname, username, active from cron.job" || true
+          if [ "${{ github.event.inputs.timers }}" = "pause" ]; then psql -c "select cron.unschedule(jobname) from cron.job where jobname like 'amaos-%'"; fi
+          if [ "${{ github.event.inputs.timers }}" = "start" ]; then psql -c "select ama_os.start_timers()"; fi
           if [ -n "${{ github.event.inputs.test }}" ]; then
             psql -c "select name, set_at from ama_os.connections where name in ('GHL_TOKEN') "
             psql -c "select ama_os.refresh_call('${{ github.event.inputs.test }}') as req"; sleep 25
@@ -41,3 +45,5 @@ jobs:
           echo "== Timer detail =="
           psql -c "select id, status_code, left(coalesce(error_msg,''),120) err, left(content::text,140) body, created from net._http_response where created > now() - interval '40 minutes' and (content::text like '%\"ok\"%' or error_msg is not null) order by created desc limit 15" || true
           psql -c "select jobid, status, left(return_message,140) msg, start_time from cron.job_run_details where jobid in (select jobid from cron.job where jobname like 'amaos-%') order by start_time desc limit 10" || true
+          echo "== Web-call results by hour (all jobs) =="
+          psql -c "select date_trunc('hour', created) h, count(*) filter (where status_code is not null) ok, count(*) filter (where error_msg like 'Timeout%') timeouts from net._http_response group by 1 order by 1" || true
