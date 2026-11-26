@@ -81,7 +81,15 @@ async function dash(money: boolean) {
   const holdsNow = holds.filter((r) => { const a = ymd(r["Freeze starts"], today), b = ymd(r["Freeze ends"], today);
     return a && b && a <= today && today <= b && !/reject|declin|cancel|withdr/i.test(String(r["Status"] ?? "")); });
   const hBy = by(); holdsNow.forEach((r) => { const s = school(r["Trains at"]); if (s) hBy[s]++; });
-  const absOpen = ab.filter((r) => !/closed|came back|cancel/i.test(Object.values(r).join(" "))).length;
+  // Absentee follow-ups still open: alert in the last 35 days, not closed, and the member still hasn't trained in 7+ days (one per member).
+  const days = new Map(efc.map((r) => [String(r["Member ID"] ?? ""), num(r["Days since"])]));
+  const d35 = addDays(today, -35), openIds = new Set<string>();
+  for (const r of ab) {
+    const id = String(r["EFC member ID"] ?? ""), d = ymd(r["Received at"], today);
+    if (!id || !d || d < d35 || /clos|came|back|done|cancel|left/i.test(String(r["Status"] ?? "") + " " + String(r["Outcome"] ?? ""))) continue;
+    if (days.has(id) && (days.get(id) as number) >= 7) openIds.add(id);
+  }
+  const absOpen = openIds.size;
   // 12-week trend: new members vs cancellation requests per week (weeks start Monday).
   const weeks: { wk: string; joined: number; left: number }[] = [];
   const dow = (new Date(today + "T12:00:00Z").getUTCDay() + 6) % 7, mon = addDays(today, -dow);
@@ -99,6 +107,21 @@ async function dash(money: boolean) {
     upcoming: upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 60),
     money: money ? { overdueFamilies: overdue, overdueTotal: Math.round(overdueAmt), nextInvoicesTotal: Math.round(nextAmt) } : null,
   };
+}
+
+// Read-only lists of the critical flows (side-by-side checks before the switch-over).
+const LISTS: Record<string, { src: string; date: string; school: string; cols: string[]; money?: string[] }> = {
+  holds: { src: "Holds", date: "Logged at", school: "Trains at", cols: ["Logged at", "Status", "Account holder", "Mobile", "Students", "Trains at", "Reason", "Freeze starts", "Freeze ends", "Weeks", "Taken by", "Approved by", "Signed at", "EFC actioned at", "Resumed at", "Notes"], money: ["Weekly rate"] },
+  cancels: { src: "Cancellations", date: "Logged at", school: "Trains at", cols: ["Logged at", "Status", "Account holder", "Mobile", "Students", "Trains at", "Reason", "In their words", "Notice ends", "Last class", "Taken by", "Approved by", "Signed at", "EFC actioned at", "Exit rating", "Rejoined", "Notes"], money: ["Uniform balance"] },
+  newmembers: { src: "New members", date: "Start date", school: "School", cols: ["Start date", "Status", "Family", "Mobile", "Students", "School", "Done", "Handled by", "Notes", "Updated at"] },
+  followup: { src: "Trial follow-up", date: "Trial date", school: "Location", cols: ["Trial date", "Trial time", "Location", "Child", "Class", "Parent", "Mobile", "Attended", "Recommendation sent", "Follow-up", "Next follow-up", "Followed up by", "Follow-up note", "Notes"] },
+};
+async function list(kind: string, money: boolean) {
+  const L = LISTS[kind]; if (!L) return { ok: false, error: "Unknown list." };
+  const today = sydToday(), rows = await src(L.src), cols = money && L.money ? L.cols.concat(L.money) : L.cols;
+  const out = rows.map((r) => ({ ...pick(r, cols), _d: ymd(r[L.date], today), _s: school(r[L.school]) }))
+    .sort((a, b) => String(b._d).localeCompare(String(a._d))).slice(0, 800);
+  return { ok: true, kind, today, cols, total: rows.length, rows: out };
 }
 
 const KID = ["School", "Student", "Age", "Groups", "Last attended", "Days since", "Classes this month", "Total classes", "Enrolled on", "Hub hold", "Flags", "Reference"];
@@ -137,6 +160,7 @@ Deno.serve(async (req) => {
     if (!g.staff) return json({ ok: false, error: g.error }, g.status ?? 403);
     const me = g.staff, money = MONEY.includes(me.first);
     const b = await req.json().catch(() => ({})) as { act?: string; q?: string };
+    if (b.act === "list") return json(await list(String((b as { kind?: string }).kind ?? ""), money));
     if (b.act === "find") {
       const q = String(b.q ?? "").trim().slice(0, 60);
       if (q.replace(/\s/g, "").length < 2) return json({ ok: false, error: "Type at least 2 letters, or a mobile number." });

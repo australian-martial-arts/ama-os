@@ -36,7 +36,11 @@
     .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
     .top .badge { font-size: 11px; padding: 4px 10px; } .top h2 { margin: 0; font-size: 20px; font-weight: 800; }
     .top .sp { flex: 1; } .top .me { color: var(--ink-2); font-size: 14px; } .top .link { padding: 4px; font-size: 14px; }
-    .tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; } .tabs button { white-space: nowrap; flex: none; }
+    .row { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
+    .row summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; } .row summary::-webkit-details-marker { display: none; }
+    .row .a { font-weight: 700; } .row .b { color: var(--ink-3); font-size: 13px; grid-column: 1; } .row .c { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+    .row dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0 2px; font-size: 13.5px; } .row dt { color: var(--ink-3); } .row dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
     .tabs button { background: none; color: var(--ink-2); border-radius: 0; padding: 10px 12px; font-weight: 700; border-bottom: 2px solid transparent; }
     .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
     .note { color: var(--ink-3); font-size: 13px; margin: 0 0 12px; max-width: none; }
@@ -121,8 +125,9 @@
         <span class="me"><b id="whoName"></b> · <span id="whoRole"></span></span>
         <button class="link" type="button" id="outBtn">Sign out</button></div>
       <button type="button" id="pkAddBtn" hidden style="margin-bottom:12px">Add a passkey on this device (Face ID / fingerprint)</button>
-      <nav class="tabs"><button type="button" data-tab="dash" class="on">Dashboard</button><button type="button" data-tab="find">Family lookup</button></nav>
+      <nav class="tabs"><button type="button" data-tab="dash" class="on">Dashboard</button><button type="button" data-tab="find">Family lookup</button><button type="button" data-tab="followup">Trial follow-up</button><button type="button" data-tab="newmembers">New members</button><button type="button" data-tab="holds">Holds</button><button type="button" data-tab="cancels">Cancellations</button></nav>
       <div id="tabDash"><p class="note">Loading…</p></div>
+      <div id="tabList" hidden></div>
       <div id="tabFind" hidden>
         <form class="srch" id="findForm"><input id="findQ" placeholder="Student, parent, mobile, email or EFC reference" autocomplete="off"><button type="submit">Search</button></form>
         <div id="findOut"><p class="note">Read-only. Searches the copy of EFC members the hub sends each night. Each search is logged.</p></div>
@@ -277,9 +282,42 @@
       }).catch(function () { out.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     };
     Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
-      b.onclick = function () { Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (x) { x.classList.toggle('on', x === b); });
-        $('tabDash').hidden = b.dataset.tab !== 'dash'; $('tabFind').hidden = b.dataset.tab !== 'find'; if (b.dataset.tab === 'find') $('findQ').focus(); };
+      b.onclick = function () { var t = b.dataset.tab; Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (x) { x.classList.toggle('on', x === b); });
+        $('tabDash').hidden = t !== 'dash'; $('tabFind').hidden = t !== 'find'; $('tabList').hidden = t === 'dash' || t === 'find';
+        if (t === 'find') $('findQ').focus(); else if (t !== 'dash') loadList(t); };
     });
+    /* Read-only lists of the critical flows, newest first, from the hub copy. */
+    var LT = { followup: { title: 'Trial follow-up', who: ['Child', 'Parent'], sub: ['Class', 'Location', 'Trial time'] }, newmembers: { title: 'New members', who: ['Family'], sub: ['Students', 'School'] },
+      holds: { title: 'Holds', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] }, cancels: { title: 'Cancellations', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] } };
+    var LS = { kind: '', data: null, q: '', st: 'All', sc: 'All' };
+    function loadList(kind) {
+      var el = $('tabList'); LS.kind = kind; LS.q = ''; LS.st = 'All'; LS.sc = 'All'; el.innerHTML = '<p class="note">Loading…</p>';
+      api('amaos-dash', { act: 'list', kind: kind }).then(function (j) { if (LS.kind !== kind) return;
+        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
+        LS.data = j; drawList(); }).catch(function () { el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function drawList() {
+      var j = LS.data, T = LT[j.kind], el = $('tabList'), stat = {}, q = LS.q.toLowerCase();
+      j.rows.forEach(function (r) { var s = String(r['Status'] || r['Attended'] || '').trim() || '—'; stat[s] = (stat[s] || 0) + 1; });
+      var sts = Object.keys(stat).sort(function (a, b) { return stat[b] - stat[a]; }).slice(0, 8);
+      var rows = j.rows.filter(function (r) { var s = String(r['Status'] || r['Attended'] || '').trim() || '—';
+        return (LS.st === 'All' || s === LS.st) && (LS.sc === 'All' || r._s === LS.sc) && (!q || JSON.stringify(r).toLowerCase().indexOf(q) > -1); });
+      var h = '<p class="note">' + esc(T.title) + ': ' + fmtN(j.total) + ' in the hub copy, newest first. Read-only; changes are still made in the hub.</p>' +
+        '<form class="srch" onsubmit="return false"><input id="lsQ" placeholder="Search names, mobile, notes" value="' + esc(LS.q) + '" autocomplete="off"></form>' +
+        '<div class="chips">' + ['All'].concat(sts).map(function (s) { return '<button type="button" class="chip" data-st="' + esc(s) + '" aria-pressed="' + (s === LS.st) + '">' + esc(s) + (s === 'All' ? '' : ' · ' + stat[s]) + '</button>'; }).join('') + '</div>' +
+        '<div class="chips">' + ['All', 'Marrickville', 'Concord', 'Sydenham', 'Auburn', 'Sylvania'].map(function (s) { return '<button type="button" class="chip" data-sc="' + s + '" aria-pressed="' + (s === LS.sc) + '">' + s + '</button>'; }).join('') + '</div>' +
+        '<p class="tsum">' + rows.length + ' shown</p>';
+      h += rows.slice(0, 200).map(function (r) {
+        var who = T.who.map(function (k) { return r[k]; }).filter(Boolean).join(' · ') || '—', sub = [nice(r._d)].concat(T.sub.map(function (k) { return r[k]; })).filter(Boolean).join(' · ');
+        var st = String(r['Status'] || r['Attended'] || '').trim();
+        return '<details class="row"><summary><span class="a">' + esc(who) + '</span><span class="b">' + esc(sub) + '</span>' + (st ? '<span class="c st">' + esc(st) + '</span>' : '') + '</summary><dl>' +
+          j.cols.filter(function (c) { return r[c] !== undefined && r[c] !== ''; }).map(function (c) { var v = r[c]; if (/^\d{4}-\d{2}-\d{2}T/.test(String(v))) v = /T00:00/.test(String(v)) ? nice(String(v).slice(0, 10)) : when(v); else if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) v = nice(v); return '<dt>' + esc(c) + '</dt><dd>' + esc(v === true ? 'Yes' : v === false ? 'No' : v) + '</dd>'; }).join('') + '</dl></details>';
+      }).join('') + (rows.length > 200 ? '<p class="note">Showing the newest 200. Search to narrow it down.</p>' : '');
+      el.innerHTML = h;
+      var qi = $('lsQ'); qi.oninput = function () { LS.q = qi.value; var pos = qi.selectionStart; drawList(); var n = $('lsQ'); n.focus(); n.setSelectionRange(pos, pos); };
+      Array.prototype.forEach.call(el.querySelectorAll('[data-st]'), function (b) { b.onclick = function () { LS.st = b.dataset.st; drawList(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-sc]'), function (b) { b.onclick = function () { LS.sc = b.dataset.sc; drawList(); }; });
+    }
     function toPhone(v) { var d = String(v).replace(/\D/g, ''); if (/^04\d{8}$/.test(d)) return '+61' + d.slice(1); if (/^614\d{8}$/.test(d)) return '+' + d; return ''; }
 
     function whoAmI() {
