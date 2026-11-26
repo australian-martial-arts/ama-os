@@ -1,5 +1,6 @@
 # AMA OS scheduled refresh: does the slow reads (EFC members, GHL trials) and builds the home page,
-# so AMA OS screens only read saved results and open instantly. Uses the refresh key stored in the
+# so AMA OS screens only read saved results and open instantly. Backup only: the database's own timers
+# (migration 0014) do this normally, and this run stops early while they are beating. Uses the refresh key stored in the
 # database (read with the ama_os_app login); the key is masked and never printed.
 name: AMA OS refresh
 on:
@@ -29,6 +30,8 @@ jobs:
           echo "::add-mask::$KEY"
           ANON=$(grep -o "eyJ[^']*" site/config.js)
           call() { curl -s -m 140 -X POST "$URL" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "content-type: application/json" -H "x-amaos-refresh: $KEY" -H "x-region: ap-southeast-2" -d "$1"; echo; }
+          BEAT=$(psql -tA -c "select count(*) from ama_os.cache where key = 'timer_beat' and at > now() - interval '8 minutes'")
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$BEAT" = "1" ]; then echo "Database timer is running - backup not needed"; exit 0; fi
           if [ -n "${{ github.event.inputs.only }}" ]; then call "{\"what\":\"${{ github.event.inputs.only }}\"}"; exit 0; fi
           M=$(date -u +%M)
           if [ $((10#$M % 10)) -lt 5 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then

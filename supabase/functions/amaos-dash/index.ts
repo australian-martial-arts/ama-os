@@ -192,6 +192,14 @@ async function find(q: string, money: boolean) {
    what: "efc" (one school), "trials" (GHL), "dash" (both home page versions). */
 async function refresh(what: string, school: string) {
   if (what === "efc") return await pullSchool(EFC_SCHOOLS.includes(school) ? school : "Marrickville");
+  if (what === "efcnext") {
+    // Database timer, every minute: carry on a half-done school, else refresh the school saved longest ago (if over 10 minutes old).
+    const c = await sql`select key, at from ama_os.cache where key like 'efc_pull_%' or key like 'efc_school_%'`;
+    const age = (k: string) => { const r = c.find((x) => x.key === k); return r ? Date.now() - new Date(r.at as string).getTime() : Infinity; };
+    const busy = EFC_SCHOOLS.find((s) => age("efc_pull_" + s) < 15 * 60000);
+    const due = busy ?? EFC_SCHOOLS.filter((s) => age("efc_school_" + s) > 10 * 60000).sort((x, y) => age("efc_school_" + y) - age("efc_school_" + x))[0];
+    return due ? await pullSchool(due) : { idle: true };
+  }
   if (what === "trials") {
     if (!(await ghlConnected())) return { skipped: true };
     const fuRows = await src("Trial follow-up"), enr = await src("Enrolments"), tb = await src("Hub trial bookings");
@@ -243,7 +251,8 @@ Deno.serve(async (req) => {
     if (rk) {
       const want = await sql`select value from ama_os.connections where name = 'REFRESH_KEY'`;
       if (!want.length || (await sha256(rk)) !== (await sha256(String(want[0].value)))) return json({ ok: false, error: "Not allowed." }, 401);
-      const rb = await req.json().catch(() => ({})) as { what?: string; school?: string };
+      const rb = await req.json().catch(() => ({})) as { what?: string; school?: string; from?: string };
+      if (rb.from === "db") await sql`insert into ama_os.cache (key, data, at) values ('timer_beat', ${sql.json({ what: String(rb.what ?? "") } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
       return json({ ok: true, ...(await refresh(String(rb.what ?? ""), String(rb.school ?? ""))) });
     }
     const g = await requireStaff(req);
