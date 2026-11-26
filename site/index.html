@@ -174,6 +174,7 @@
       <section id="tabFind" hidden><h2 class="sec">Find a family</h2><div id="findOut"><p class="note">Search by student, parent, mobile, email or EFC reference in the bar above. Read-only; each search is logged.</p></div></section>
       <section id="tabHub" hidden></section>
       <section id="tabConn" hidden></section>
+      <section id="tabAuto" hidden></section>
     </div>
   </div>
 
@@ -253,11 +254,11 @@
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', h: '' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff management', h: '', can: isMgmt }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
       marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', h: '', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
-      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }
+      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
     };
     var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
       ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
-      ['Business', ['mgmtd', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns']]];
+      ['Business', ['mgmtd', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns', 'autos']]];
     var CUR = 'home';
     function ini(l) { var w = l.replace(/[^A-Za-z ]/g, '').split(/\s+/).filter(Boolean); return (((w[0] || '')[0] || '') + ((w[1] || '')[0] || '')).toUpperCase(); }
     function navBuild() {
@@ -273,16 +274,17 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'autos') { $('tabAuto').hidden = false; loadAutos(); window.scrollTo(0, 0); }
       else if (view === 'conns') { $('tabConn').hidden = false; loadConns(); window.scrollTo(0, 0); }
       else if (view.indexOf('list:') === 0) { $('tabList').hidden = false; loadList(view.slice(5)); window.scrollTo(0, 0); }
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -312,6 +314,16 @@
           box.querySelector('[data-t]').onclick = function () { out.textContent = 'Testing…'; out.style.color = ''; api('amaos-conn', { act: 'test', name: n }).then(show); };
         });
       }).catch(function () { el.innerHTML = '<h2 class="sec">Connections</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    /* Automations: who sends what (the hub or AMA OS). One owner each, so nothing is ever sent twice. */
+    function loadAutos() {
+      var el = $('tabAuto'); el.innerHTML = '<h2 class="sec">Automations</h2><p class="note">Loading…</p>';
+      api('amaos-dash', { act: 'autos' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Automations</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        el.innerHTML = '<h2 class="sec">Automations</h2><p class="note">Every automatic text, email or change in GHL/EFC has one owner: the hub or AMA OS, never both, so nothing is sent twice. AMA OS sending is <b>' + (j.sending === 'on' ? 'ON' : 'OFF') + '</b>' + (j.sending === 'on' ? '' : ': AMA OS sends nothing at all') + '. Each one moves across only when you approve it: it is switched off in the hub and on here in the same step.</p>' +
+          '<div class="box"><table class="t"><tr><th>Automation</th><th style="text-align:left">Sends</th><th style="text-align:left">Run by</th></tr>' + j.list.map(function (a) {
+            return '<tr><td style="white-space:normal">' + esc(a.name) + '</td><td style="text-align:left">' + esc(a.what) + '</td><td style="text-align:left"><span class="st' + (a.owner === 'amaos' ? ' en' : '') + '">' + (a.owner === 'amaos' ? 'AMA OS' : 'Hub') + '</span></td></tr>'; }).join('') + '</table></div>';
+      }).catch(function () { el.innerHTML = '<h2 class="sec">Automations</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     function appStart(j) {
       ME = { name: j.name, role: j.role, first: String(j.name || '').trim().split(/\s+/)[0].toLowerCase() };

@@ -236,6 +236,11 @@ Deno.serve(async (req) => {
     if (!g.staff) return json({ ok: false, error: g.error }, g.status ?? 403);
     const me = g.staff, money = MONEY.includes(me.first);
     const b = await req.json().catch(() => ({})) as { act?: string; q?: string };
+    if (b.act === "autos") {
+      const sw = await sql`select value, set_by, set_at from ama_os.settings where key = 'sending'`;
+      const rows = await sql`select key, name, what, hub_trigger, owner, moved_at, moved_by from ama_os.automations order by owner desc, name`;
+      return json({ ok: true, sending: sw[0]?.value ?? "off", list: rows });
+    }
     if (b.act === "list") return json(await list(String((b as { kind?: string }).kind ?? ""), money));
     if (b.act === "find") {
       const q = String(b.q ?? "").trim().slice(0, 60);

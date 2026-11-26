@@ -63,3 +63,11 @@ export async function requireStaff(req: Request): Promise<{ staff?: Staff; error
   if (SECOND_STEP.includes(s.role) && String(claims(auth).aal ?? "aal1") !== "aal2" && !(await hasStepUp(req, u.id))) return { error: "Confirm it's you first.", status: 403 };
   return { staff: { name: s.name, role: s.role, email: s.email, first: String(s.name).trim().split(/\s+/)[0].toLowerCase(), login: u.digits || u.email } };
 }
+
+/** The ONLY way AMA OS may send a text/email or write to GHL/EFC/calendars: the master switch must be on AND
+ *  this automation must be owned by AMA OS (not the hub). Anything else is refused, so nothing is ever doubled up. */
+export async function canSend(automation: string): Promise<boolean> {
+  const r = await sql`select (select value from ama_os.settings where key = 'sending') = 'on' and exists
+    (select 1 from ama_os.automations where key = ${automation} and owner = 'amaos') as ok`;
+  return !!r[0]?.ok;
+}
