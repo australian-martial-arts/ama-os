@@ -84,6 +84,7 @@
     .trial .t { font-weight: 700; font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-size: 16px; } .trial .w > span { display: block; color: var(--ink-2); font-size: 13px; margin-top: 1px; }
     .bkf label { display: block; margin: 12px 0 4px; font-weight: 700; font-size: 13px; } .bkf .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } @media (max-width: 560px) { .bkf .g2 { grid-template-columns: 1fr; } }
     .bkf input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid var(--line-2); border-radius: 12px; font: inherit; background: var(--card, #fff); color: inherit; min-height: 46px; }
+    .bkf textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--line-2); border-radius: 12px; font: inherit; background: var(--card, #fff); color: inherit; margin: 0 0 10px; }
     .bkf select { width: 100%; padding: 12px; border: 1px solid var(--line-2); border-radius: 12px; font: inherit; background: var(--card, #fff); color: inherit; }
     .tright { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; } .tchk { margin: 0; }
     .tform { padding: 12px 14px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2, rgba(0,0,0,.03)); }
@@ -193,6 +194,8 @@
       <section id="tabChk" hidden></section>
       <section id="tabReq" hidden></section>
       <section id="tabBook" hidden></section>
+      <section id="tabHreq" hidden></section>
+      <section id="tabShift" hidden></section>
     </div>
   </div>
 
@@ -277,8 +280,8 @@
       book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
-      ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
-      pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
+      ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
+      pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
       marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
       stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
@@ -301,10 +304,12 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'hubreq') { $('tabHreq').hidden = false; loadHreq(); window.scrollTo(0, 0); }
+      else if (view === 'shifts') { $('tabShift').hidden = false; loadShift(); window.scrollTo(0, 0); }
       else if (view === 'book') { $('tabBook').hidden = false; loadBook(); window.scrollTo(0, 0); }
       else if (view === 'checkday') { $('tabChk').hidden = false; loadChk(); window.scrollTo(0, 0); }
       else if (view === 'requests') { $('tabReq').hidden = false; loadReq(); window.scrollTo(0, 0); }
@@ -317,7 +322,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -534,6 +539,47 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
       var f = box.querySelector('.tform'); if (f) wireChk(f);
     }
+    /* Hub change requests (preview): ask for a change; Mark sets the status. Saved by the hub (it texts Mark as before). */
+    function loadHreq() {
+      var el = $('tabHreq'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Hub change requests</h2><p class="note">Loading…</p>';
+      hubRead({ kind: 'hubreq' }, 'hubreq', function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Hub change requests</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var ST = ['New', 'Approved', 'Not now', 'Done'];
+        el.innerHTML = '<h2 class="sec">Hub change requests</h2><div class="box bkf"><b>Ask for a change</b><div><label for="hrWhere">Which screen?</label><input id="hrWhere" placeholder="e.g. My Day, Book a trial"></div><div><label for="hrText">What would you like changed?</label><textarea id="hrText" class="tnote" rows="3" maxlength="1500"></textarea></div>' +
+          '<div class="chips">' + ['Nice to have', 'Soon', 'Urgent'].map(function (x, i) { return '<button type="button" class="chip" data-hs="' + x + '" aria-pressed="' + (i === 0) + '">' + x + '</button>'; }).join('') + '</div><button type="button" class="btn" id="hrGo" style="width:auto;padding:10px 18px">Send request</button><p class="tmsg note" id="hrMsg"></p></div>' +
+          (j.list || []).map(function (r) {
+            return '<div class="box hr" data-id="' + esc(r.id) + '" style="margin:8px 0"><div class="chips" style="margin:0 0 4px"><span class="chip" aria-pressed="true">' + esc(r.status) + '</span><span class="tsum" style="margin:6px 0 0 4px">' + esc(r.soon) + ' · ' + esc(r.at) + ' · ' + esc(r.from) + (r.where ? ' · ' + esc(r.where) : '') + '</span></div><p style="margin:4px 0;white-space:pre-wrap">' + esc(r.text) + '</p>' + (r.note ? '<p class="tsum">' + esc(r.note) + '</p>' : '') +
+              (j.boss ? '<div class="chips">' + ST.map(function (x) { return '<button type="button" class="chip" data-st="' + x + '" aria-pressed="' + (x === r.status) + '">' + x + '</button>'; }).join('') + '</div>' : '') + '</div>'; }).join('');
+        var soon = 'Nice to have';
+        Array.prototype.forEach.call(el.querySelectorAll('[data-hs]'), function (b) { b.onclick = function () { soon = b.dataset.hs; Array.prototype.forEach.call(el.querySelectorAll('[data-hs]'), function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
+        $('hrGo').onclick = function () { var t = $('hrText').value.trim(), m = $('hrMsg'); if (t.length < 5) { m.textContent = 'Say what you would like changed.'; return; } $('hrGo').disabled = true; m.textContent = 'Sending…';
+          hubAct({ kind: 'hubreq', act: 'add', where: $('hrWhere').value.trim(), text: t, soon: soon }).then(function (r) { if (r && r.ok) { el.innerHTML = ''; loadHreq(); } else { $('hrGo').disabled = false; m.textContent = (r && r.error) || 'Not sent.'; } }); };
+        Array.prototype.forEach.call(el.querySelectorAll('.hr [data-st]'), function (b) { b.onclick = function () { var c = b.closest('.hr'); b.disabled = true;
+          hubAct({ kind: 'hubreq', act: 'set', id: c.dataset.id, status: b.dataset.st }).then(function (r) { if (r && r.ok) { Array.prototype.forEach.call(c.querySelectorAll('[data-st]'), function (x) { x.setAttribute('aria-pressed', x === b); }); c.querySelector('.chip').textContent = b.dataset.st; } else alert((r && r.error) || 'Not saved.'); b.disabled = false; }); }; });
+      });
+    }
+    /* Extra shifts (preview): open shifts from Deputy to put your hand up for, and your own offers. Approving offers stays in the hub for now. */
+    function loadShift() {
+      var el = $('tabShift'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Extra shifts</h2><p class="note">Loading…</p>';
+      hubRead({ kind: 'shifts' }, 'shifts', function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Extra shifts</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var tm = function (x) { return String(x || '').slice(-5); };
+        var h = '<h2 class="sec">Extra shifts</h2>' + (j.me ? '' : '<p class="msg err">Your hub name doesn\'t match a Deputy staff name, so you can\'t put your hand up yet. Ask Busra.</p>') +
+          '<div class="tday">Open shifts</div>' + ((j.open || []).length ? (j.open || []).map(function (o) {
+            return '<div class="box os" data-id="' + esc(o.id) + '" style="margin:8px 0"><b>' + esc(nice(o.date)) + ' · ' + esc(tm(o.start)) + ' to ' + esc(tm(o.end)) + '</b><p class="tsum" style="margin:2px 0 8px">' + esc([o.school, o.area].filter(Boolean).join(' · ')) + (o.hands ? ' · ' + o.hands + ' interested' : '') + '</p>' +
+              (o.mine ? '<span class="chip" aria-pressed="true">You\'ve put your hand up</span>' : (j.me ? '<button type="button" class="btn osc" style="width:auto;padding:9px 16px">Put my hand up</button>' : '')) + '<p class="tmsg note" style="margin:6px 0 0"></p></div>'; }).join('') : '<div class="box"><p>No open shifts right now.</p></div>') +
+          '<div class="tday" style="margin-top:14px">Your offers and requests</div>' + ((j.mine || []).length ? (j.mine || []).map(function (o) {
+            return '<div class="box om" data-id="' + esc(o.id) + '" style="margin:8px 0"><div class="chips" style="margin:0 0 4px"><span class="chip" aria-pressed="true">' + esc(o.status) + '</span></div><b>' + esc(nice(o.date)) + ' · ' + esc(tm(o.start)) + ' to ' + esc(tm(o.end)) + '</b><p class="tsum" style="margin:2px 0">' + esc([o.school, o.part, o.note].filter(Boolean).join(' · ')) + '</p>' +
+              (o.status === 'Offered' ? '<button type="button" class="chip omw">Withdraw</button>' : '') + '</div>'; }).join('') : '<div class="box"><p>Nothing yet.</p></div>') +
+          (j.boss ? '<div class="box" style="margin-top:14px"><p><b>' + ((j.queue || []).length) + ' waiting for approval.</b> Approving extra shifts (it books them in Deputy) is still done in the hub for now.</p><a class="chip" href="' + HUB_URL + '#shifts" target="_blank" rel="noopener">Open extra shifts in the hub &#8599;</a></div>' : '') +
+          '<p class="note" style="margin-top:12px">To offer extra availability (a range of days), use the hub for now: <a href="' + HUB_URL + '#shifts" target="_blank" rel="noopener">Extra shifts &#8599;</a></p>';
+        el.innerHTML = h;
+        Array.prototype.forEach.call(el.querySelectorAll('.osc'), function (b) { b.onclick = function () { var c = b.closest('.os'), m = c.querySelector('.tmsg'); b.disabled = true; m.textContent = 'Saving…';
+          hubAct({ kind: 'shifts', act: 'claim', open: +c.dataset.id }).then(function (r) { if (r && r.ok) { m.textContent = 'Done. Busra will confirm.'; b.remove(); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+        Array.prototype.forEach.call(el.querySelectorAll('.omw'), function (b) { b.onclick = function () { if (!confirm('Withdraw this?')) return; var c = b.closest('.om'); b.disabled = true;
+          hubAct({ kind: 'shifts', act: 'withdraw', id: c.dataset.id }).then(function (r) { if (r && r.ok) c.style.opacity = '.4'; else { b.disabled = false; alert((r && r.error) || 'Not saved.'); } }); }; });
+      });
+    }
     /* Book a trial (preview on Mark's login): the hub books it in GHL and sends its usual confirmation, exactly as in the hub. */
     var BK = { opts: null, loc: 'Marrickville', cal: '', slots: null, slot: null, kids: 1 };
     function loadBook() {
@@ -648,7 +694,7 @@
       }).catch(function () { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     /* My Day (preview on Mark's login): the hub's own "Your work today" list, ticks saved by the hub. */
-    var HUBMAP = { '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
+    var HUBMAP = { '#hubreq': 'hubreq', '#shifts': 'shifts', '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
     function openHref(u) { u = String(u || ''); if (!u) return; if (/^https?:/.test(u)) { window.open(u, '_blank', 'noopener'); return; } var k = u.split('?')[0]; if (HUBMAP[k]) return go(HUBMAP[k]); window.open(HUB_URL + u, '_blank', 'noopener'); }
     function loadDay(fresh) {
       var el = $('tabDay'); if (!el.innerHTML || fresh) el.innerHTML = '<h2 class="sec">My Day</h2><p class="note">Loading your work…</p>';
