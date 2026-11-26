@@ -199,6 +199,8 @@
       <section id="tabFp" hidden></section>
       <section id="tabStars" hidden></section>
       <section id="tabAv" hidden></section>
+      <section id="tabLa" hidden></section>
+      <section id="tabRef" hidden></section>
     </div>
   </div>
 
@@ -280,9 +282,9 @@
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
       myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
-      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
+      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
-      attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
+      attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
       ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
@@ -307,10 +309,12 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'liveatt') { $('tabLa').hidden = false; loadLa(); window.scrollTo(0, 0); }
+      else if (view === 'referrals') { $('tabRef').hidden = false; loadRef(); window.scrollTo(0, 0); }
       else if (view === 'failpay') { $('tabFp').hidden = false; loadFp(); window.scrollTo(0, 0); }
       else if (view === 'stars') { $('tabStars').hidden = false; loadStars(); window.scrollTo(0, 0); }
       else if (view === 'absvideo') { $('tabAv').hidden = false; loadAv(); window.scrollTo(0, 0); }
@@ -328,7 +332,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -545,6 +549,40 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
       var f = box.querySelector('.tform'); if (f) wireChk(f);
     }
+    /* Live attendance (preview): who is signed in to each class today (from EFC through the hub), and regulars who haven't signed in yet,
+       with one tap to add them (the hub checks them in through their home school's EFC, as in the hub). */
+    var LA = { school: '' };
+    function loadLa() {
+      var el = $('tabLa'), sc = ['Marrickville', 'Concord', 'Sydenham', 'Auburn', 'Sylvania'];
+      el.innerHTML = '<h2 class="sec">Live attendance</h2><div class="chips">' + sc.map(function (x) { return '<button type="button" class="chip" data-ls="' + x + '" aria-pressed="' + (x === LA.school) + '">' + x + '</button>'; }).join('') + '<button type="button" class="chip" id="laRf">Refresh</button></div><div id="laBody">' + (LA.school ? '<p class="note">Loading classes from EFC…</p>' : '<p class="note">Pick a school.</p>') + '</div>';
+      Array.prototype.forEach.call(el.querySelectorAll('[data-ls]'), function (b) { b.onclick = function () { LA.school = b.dataset.ls; loadLa(); }; });
+      $('laRf').onclick = function () { if (!LA.school) return; $('laBody').innerHTML = '<p class="note">Refreshing from EFC…</p>'; hubAct({ kind: 'liveatt', act: 'day', school: LA.school, fresh: true }, true).then(drawLa); };
+      if (LA.school) { var want = LA.school; hubRead({ kind: 'liveatt', act: 'day', school: want }, 'liveatt', function (j) { if (LA.school === want) drawLa(j); }); }
+    }
+    function drawLa(j) {
+      var box = $('laBody'); if (!box) return;
+      if (!j || !j.ok) { box.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var d = (j.data || [])[0] || {}, C = d.classes || [];
+      box.innerHTML = '<p class="note">' + esc(String(d.total || 0)) + ' signed in so far' + (j.at ? ', checked ' + esc(j.at) : '') + (d.error ? '. ' + esc(d.error) : '') + '</p>' + (C.length ? C.map(function (c, ci) {
+        return '<details class="row"' + (c.start <= (j.now || '') && c.end >= (j.now || '') ? ' open' : '') + '><summary><span class="a">' + esc(c.start + ' ' + c.name) + '</span><span class="b">' + esc(c.prog || '') + '</span><span class="c st">' + c.count + ' in</span></summary>' +
+          '<p class="tsum" style="margin:8px 0 4px">Signed in</p><p style="margin:0">' + (c.people.length ? c.people.map(function (p) { return esc(p.name) + (p.belt ? ' <span class="tsum">' + esc(p.belt) + '</span>' : ''); }).join(', ') : '<span class="note">Nobody yet</span>') + '</p>' +
+          (c.usual.length ? '<p class="tsum" style="margin:10px 0 4px">Usually here, not signed in</p><div class="chips">' + c.usual.map(function (u, ui) { return '<button type="button" class="chip" data-la="' + ci + ':' + ui + '"' + (d.write ? '' : ' disabled') + '>+ ' + esc(u.name) + '</button>'; }).join('') + '</div>' : '') + '</details>'; }).join('') : '<div class="box"><p>No classes today.</p></div>');
+      Array.prototype.forEach.call(box.querySelectorAll('[data-la]'), function (b) { b.onclick = function () {
+        var k = b.dataset.la.split(':'), c = C[+k[0]], u = c.usual[+k[1]]; if (!confirm('Add ' + u.name + ' to ' + c.start + ' ' + c.name + ' in EFC?')) return; b.disabled = true; b.textContent = 'Adding…';
+        hubAct({ kind: 'liveatt', act: 'add', school: LA.school, session: c.id, memberId: u.id, student: u.name, className: c.name, time: c.start }).then(function (r) { b.textContent = r && r.ok ? '✓ ' + u.name : (r && r.error) || 'Not added'; if (!(r && r.ok)) b.disabled = false; }); }; });
+    }
+    /* Referrals (preview): families who joined through a referral and where each reward is up to. Actions stay in the hub for now. */
+    function loadRef() {
+      var el = $('tabRef'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Referrals</h2><p class="note">Loading…</p>';
+      hubRead({ kind: 'reflist' }, 'referrals', function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Referrals</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var L = j.items || [];
+        el.innerHTML = '<h2 class="sec">Referrals</h2><p class="note">' + L.length + ' open. To record a reward or presentation, use the hub: <a href="' + HUB_URL + '#referrals" target="_blank" rel="noopener">Referrals &#8599;</a></p>' + (L.length ? L.map(function (r) {
+          return '<div class="box" style="margin:8px 0"><div class="chips" style="margin:0 0 4px"><span class="chip" aria-pressed="true">' + esc(r.stage) + '</span><span class="tsum" style="margin:6px 0 0 4px">' + esc([r.loc, r.date].filter(Boolean).join(' · ')) + '</span></div>' +
+            '<b>' + esc(r.by || '') + '</b> referred <b>' + esc(r.student || '') + '</b>' + (r.reward ? '<p class="tsum" style="margin:4px 0">Reward: ' + esc(r.reward) + (r.readyAt ? ', ready ' + esc(r.readyAt) : '') + '</p>' : '') +
+            (r.presentOn ? '<p class="tsum" style="margin:2px 0' + (r.presentLate ? ';color:var(--err)' : '') + '">Present ' + esc(r.presentOn) + (r.instructor ? ' by ' + esc(r.instructor) : '') + '</p>' : '') + (r.notes ? '<p class="tsum" style="margin:2px 0">' + esc(r.notes) + '</p>' : '') + '</div>'; }).join('') : '<div class="box"><p>No open referrals.</p></div>');
+      });
+    }
     /* Failed payments (preview; the five money viewers only): families with an overdue EFC balance and what has been tried. */
     function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { maximumFractionDigits: 0 }); }
     function loadFp() {
@@ -749,7 +787,7 @@
       }).catch(function () { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     /* My Day (preview on Mark's login): the hub's own "Your work today" list, ticks saved by the hub. */
-    var HUBMAP = { '#absvideo': 'absvideo', '#stars': 'stars', '#failpay': 'failpay', '#hubreq': 'hubreq', '#shifts': 'shifts', '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
+    var HUBMAP = { '#attendance': 'liveatt', '#referrals': 'referrals', '#absvideo': 'absvideo', '#stars': 'stars', '#failpay': 'failpay', '#hubreq': 'hubreq', '#shifts': 'shifts', '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
     function openHref(u) { u = String(u || ''); if (!u) return; if (/^https?:/.test(u)) { window.open(u, '_blank', 'noopener'); return; } var k = u.split('?')[0]; if (HUBMAP[k]) return go(HUBMAP[k]); window.open(HUB_URL + u, '_blank', 'noopener'); }
     function loadDay(fresh) {
       var el = $('tabDay'); if (!el.innerHTML || fresh) el.innerHTML = '<h2 class="sec">My Day</h2><p class="note">Loading your work…</p>';
