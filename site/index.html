@@ -333,7 +333,7 @@
           nc(N.newmem || 0, 'New members (first 90 days)', 'list:newmembers') + nc(N.absent || 0, 'Absent follow-ups', 'hub:absent') + '</div>';
         var wc = function (n, l) { return '<div class="wc"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></div>'; };
         h += '<h2 class="sec">This week <small>' + esc(nice(W.from)) + ' – ' + esc(nice(W.to)) + '</small></h2><div class="wk">' + wc(wkTrials, 'Trials') + wc(W.joined || 0, 'Joined') + wc(W.holds || 0, 'Hold requests') + wc(W.cancelled || 0, 'Cancellation requests') + wc(W.members || 0, 'Active students') + '</div>';
-        h += '<div class="box tcard" id="osTrialsBox"></div><p class="note">Counts come from the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '; trials from GHL via the hub every 10 minutes. Read-only: the hub is still the master.</p>';
+        h += '<div class="box tcard" id="osTrialsBox"></div><p class="note">Counts come from the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '; trials ' + (j.trialsLive ? 'straight from GHL' : 'from GHL via the hub every 10 minutes') + '. Read-only: the hub is still the master.</p>';
         el.innerHTML = h; renderTrials(); navBuild();
         Array.prototype.forEach.call(el.querySelectorAll('[data-go2]'), function (b) { b.onclick = function () { var g = b.dataset.go2; if (g.indexOf('hub:') === 0) hubCard(g.slice(4)); else go(g); }; });
         // Management dashboard (Business menu)
@@ -374,7 +374,7 @@
         h += '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.who) + num + pill + '</b><span>' + esc(t.cls) + ' · ' + esc(t.loc) + '</span></div>' +
           (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') + '</div>';
       });
-      h += '</div><p class="note" style="margin:26px 0 0">From GHL via the hub' + (DJ.trialsAt ? ', updated ' + esc(when(DJ.trialsAt)) : '') + '. Enrolled and Rec sent come from GHL and the Enrolments tab; Attended or Absent from the after-trial check.</p>';
+      h += '</div><p class="note" style="margin:26px 0 0">' + (DJ.trialsLive ? 'Straight from GHL' : 'From GHL via the hub') + (DJ.trialsAt ? ', updated ' + esc(when(DJ.trialsAt)) : '') + '. Enrolled and Rec sent come from GHL and the Enrolments tab; Attended or Absent from the after-trial check.</p>';
       box.innerHTML = h;
       Array.prototype.forEach.call(box.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { trialMode = b.dataset.m; renderTrials(); }; });
       Array.prototype.forEach.call(box.querySelectorAll('[data-l]'), function (b) { b.onclick = function () { trialLoc = b.dataset.l; renderTrials(); }; });

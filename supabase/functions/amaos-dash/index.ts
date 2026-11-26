@@ -3,6 +3,7 @@
 // Uses the ama_os_app database login only. Reads nothing from EFC, GHL or the Toolkit, and writes only the audit log.
 // EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan, Ridvan and Busra only (Mark's rule).
 import { cors, requireStaff, sql } from "../_shared/amaos.ts";
+import { ghlConnected, trialsFromGhl } from "../_shared/ghl.ts";
 
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
@@ -67,7 +68,14 @@ async function dash(money: boolean) {
     if (s && d >= today && d <= d7) { S.trialsNext7[s]++; upcoming.push({ date: d, when: r["Trial"], school: s, child: r["Child"], cls: r["Class"] }); }
   }
   // GHL trials (sent by the hub every 10 minutes, the same list as the hub's Trials card). When present, they set the 7-day count.
-  const trials = gt.filter((t) => typeof t.t === "number").sort((a, b) => (a.t as number) - (b.t as number));
+  // 26 Nov 2026 (Mark): straight from GHL with AMA OS's own key; the hub's copy is only the fallback.
+  let trials: Row[] = [], trialsLive = false;
+  if (await ghlConnected()) {
+    try { const [fuRows, enr] = await Promise.all([src("Trial follow-up"), src("Enrolments")]);
+      trials = await trialsFromGhl({ followup: fuRows, bookings: tb, enrolledCids: new Set(enr.map((r) => String(r["Contact ID"] ?? "").trim()).filter(Boolean)) }) as unknown as Row[]; trialsLive = true;
+    } catch (e) { console.log("ghl trials: " + (e as Error).message); }
+  }
+  if (!trialsLive) trials = gt.filter((t) => typeof t.t === "number").sort((a, b) => (a.t as number) - (b.t as number));
   if (trials.length) {
     const off = (new Intl.DateTimeFormat("en-US", { timeZone: "Australia/Sydney", timeZoneName: "shortOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "GMT+11").replace("GMT", "") || "+11";
     const sod = new Date(today + "T00:00:00" + (off.includes(":") ? off : off.replace(/^([+-])(\d+)$/, (_m, g, h) => g + h.padStart(2, "0") + ":00"))).getTime(), end = sod + 8 * 864e5;
@@ -114,11 +122,11 @@ async function dash(money: boolean) {
   cx.forEach((r) => { const d = ymd(r["Logged at"], today); const i = d ? wkOf(d) : -1; if (i > -1) weeks[i].left++; });
   const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : "");
   const at = runs.filter((r) => r.source !== "GHL trials").reduce((m: string, r) => { const t = iso(r.at); return t > m ? t : m; }, "");
-  const trialsAt = iso((runs.find((r) => r.source === "GHL trials") || {}).at);
+  const trialsAt = trialsLive ? new Date().toISOString() : iso((runs.find((r) => r.source === "GHL trials") || {}).at);
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
-    absenteesOpen: absOpen, weeks, trials, trialsAt, needs, week,
+    absenteesOpen: absOpen, weeks, trials, trialsAt, trialsLive, needs, week,
     upcoming: upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 60),
     money: money ? { overdueFamilies: overdue, overdueTotal: Math.round(overdueAmt), nextInvoicesTotal: Math.round(nextAmt) } : null,
   };
