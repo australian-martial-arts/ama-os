@@ -20544,7 +20544,14 @@ function liveAttSchool_(school, ymd, fresh) {
   const base = new Date(ymd + 'T12:00:00'), past = [];
   for (let w = 1; w <= LIVEATT.regularWeeks; w++) past.push(Utilities.formatDate(new Date(base.getTime() - w * 7 * DAY), tz, 'yyyy-MM-dd'));
   const paths = [L + '/calendar/sessions?dateFrom=' + ymd + '&dateTo=' + ymd, L + '/calendar/sessions/' + ymd + '/bookings'].concat(past.map(function (d) { return L + '/calendar/sessions/' + d + '/bookings'; }));
-  const res = efcFetchMany_(school, paths);
+  /* 26 Nov 2026: past weeks never change - keep them for 6 hours (slimmed) instead of asking EFC every minute. Saves 4 of 6 EFC calls per refresh. */
+  const slim = function (list) { return (Array.isArray(list) ? list : []).map(function (x) { const bk = x.bookable || {}, m = x.member || {};
+    return { status: x.status, attended: x.attended, checkIn: x.checkIn ? { status: x.checkIn.status } : null, startTime: x.startTime, bookable: { id: bk.id, name: bk.name, startTime: bk.startTime }, member: { id: m.id, firstName: m.firstName, lastName: m.lastName }, grade: x.grade ? { name: x.grade.name } : null }; }); };
+  const pk = function (d) { return 'liveattp_' + school + '_' + d; }, pastHit = {}, need = [];
+  past.forEach(function (d) { try { const h = cache.get(pk(d)); if (h) { pastHit[d] = JSON.parse(h); return; } } catch (e) { } need.push(d); });
+  const got = efcFetchMany_(school, paths.slice(0, 2).concat(need.map(function (d) { return L + '/calendar/sessions/' + d + '/bookings'; })));
+  need.forEach(function (d, i) { const v = got[2 + i]; if (Array.isArray(v)) { const sl = slim(v); pastHit[d] = sl; try { const js = JSON.stringify(sl); if (js.length < 95000) cache.put(pk(d), js, 21600); } catch (e) { } } });
+  const res = [got[0], got[1]].concat(past.map(function (d) { return pastHit[d] || null; }));
   const sessions = (Array.isArray(res[0]) ? res[0] : []).filter(function (s) { return s.location && s.location.id === loc && String(s.date || '').slice(0, 10) === ymd; });
   const here = function (x) { return x.status !== 'cancelled' && (x.attended || (x.checkIn && x.checkIn.status === 'present')); };
   const nm = function (m) { return [m && m.firstName, m && m.lastName].filter(Boolean).join(' ').trim(); };
