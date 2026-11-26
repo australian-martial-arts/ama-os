@@ -30,7 +30,9 @@ jobs:
           call() { curl -s -m 140 -X POST "$URL" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "content-type: application/json" -H "x-amaos-refresh: $KEY" -d "$1"; echo; }
           M=$(date -u +%M)
           if [ $((10#$M % 10)) -lt 5 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            for s in Marrickville Concord Sydenham Auburn Sylvania; do call "{\"what\":\"efc\",\"school\":\"$s\"}"; done
+            for s in Marrickville Concord Sydenham Auburn Sylvania; do
+              for i in 1 2 3 4 5 6 7 8; do R=$(call "{\"what\":\"efc\",\"school\":\"$s\"}"); echo "$R"; echo "$R" | grep -q '"more":true' || break; done
+            done
           fi
           call '{"what":"trials"}'
           call '{"what":"dash"}'
