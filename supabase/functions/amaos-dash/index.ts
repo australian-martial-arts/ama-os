@@ -255,6 +255,13 @@ Deno.serve(async (req) => {
       if (!want.length || (await sha256(rk)) !== (await sha256(String(want[0].value)))) return json({ ok: false, error: "Not allowed." }, 401);
       const rb = await req.json().catch(() => ({})) as { what?: string; school?: string; from?: string };
       if (rb.from === "db") await sql`insert into ama_os.cache (key, data, at) values ('timer_beat', ${sql.json({ what: String(rb.what ?? "") } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+      if (rb.from === "db") {
+        // Database timers: answer at once and do the work in the background, so the database's shared web-call
+        // queue (also used by the Toolkit's timers) is never held open by a slow refresh.
+        const job = refresh(String(rb.what ?? ""), String(rb.school ?? "")).catch((e) => console.error("refresh", rb.what, String(e)));
+        (globalThis as unknown as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(job);
+        return json({ ok: true, started: String(rb.what ?? "") }, 202);
+      }
       return json({ ok: true, ...(await refresh(String(rb.what ?? ""), String(rb.school ?? ""))) });
     }
     const g = await requireStaff(req);
