@@ -1,6 +1,7 @@
 // amaos-dash: read-only dashboard and family lookup for AMA OS, built from the nightly copy of the hub (ama_os.mirror).
 // Signed-in AMA OS staff only (owners, full-access admins and admins also need their second step).
-// Uses the ama_os_app database login only. Reads nothing from EFC, GHL or the Toolkit, and writes only the audit log.
+// Uses the ama_os_app database login only. Screens read saved results; the only write is the after-trial check,
+// which goes through the hub (the hub stays in charge until the switch-over, so nothing is sent twice).
 // EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan, Ridvan and Busra only (Mark's rule).
 import { cors, requireStaff, sql } from "../_shared/amaos.ts";
 import { ghlConnected, lastMessages, trialsFromGhl } from "../_shared/ghl.ts";
@@ -8,6 +9,7 @@ import { membersSaved, pullSchool, SCHOOLS as EFC_SCHOOLS } from "../_shared/efc
 import { sha256 } from "../_shared/amaos.ts";
 import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMemberCalls, replyOpen } from "../_shared/flows.ts";
 
+const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
 type Row = Record<string, unknown>;
@@ -264,6 +266,30 @@ Deno.serve(async (req) => {
       const rows = await sql`select key, name, what, hub_trigger, owner, moved_at, moved_by from ama_os.automations order by owner desc, name`;
       return json({ ok: true, sending: sw[0]?.value ?? "off", list: rows });
     }
+    if (b.act === "checksave") {
+      // Preview on Mark's login only (26 Nov 2026). Saved by the hub, exactly as if done in the hub.
+      if (me.first !== "mark") return json({ ok: false, error: "Not switched on for you yet." }, 403);
+      const c = b as { id?: string; attended?: string; rec?: string; notes?: string };
+      const id = String(c.id ?? ""), att = String(c.attended ?? ""), rec = c.rec == null ? null : String(c.rec), notes = c.notes == null || String(c.notes).trim() === "" ? null : String(c.notes).slice(0, 1000);
+      if (!["Attended", "Absent", "Rebooked"].includes(att)) return json({ ok: false, error: "Choose Attended, Absent or Rebooked." });
+      if (rec !== null && !["", "Yes", "No", "Later"].includes(rec)) return json({ ok: false, error: "Bad recommendation value." });
+      const tl = await sql`select data from ama_os.cache where key = 'trials_live'`;
+      const list = tl.length ? (tl[0].data as { trials: Row[] }).trials : [], tr = list.find((x) => String(x.id) === id);
+      if (!tr || String(id).charAt(0) === "W") return json({ ok: false, error: "That trial isn't in the list any more. Refresh and try again." });
+      const date = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date(tr.t as number));
+      const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return json({ ok: false, error: "AMA OS can't reach the hub yet (no sync key)." });
+      const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
+        body: JSON.stringify({ kind: "amaoswrite", key, who: me.name, act: "checksave", id, loc: tr.loc, date, attended: att, rec, notes }) });
+      const out = await r.json().catch(() => ({ ok: false, error: "The hub didn't answer properly (" + r.status + ")." })) as { ok?: boolean; error?: string };
+      await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, 'trial check', ${sql.json({ id, date, loc: tr.loc, attended: att, rec, ok: !!out.ok, error: out.error ?? null } as never)})`;
+      if (!out.ok) return json({ ok: false, error: out.error || "The hub couldn't save it." });
+      // Show it straight away: update the saved trial list and rebuild the home page.
+      tr.att = att; if (rec !== null) tr.rec = rec;
+      if (tr.status !== "Enrolled") tr.status = rec === "Yes" || (rec === null && tr.status === "Rec sent") ? "Rec sent" : att;
+      await sql`update ama_os.cache set data = ${sql.json({ trials: list } as never)} where key = 'trials_live'`;
+      await refresh("dash", "");
+      return json({ ok: true, status: tr.status });
+    }
     if (b.act === "list") return json(await list(String((b as { kind?: string }).kind ?? ""), money));
     if (b.act === "find") {
       const q = String(b.q ?? "").trim().slice(0, 60);
@@ -271,7 +297,7 @@ Deno.serve(async (req) => {
       await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, 'lookup', ${sql.json({ q })})`;
       return json({ ok: true, ...(await find(q, money)) });
     }
-    return json({ ok: true, me: { name: me.name, role: me.role }, ...(await dashFast(money)) });
+    return json({ ok: true, me: { name: me.name, role: me.role, check: me.first === "mark" }, ...(await dashFast(money)) });
   } catch (e) {
     return json({ ok: false, error: "Something went wrong. Please try again.", detail: String((e as Error).message ?? e).slice(0, 200) }, 500);
   }

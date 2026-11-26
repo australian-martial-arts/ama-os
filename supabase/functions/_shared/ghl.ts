@@ -107,7 +107,8 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
     const recd = (row && String(row["Recommendation sent"]) === "Yes") || REC_TAGS.some((x) => tags.includes(x));
     const status = enrolled ? "Enrolled" : recd ? "Rec sent" : progMid(e.title ?? "") || (att === "Absent" ? "Absent" : att === "Attended" ? "Attended" : att === "Rebooked" ? "Rebooked" : past ? "No update" : "");
     return { t, id: e.id, cid: e.contactId ?? "", src: src[e.id] ?? "online", day: dayText(t), time: timeText(t), loc,
-      who: kids.length ? kids.join(" & ") : short(c?.name ?? "") + " (parent)", cls: (e as Ev & { cls: string }).cls, num: e.contactId ? num(e.contactId, ymd(t)) : "", past: t < now, status };
+      who: kids.length ? kids.join(" & ") : short(c?.name ?? "") + " (parent)", cls: (e as Ev & { cls: string }).cls, num: e.contactId ? num(e.contactId, ymd(t)) : "", past: t < now, status,
+      att, rec: row ? String(row["Recommendation sent"] ?? "") : "" };
   });
   // Walk-ins: recommendations logged with no trial booked (event IDs start with W), as on the hub.
   Object.values(fu).forEach((r) => { const id = String(r["Event ID"]); if (id.charAt(0) !== "W") return;
