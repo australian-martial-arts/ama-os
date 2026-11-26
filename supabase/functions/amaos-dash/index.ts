@@ -121,7 +121,7 @@ async function dash(money: boolean) {
   // Same rules as the hub's My Day queues (holds to action, cancellations to action in EFC, new member calls).
   const enr = await src("Enrolments");
   const ac = await sql`select data from ama_os.cache where key = 'absent_counts' and at > now() - interval '30 minutes'`, A = ac.length ? ac[0].data as { absreply: number; absent: number } : null;
-  const needs = { holds: holdsToAction(holds).length, cancels: cancelsToAction(cx).length, newmem: newMemberCalls(enr, nm, holds, cx).length, absent: A ? A.absreply + A.absent : null, absreply: A ? A.absreply : null };
+  const needs = { holds: holdsToAction(holds).length, cancels: cancelsToAction(cx).length, newmem: newMemberCalls(enr, nm, holds, cx, await src("Later starts")).length, absent: A ? A.absreply + A.absent : null, absreply: A ? A.absreply : null };
   const week = {
     from: wk7, to: today,
     joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= wk7 && d <= today; }).length,

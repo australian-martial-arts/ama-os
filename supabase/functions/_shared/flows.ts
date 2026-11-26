@@ -75,8 +75,10 @@ function pauses(holds: Row[], cx: Row[], t: string) {
   return { hold, can };
 }
 /** nmFamilies_ + My Day "New member calls": families in their first 90 days whose current step is the office's, or with a concern. */
-export function newMemberCalls(enrolments: Row[], nmRows: Row[], holds: Row[], cx: Row[]) {
+export function newMemberCalls(enrolments: Row[], nmRows: Row[], holds: Row[], cx: Row[], laterRows: Row[] = []) {
   const t = today(), P = pauses(holds, cx, t), fam: Record<string, { key: string; joined: string; students: string[] }> = {};
+  // Hub "Later starts" tab: families who start after they enrol are counted from their start date.
+  const later: Record<string, string> = {}; for (const r of laterRows) { const m = last9(r["Mobile"]), d = day(r["Start date"]); if (m.length === 9 && d) later[m] = d; }
   for (const r of enrolments) {
     const d = day(r["Enrolled date"]); if (!d || d < NM.from) continue;
     const kid = s(r["Student name"]), pf = s(r["Parent first name"]), pl = s(r["Parent last name"]);
@@ -87,7 +89,8 @@ export function newMemberCalls(enrolments: Row[], nmRows: Row[], holds: Row[], c
   const byKey: Record<string, Row> = {}; nmRows.forEach((v) => { byKey[s(v["Key"])] = v; });
   const out: { key: string; group: string }[] = [];
   for (const f of Object.values(fam)) {
-    const days = diffDays(t, f.joined); if (days > NM.maxDays) continue;
+    const lm = f.key.startsWith("m") ? later[f.key.slice(1)] : undefined, start = lm && lm > f.joined ? lm : f.joined;
+    const days = diffDays(t, start); if (days > NM.maxDays) continue;
     const v = byKey[f.key] ?? {}, status = s(v["Status"]); if (status === "Removed" || /^closed/i.test(status)) continue;
     const done = s(v["Done"]).split(",").map((x) => x.trim()).filter(Boolean);
     let cur = -1; NM.stages.forEach((st, i) => { if (days >= st.d) cur = i; }); const st = cur > -1 ? NM.stages[cur] : null;
