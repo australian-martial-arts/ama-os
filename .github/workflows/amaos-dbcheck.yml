@@ -1,6 +1,8 @@
 # Read-only check of what the AMA OS database login can use (extensions, timers). Prints no secrets.
 name: AMA OS db check
-on: { workflow_dispatch: {} }
+on:
+  workflow_dispatch:
+    inputs: { test: { description: 'Also fire one timer call (efcnext/dash)', required: false, default: '' } }
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -19,3 +21,8 @@ jobs:
           psql -c "select has_schema_privilege('cron','usage') cron_usage" || true
           psql -c "select has_schema_privilege('net','usage') net_usage, has_function_privilege('net.http_post(text,jsonb,jsonb,jsonb,integer)','execute') net_post" || true
           psql -c "select jobid, schedule, jobname, username, active from cron.job" || true
+          if [ -n "${{ github.event.inputs.test }}" ]; then
+            psql -c "select ama_os.refresh_call('${{ github.event.inputs.test }}') as req"; sleep 25
+            psql -c "select status_code, left(content::text, 300) as body, error_msg from net._http_response order by created desc limit 1" || true
+            psql -c "select key, at, data from ama_os.cache where key = 'timer_beat'"
+          fi

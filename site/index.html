@@ -82,6 +82,10 @@
     .tday { padding: 9px 14px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; color: var(--gold-ink); background: var(--warn-bg); border-bottom: 1px solid var(--line); }
     .trial { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
     .trial .t { font-weight: 700; font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-size: 16px; } .trial .w > span { display: block; color: var(--ink-2); font-size: 13px; margin-top: 1px; }
+    .tright { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; } .tchk { margin: 0; }
+    .tform { padding: 12px 14px 14px; border-bottom: 1px solid var(--line); background: var(--bg-2, rgba(0,0,0,.03)); }
+    .tform .tnote { width: 100%; box-sizing: border-box; margin: 6px 0 10px; padding: 10px; border: 1px solid var(--line-2); border-radius: 10px; font: inherit; background: var(--card, #fff); color: inherit; }
+    .tform .btn { width: auto; padding: 10px 18px; } .tform .tmsg { margin: 8px 0 0; }
     .st { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 5px 11px; white-space: nowrap; border: 1px solid var(--line-2); color: var(--ink-2); }
     .st.en { background: var(--green); border-color: var(--green); color: #fff; } .st.rec { border-color: #c9a100; color: var(--gold-ink); } .st.abs { border-color: var(--err); color: var(--err); }
     .tnum { display: inline-block; margin-left: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
@@ -503,13 +507,48 @@
         if (t.day !== day) { day = t.day; h += '<div class="tday">' + esc(day) + '</div>'; }
         var past = t.t < now, num = t.num ? '<span class="tnum' + (/^1st|^Trial 1/.test(t.num) ? ' first' : '') + '">' + esc(t.num) + '</span>' : '';
         var pill = t.src === 'online' && !past ? '<span class="tpill">Online, to confirm</span>' : t.src === 'confirmed' ? '<span class="tpill">Confirmed</span>' : '';
+        var canChk = DJ.me && DJ.me.check && past && !t.walkin && String(t.id).charAt(0) !== 'W';
         h += '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.who) + num + pill + '</b><span>' + esc(t.cls) + ' · ' + esc(t.loc) + '</span></div>' +
-          (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') + '</div>';
+          '<div class="tright">' + (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') +
+          (canChk ? '<button type="button" class="chip tchk" data-chk="' + esc(t.id) + '">' + (t.att ? 'Edit check' : 'Check') + '</button>' : '') + '</div></div>' +
+          (canChk && chkOpen === t.id ? chkForm(t) : '');
       });
       h += '</div><p class="note" style="margin:26px 0 0">' + (DJ.trialsLive ? 'Straight from GHL' : 'From GHL via the hub') + (DJ.trialsAt ? ', updated ' + esc(when(DJ.trialsAt)) : '') + '. Enrolled and Rec sent come from GHL and the Enrolments tab; Attended or Absent from the after-trial check.</p>';
       box.innerHTML = h;
       Array.prototype.forEach.call(box.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { trialMode = b.dataset.m; renderTrials(); }; });
       Array.prototype.forEach.call(box.querySelectorAll('[data-l]'), function (b) { b.onclick = function () { trialLoc = b.dataset.l; renderTrials(); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
+      var f = box.querySelector('.tform'); if (f) wireChk(f);
+    }
+    /* After-trial check (preview on Mark's login): saved by the hub, exactly as in the hub's after-trial check. */
+    var chkOpen = '', chkPick = {};
+    function chkForm(t) {
+      var a = chkPick.att || t.att || '', r = chkPick.rec != null ? chkPick.rec : (t.rec || '');
+      var opt = function (k, v, lab, cur) { return '<button type="button" class="chip" data-' + k + '="' + v + '" aria-pressed="' + (cur === v) + '">' + lab + '</button>'; };
+      return '<div class="tform" data-id="' + esc(t.id) + '"><div class="tsum">After-trial check · ' + esc(t.who) + '</div>' +
+        '<div class="chips">' + opt('a', 'Attended', 'Attended', a) + opt('a', 'Absent', 'No-show', a) + opt('a', 'Rebooked', 'Rebooked', a) + '</div>' +
+        (a === 'Absent' ? '<p class="note" style="margin:4px 0 8px">The hub sends the family its usual no-show text (once).</p>' : '') +
+        (a === 'Attended' ? '<div class="tsum">Recommendation sent?</div><div class="chips">' + opt('r', 'Yes', 'Yes', r) + opt('r', 'No', 'Not yet', r) + opt('r', 'Later', 'Later', r) + '</div>' : '') +
+        '<textarea class="tnote" rows="2" maxlength="1000" placeholder="Note (optional). Leave blank to keep any note already saved."></textarea>' +
+        '<div class="chips"><button type="button" class="btn tsave"' + (a ? '' : ' disabled') + '>Save to the hub</button><button type="button" class="link tcancel">Cancel</button></div><p class="tmsg note"></p></div>';
+    }
+    function wireChk(f) {
+      var id = f.dataset.id, t = (DJ.trials || []).filter(function (x) { return String(x.id) === id; })[0]; if (!t) return;
+      Array.prototype.forEach.call(f.querySelectorAll('[data-a]'), function (b) { b.onclick = function () { chkPick.att = b.dataset.a; renderTrials(); }; });
+      Array.prototype.forEach.call(f.querySelectorAll('[data-r]'), function (b) { b.onclick = function () { chkPick.rec = b.dataset.r; renderTrials(); }; });
+      f.querySelector('.tcancel').onclick = function () { chkOpen = ''; chkPick = {}; renderTrials(); };
+      f.querySelector('.tsave').onclick = function () {
+        var sb2 = f.querySelector('.tsave'), m = f.querySelector('.tmsg'), att = chkPick.att || t.att;
+        if (!att) return; sb2.disabled = true; m.textContent = 'Saving to the hub…';
+        var body = { act: 'checksave', id: id, attended: att, notes: f.querySelector('.tnote').value };
+        if (att === 'Attended' && chkPick.rec != null) body.rec = chkPick.rec; else if (att !== 'Attended') body.rec = '';
+        api('amaos-dash', body).then(function (j) {
+          if (!j || !j.ok) { sb2.disabled = false; m.textContent = (j && j.error) || 'Could not save. Please try again.'; return; }
+          t.att = att; if (body.rec != null) t.rec = body.rec; t.status = j.status || t.status;
+          try { sessionStorage.removeItem('amaosDash'); } catch (e) {}
+          chkOpen = ''; chkPick = {}; renderTrials();
+        }).catch(function () { sb2.disabled = false; m.textContent = 'Could not reach AMA OS. Please try again.'; });
+      };
     }
     function bars(W) {
       var max = 1; W.forEach(function (w) { max = Math.max(max, w.joined, w.left); });
