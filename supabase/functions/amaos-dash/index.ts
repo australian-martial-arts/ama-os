@@ -90,6 +90,21 @@ async function dash(money: boolean) {
     if (days.has(id) && (days.get(id) as number) >= 7) openIds.add(id);
   }
   const absOpen = openIds.size;
+  // "Needs you now" and "This week" (hub-style home). Open items by status words the hub uses.
+  const d7 = addDays(today, -6), d90 = addDays(today, -90);
+  const needs = {
+    holds: holds.filter((r) => !/signed|declin|active|resum|no freeze|done|closed|cancel/i.test(String(r["Status"] ?? ""))).length,
+    cancels: cx.filter((r) => !/done|actioned|withdr|stay|retain|closed|complete|cancelled request|rejoin/i.test(String(r["Status"] ?? ""))).length,
+    newmem: nm.filter((r) => { const d = ymd(r["Start date"], today); return d && d >= d90 && !/done|complete|closed|left/i.test(String(r["Status"] ?? "")) && !yes(r["Done"]); }).length,
+    absent: absOpen,
+  };
+  const week = {
+    from: d7, to: today,
+    joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= d7 && d <= today; }).length,
+    cancelled: cx.filter((r) => { const d = ymd(r["Logged at"], today); return d >= d7 && d <= today; }).length,
+    holds: holds.filter((r) => { const d = ymd(r["Logged at"], today); return d >= d7 && d <= today; }).length,
+    members: efc.length,
+  };
   // 12-week trend: new members vs cancellation requests per week (weeks start Monday).
   const weeks: { wk: string; joined: number; left: number }[] = [];
   const dow = (new Date(today + "T12:00:00Z").getUTCDay() + 6) % 7, mon = addDays(today, -dow);
@@ -103,7 +118,7 @@ async function dash(money: boolean) {
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
-    absenteesOpen: absOpen, weeks, trials, trialsAt,
+    absenteesOpen: absOpen, weeks, trials, trialsAt, needs, week,
     upcoming: upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 60),
     money: money ? { overdueFamilies: overdue, overdueTotal: Math.round(overdueAmt), nextInvoicesTotal: Math.round(nextAmt) } : null,
   };

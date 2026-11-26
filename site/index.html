@@ -3,139 +3,178 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f1713">
+  <meta name="theme-color" content="#1B7A3D">
   <meta name="robots" content="noindex">
   <title>AMA OS</title>
+  <link rel="icon" type="image/png" href="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>try { if (localStorage.getItem('amaosTheme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
   <style>
-    :root { --bg:#0f1713; --panel:#16201b; --line:#273530; --ink:#eef4f0; --ink-2:#aebcb4; --ink-3:#6f8178; --accent:#f5c518; --ok:#7fd6a2; --err:#ff8a7a; color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 "Barlow", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      display: flex; align-items: center; justify-content: center;
-      padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-    .card { width: 100%; max-width: 420px; text-align: center; }
-    .badge { display: inline-block; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 12px; color: #1a120d; background: var(--accent); border-radius: 999px; padding: 6px 14px; }
-    h1 { font-size: clamp(34px, 9vw, 48px); font-weight: 800; margin: 20px 0 8px; letter-spacing: -.01em; }
-    p { color: var(--ink-2); margin: 0 auto 18px; max-width: 34ch; }
-    form { display: grid; gap: 10px; text-align: left; }
-    label { font-size: 13px; color: var(--ink-3); }
-    input { width: 100%; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; }
-    input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-    button { font: inherit; font-weight: 700; border: 0; border-radius: 12px; padding: 13px; background: var(--accent); color: #1a120d; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: default; }
-    .link { background: none; color: var(--ink-2); font-weight: 500; padding: 6px; text-decoration: underline; }
-    .msg { min-height: 22px; font-size: 14px; margin-top: 6px; }
-    .msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
-    .who { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; text-align: left; }
-    .who b { display: block; font-size: 18px; } .who span { color: var(--ink-3); font-size: 14px; }
-    [hidden] { display: none !important; }
-    /* Signed-in app (26 Nov 2026): dashboard + family lookup */
-    body.app { display: block; padding: 0; }
-    body.app main.card { max-width: 1100px; margin: 0 auto; text-align: left; padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
-    body.app main.card > .badge, body.app main.card > h1 { display: none; }
-    .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-    .top .badge { font-size: 11px; padding: 4px 10px; } .top h2 { margin: 0; font-size: 20px; font-weight: 800; }
-    .top .sp { flex: 1; } .top .me { color: var(--ink-2); font-size: 14px; } .top .link { padding: 4px; font-size: 14px; }
-    .tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; } .tabs button { white-space: nowrap; flex: none; }
-    .row { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
+    /* Same look as the AMA Hub (25 Nov 2026 light layout): white menu, green header, gold accents. */
+    :root { --bg:#f3f5f4; --panel:#fff; --panel-2:#f7f9f8; --line:#e1e7e3; --line-2:#d3dcd6; --ink:#15241b; --ink-2:#4d5f54; --ink-3:#77897e;
+      --green:#1B7A3D; --green-2:#14592d; --gold:#ffd200; --gold-ink:#8a6a00; --err:#c0392b; --ok:#1B7A3D;
+      --hot-bg:#fdf3f1; --hot-line:#efc2bb; --warn-bg:#fffbea; --warn-line:#f1dc8a; --chip-on:#ffd200; --icon:#eef3ef; color-scheme: light; }
+    :root[data-theme="dark"] { --bg:#0d1511; --panel:#131d17; --panel-2:#16211a; --line:#24332a; --line-2:#2f4236; --ink:#e8efe9; --ink-2:#b6c4bb; --ink-3:#8a9c91;
+      --gold-ink:#ffd200; --err:#ff8f7a; --ok:#7fd6a2; --hot-bg:#2a1714; --hot-line:#5b2a22; --warn-bg:#251f0c; --warn-line:#5a4a12; --icon:#1d2b23; color-scheme: dark; }
+    * { box-sizing: border-box; } [hidden] { display: none !important; }
+    html, body { min-height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 Inter, -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    button { font: inherit; cursor: pointer; } input { font: inherit; }
+
+    /* Sign-in */
+    .gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+    .card { width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 26px 22px; box-shadow: 0 6px 18px rgba(20,60,35,.08); text-align: center; }
+    .card .logo { width: 72px; height: 72px; } .card h1 { font-size: 28px; font-weight: 800; margin: 8px 0 6px; } .card h1 span, .brand span { color: var(--gold-ink); }
+    :root:not([data-theme="dark"]) .card h1 span { color: #c9a100; }
+    .card p { color: var(--ink-2); margin: 0 auto 16px; max-width: 34ch; }
+    .card form { display: grid; gap: 10px; text-align: left; } .card label { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+    .card input { width: 100%; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 14px; }
+    .card input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .btn { border: 0; border-radius: 12px; padding: 12px 16px; background: var(--gold); color: #111; font-weight: 700; } .btn:disabled { opacity: .6; cursor: default; }
+    .link { background: none; border: 0; color: var(--ink-2); padding: 6px; text-decoration: underline; }
+    .msg { min-height: 22px; font-size: 14px; margin-top: 8px; } .msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
+
+    /* App shell */
+    .side { position: fixed; inset: 0 auto 0 0; width: 232px; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; z-index: 20; }
+    .side .top { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; } .side .top img { width: 46px; height: 46px; }
+    .brand { font-size: 20px; font-weight: 800; } .brand span { color: #c9a100; } :root[data-theme="dark"] .brand span { color: var(--gold); }
+    .side .scroll { flex: 1; overflow: auto; padding: 4px 8px 10px; }
+    .sd-h { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding: 12px 8px 4px; }
+    .sd-i { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; color: var(--ink); text-align: left; padding: 6px 8px; border-radius: 8px; font-size: 14px; }
+    .sd-i:hover { background: var(--panel-2); } .sd-i.on { background: var(--green); color: #fff; }
+    .sd-i i { font-style: normal; flex: 0 0 26px; height: 26px; border-radius: 7px; background: var(--icon); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+    :root[data-theme="dark"] .sd-i i { color: #7fd6a2; } .sd-i.on i { background: rgba(255,255,255,.2); color: #fff; }
+    .sd-i span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sd-i em { font-style: normal; background: var(--gold); color: #111; border-radius: 999px; font-size: 11px; font-weight: 800; padding: 1px 7px; }
+    .sd-i.hub span { color: var(--ink-3); } .sd-i.hub em { background: transparent; color: var(--ink-3); border: 1px solid var(--line-2); font-weight: 600; }
+    .side .foot { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 12px; color: var(--ink-3); }
+    .main { margin-left: 232px; padding: 18px 22px 60px; max-width: 1400px; }
+    .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: linear-gradient(135deg, #1B7A3D 0%, #14592d 100%); border-radius: 16px; padding: 12px 14px; color: #fff; box-shadow: 0 6px 18px rgba(20,60,35,.15); margin-bottom: 18px; }
+    .bar img { width: 52px; height: 52px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); } .bar .brand { color: #fff; font-size: 24px; font-weight: 500; } .bar .brand span { color: var(--gold); }
+    .bar form { flex: 1; min-width: 220px; position: relative; } .bar form input { width: 100%; border: 0; border-radius: 12px; padding: 12px 14px 12px 40px; background: #fff; color: #15241b; }
+    .bar form::before { content: "⌕"; position: absolute; left: 14px; top: 50%; transform: translateY(-52%); color: #77897e; font-size: 20px; }
+    .bar .me { font-weight: 700; } .hbtn { border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+    .hbtn.gold { border-color: var(--gold); color: var(--gold); font-weight: 700; } .menuBtn { display: none; }
+    h2.sec { font-size: 22px; font-weight: 800; margin: 6px 0 12px; } h2.sec small { font-size: 15px; font-weight: 600; color: var(--ink-3); margin-left: 8px; }
+    .note { color: var(--ink-3); font-size: 13px; margin: 0 0 12px; }
+    .now { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 22px; }
+    .nc { text-align: left; border-radius: 12px; padding: 12px 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); }
+    .nc b { display: block; font-size: 30px; font-weight: 700; line-height: 1.15; color: var(--ink-3); } .nc span { color: var(--ink-2); }
+    .nc.warn { background: var(--warn-bg); border-color: var(--warn-line); } .nc.warn b { color: var(--gold-ink); }
+    .nc.hot { background: var(--hot-bg); border-color: var(--hot-line); } .nc.hot b { color: var(--err); }
+    .nc:hover { border-color: var(--gold); }
+    .wk { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 22px; }
+    .wc { border-radius: 12px; padding: 12px 14px; border: 1px solid var(--line); background: var(--panel); } .wc b { display: block; font-size: 28px; font-weight: 700; line-height: 1.15; } .wc span { color: var(--ink-2); }
+    .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+    .box h3 { margin: 0 0 10px; font-size: 16px; } .box.tcard { border: 3px solid var(--gold); } .box.tcard h3 { font-size: 26px; font-weight: 800; margin-bottom: 2px; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; } .tile .n { font-size: 26px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; } .tile .l { color: var(--ink-2); font-size: 13px; }
+    table.t { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+    table.t th, table.t td { padding: 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; } table.t th:first-child, table.t td:first-child { text-align: left; }
+    table.t th { color: var(--ink-3); font-weight: 600; font-size: 12px; } table.t tr.tot td { font-weight: 800; border-bottom: 0; }
+    .legend { display: flex; gap: 14px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; } .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip { font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: var(--panel); color: var(--ink); border: 1px solid var(--line-2); }
+    .chip[aria-pressed="true"] { background: var(--chip-on); color: #111; border-color: var(--chip-on); }
+    .tsum { color: var(--ink-2); font-size: 14px; margin: 2px 0 10px; }
+    .trials { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .tday { padding: 9px 14px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; color: var(--gold-ink); background: var(--warn-bg); border-bottom: 1px solid var(--line); }
+    .trial { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .trial .t { font-weight: 700; font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-size: 16px; } .trial .w > span { display: block; color: var(--ink-2); font-size: 13px; margin-top: 1px; }
+    .st { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 5px 11px; white-space: nowrap; border: 1px solid var(--line-2); color: var(--ink-2); }
+    .st.en { background: var(--green); border-color: var(--green); color: #fff; } .st.rec { border-color: #c9a100; color: var(--gold-ink); } .st.abs { border-color: var(--err); color: var(--err); }
+    .tnum { display: inline-block; margin-left: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+    .tpill { font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; border: 1px solid var(--line-2); color: var(--ink-2); vertical-align: 2px; }
+    .tempty { padding: 14px; color: var(--ink-3); }
+    .srch { display: flex; gap: 8px; margin-bottom: 14px; } .srch input { flex: 1; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 14px; background: var(--panel); color: var(--ink); }
+    .fam, .row { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+    .fam .h { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-bottom: 8px; } .fam .h b { font-size: 17px; } .fam .h span { color: var(--ink-2); font-size: 14px; }
+    .kid { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; } .kid b { font-size: 15px; } .kid .m { color: var(--ink-2); }
+    .pill { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: var(--warn-bg); color: var(--gold-ink); border: 1px solid var(--warn-line); }
+    .pill.bad { background: var(--hot-bg); color: var(--err); border-color: var(--hot-line); }
+    .hist { font-size: 13px; color: var(--ink-2); margin-top: 6px; } .hist b { color: var(--ink); font-weight: 600; }
     .row summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; } .row summary::-webkit-details-marker { display: none; }
     .row .a { font-weight: 700; } .row .b { color: var(--ink-3); font-size: 13px; grid-column: 1; } .row .c { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
     .row dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0 2px; font-size: 13.5px; } .row dt { color: var(--ink-3); } .row dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
-    .tabs button { background: none; color: var(--ink-2); border-radius: 0; padding: 10px 12px; font-weight: 700; border-bottom: 2px solid transparent; }
-    .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
-    .note { color: var(--ink-3); font-size: 13px; margin: 0 0 12px; max-width: none; }
-    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px; }
-    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
-    .tile .n { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-    .tile .l { color: var(--ink-2); font-size: 13px; }
-    .box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; overflow-x: auto; }
-    .box h3 { margin: 0 0 10px; font-size: 15px; }
-    table.t { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-    table.t th, table.t td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-    table.t th:first-child, table.t td:first-child { text-align: left; } table.t th { color: var(--ink-3); font-weight: 600; font-size: 12px; }
-    table.t tr.tot td { font-weight: 800; border-bottom: 0; }
-    .legend { display: flex; gap: 14px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; } .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
-    .srch { display: flex; gap: 8px; margin-bottom: 14px; } .srch input { flex: 1; } .srch button { padding: 0 18px; }
-    .fam { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
-    .fam .h { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-bottom: 8px; } .fam .h b { font-size: 17px; } .fam .h span { color: var(--ink-2); font-size: 14px; }
-    .kid { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; } .kid b { font-size: 15px; } .kid .m { color: var(--ink-2); }
-    .pill { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: #3a2f10; color: var(--accent); }
-    .pill.bad { background: #3b1d19; color: var(--err); }
-    .hist { font-size: 13px; color: var(--ink-2); margin-top: 6px; } .hist b { color: var(--ink); font-weight: 600; }
-    /* Trials card: same layout as the hub's Trials card */
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
-    .chip[aria-pressed="true"] { background: var(--accent); color: #1a120d; border-color: var(--accent); }
-    .trials { margin: 6px -14px -14px; } .tsum { color: var(--ink-2); font-size: 13px; margin: 2px 0 8px; }
-    .tday { padding: 10px 14px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; color: var(--accent); background: rgba(245,197,24,.05); border-bottom: 1px solid var(--line); }
-    .trial { display: grid; grid-template-columns: 74px 1fr auto; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
-    .trial .t { color: var(--ink-3); font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-weight: 700; } .trial .w > span { display: block; color: var(--ink-3); font-size: 12px; margin-top: 1px; }
-    .st { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 4px 10px; white-space: nowrap; border: 1px solid var(--line); color: var(--ink-3); }
-    .st.en { background: #1B7A3D; border-color: #1B7A3D; color: #fff; } .st.rec { border-color: var(--accent); color: var(--accent); } .st.att { color: var(--ink); } .st.abs { border-color: var(--err); color: var(--err); }
-    .tnum { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 800; color: var(--accent); border: 1px solid rgba(245,197,24,.45); border-radius: 999px; padding: 1px 7px; vertical-align: 2px; white-space: nowrap; }
-    .tnum.first { color: var(--ink-3); border-color: var(--line); }
-    .tpill { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; border: 1px solid var(--line); color: var(--ink-2); vertical-align: 2px; }
-    .tempty { padding: 14px; color: var(--ink-3); }
-    @media (max-width: 560px) { .tile .n { font-size: 24px; } .trial { grid-template-columns: 62px 1fr; } .trial > :last-child { grid-column: 2; justify-self: start; } }
+    .hubcard { max-width: 560px; } .hubcard .btn { display: inline-block; text-decoration: none; margin-top: 6px; }
+    .scrim { display: none; }
+    @media (max-width: 900px) {
+      .side { transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 30px rgba(0,0,0,.2); } body.menu .side { transform: none; }
+      body.menu .scrim { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 15; }
+      .main { margin-left: 0; padding: 12px 14px 60px; } .menuBtn { display: inline-block; }
+      .bar img { width: 40px; height: 40px; } .bar .brand { font-size: 20px; } .bar form { order: 9; flex-basis: 100%; } .bar .me { display: none; }
+      .trial { grid-template-columns: 70px 1fr; } .trial > :last-child { grid-column: 2; justify-self: start; }
+      .nc b, .wc b { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
-  <main class="card">
-    <span class="badge">AMA</span>
-    <h1>AMA OS</h1>
+  <div class="gate" id="gate">
+    <main class="card">
+      <img class="logo" src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="AMA">
+      <h1>AMA <span>OS</span></h1>
+      <section id="stepEmail">
+        <p>Staff sign-in, with the same mobile and PIN as the hub and the Toolkit.</p>
+        <form id="emailForm">
+          <label for="email">Your mobile number</label>
+          <input id="email" type="tel" inputmode="tel" autocomplete="username" required placeholder="04xx xxx xxx">
+          <label for="pin">Your hub PIN</label>
+          <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="PIN">
+          <button class="btn" id="sendBtn" type="submit">Sign in</button>
+        </form>
+      </section>
+      <section id="stepCode" hidden>
+        <p>We've texted you a sign-in code. It can take a minute to arrive.</p>
+        <form id="codeForm">
+          <label for="code">Sign-in code</label>
+          <input id="code" inputmode="numeric" autocomplete="one-time-code" required placeholder="6-digit code">
+          <button class="btn" id="codeBtn" type="submit">Sign in</button>
+          <button class="link" type="button" id="backBtn">Use a different number</button>
+        </form>
+      </section>
+      <section id="stepMfa" hidden>
+        <p id="mfaIntro">Owners and admins confirm it's them with a second step.</p>
+        <div style="display:grid;gap:10px;margin-bottom:14px">
+          <button class="btn" type="button" id="pkUseBtn" hidden>Use Face ID / fingerprint (passkey)</button>
+          <button type="button" class="link" id="totpShowBtn" hidden>Use my authenticator app instead</button>
+        </div>
+        <div id="mfaQr" style="background:#fff;border-radius:12px;padding:12px;margin:0 auto 12px;width:fit-content" hidden></div>
+        <p id="mfaSecret" style="font-size:13px;word-break:break-all" hidden></p>
+        <form id="mfaForm" hidden>
+          <label for="mfaCode">6-digit code from your authenticator app</label>
+          <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" required placeholder="123456">
+          <button class="btn" id="mfaBtn" type="submit">Confirm</button>
+        </form>
+      </section>
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+    </main>
+  </div>
 
-    <section id="stepEmail">
-      <p>Staff sign-in, with the same mobile and PIN as the hub and the Toolkit.</p>
-      <form id="emailForm">
-        <label for="email">Your mobile number</label>
-        <input id="email" type="tel" inputmode="tel" autocomplete="username" required placeholder="04xx xxx xxx">
-        <label for="pin">Your hub PIN</label>
-        <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="PIN">
-        <button id="sendBtn" type="submit">Sign in</button>
-      </form>
-    </section>
-
-    <section id="stepCode" hidden>
-      <p>We've texted you a sign-in code. It can take a minute to arrive.</p>
-      <form id="codeForm">
-        <label for="code">Sign-in code</label>
-        <input id="code" inputmode="numeric" autocomplete="one-time-code" required placeholder="6-digit code">
-        <button id="codeBtn" type="submit">Sign in</button>
-        <button class="link" type="button" id="backBtn">Use a different number</button>
-      </form>
-    </section>
-
-    <section id="stepMfa" hidden>
-      <p id="mfaIntro">Owners and admins confirm it's them with a second step.</p>
-      <div style="display:grid;gap:10px;margin-bottom:14px">
-        <button type="button" id="pkUseBtn" hidden>Use Face ID / fingerprint (passkey)</button>
-        <button type="button" class="link" id="totpShowBtn" hidden>Use my authenticator app instead</button>
-      </div>
-      <div id="mfaQr" style="background:#fff;border-radius:12px;padding:12px;margin:0 auto 12px;width:fit-content" hidden></div>
-      <p id="mfaSecret" style="font-size:13px;word-break:break-all" hidden></p>
-      <form id="mfaForm" hidden>
-        <label for="mfaCode">6-digit code from your authenticator app</label>
-        <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" required placeholder="123456">
-        <button id="mfaBtn" type="submit">Confirm</button>
-      </form>
-    </section>
-
-    <section id="stepIn" hidden>
-      <div class="top"><span class="badge">AMA</span><h2>AMA OS</h2><span class="sp"></span>
-        <span class="me"><b id="whoName"></b> · <span id="whoRole"></span></span>
-        <button class="link" type="button" id="outBtn">Sign out</button></div>
-      <button type="button" id="pkAddBtn" hidden style="margin-bottom:12px">Add a passkey on this device (Face ID / fingerprint)</button>
-      <nav class="tabs"><button type="button" data-tab="dash" class="on">Dashboard</button><button type="button" data-tab="find">Family lookup</button><button type="button" data-tab="followup">Trial follow-up</button><button type="button" data-tab="newmembers">New members</button><button type="button" data-tab="holds">Holds</button><button type="button" data-tab="cancels">Cancellations</button></nav>
-      <div id="tabDash"><p class="note">Loading…</p></div>
-      <div id="tabList" hidden></div>
-      <div id="tabFind" hidden>
-        <form class="srch" id="findForm"><input id="findQ" placeholder="Student, parent, mobile, email or EFC reference" autocomplete="off"><button type="submit">Search</button></form>
-        <div id="findOut"><p class="note">Read-only. Searches the copy of EFC members the hub sends each night. Each search is logged.</p></div>
-      </div>
-    </section>
-
-    <div id="msg" class="msg" role="status" aria-live="polite"></div>
-  </main>
+  <div id="stepIn" hidden>
+    <aside class="side" id="side">
+      <div class="top"><img src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="AMA"><span class="brand">AMA <span>OS</span></span></div>
+      <nav class="scroll" id="nav"></nav>
+      <div class="foot">Signed in as <b id="whoName"></b> · <span id="whoRole"></span><br><button class="link" type="button" id="outBtn" style="padding:4px 0">Sign out</button></div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+    <div class="main">
+      <header class="bar">
+        <button type="button" class="hbtn menuBtn" id="menuBtn" aria-label="Menu">☰</button>
+        <img src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="">
+        <span class="brand">AMA <span>OS</span></span>
+        <form id="findForm"><input id="findQ" placeholder="Find a family or student" autocomplete="off" aria-label="Find a family or student"></form>
+        <span class="me" id="barName"></span>
+        <button type="button" class="hbtn" id="themeBtn">Dark</button>
+      </header>
+      <button class="btn" type="button" id="pkAddBtn" hidden style="margin-bottom:12px">Add a passkey on this device (Face ID / fingerprint)</button>
+      <section id="tabDash"><p class="note">Loading…</p></section>
+      <section id="tabMgmt" hidden></section>
+      <section id="tabList" hidden></section>
+      <section id="tabFind" hidden><h2 class="sec">Find a family</h2><div id="findOut"><p class="note">Search by student, parent, mobile, email or EFC reference in the bar above. Read-only; each search is logged.</p></div></section>
+      <section id="tabHub" hidden></section>
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -145,7 +184,7 @@
     var C = window.AMAOS_CONFIG || {}, $ = function (id) { return document.getElementById(id); };
     var ROLE = { owner: 'Owner', full: 'Full-access admin', marketing: 'Marketing', admin: 'Admin', junior: 'Junior admin', instructor: 'Instructor' };
     function msg(t, kind) { var m = $('msg'); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
-    function show(id) { ['stepEmail', 'stepCode', 'stepMfa', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); document.body.classList.toggle('app', id === 'stepIn'); }
+    function show(id) { ['stepEmail', 'stepCode', 'stepMfa', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); $('gate').hidden = id === 'stepIn'; document.body.classList.toggle('app', id === 'stepIn'); }
     if (!C.supabaseAnonKey || /PASTE/.test(C.supabaseAnonKey)) { msg('Sign-in is being connected. Check back shortly.', 'err'); $('sendBtn').disabled = true; return; }
     var sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });
     var email = '', justSignedIn = false, mfaFactor = null, mfaChallenge = null, idleTimer = null;
@@ -200,37 +239,111 @@
     function fmtN(n) { return Number(n || 0).toLocaleString('en-AU'); }
     function nice(d) { if (!d) return ''; var t = new Date(String(d).length === 10 ? d + 'T12:00:00' : d); return isNaN(t) ? String(d) : t.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); }
     function when(d) { var t = new Date(d); return isNaN(t) ? '' : t.toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); }
+    /* ---------- Menu: the hub's menu, item for item. Items AMA OS has now open here; the rest open the same page in the hub. ---------- */
+    var HUB_URL = 'https://train.australianmartialarts.com.au/admin';
+    var ME = { name: '', role: '', first: '' };
+    function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
+    var I = {
+      myday: { l: 'My Day', h: '#myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check' }, appr: { l: 'Approvals', h: '' },
+      book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', h: '#close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
+      absent: { l: 'Absent follow-up', h: '#absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
+      attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', h: '#promos' }, grading: { l: 'Gradings', h: '#grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
+      ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on', h: '' }, shifts: { l: 'Extra shifts', h: '#shifts' }, efc: { l: 'Log into EFC', h: '' }, ghl: { l: 'Log into GHL', h: '' },
+      pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', h: '' },
+      mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff management', h: '', can: isMgmt }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
+      marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', h: '', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
+      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', h: '', can: isMgmt }
+    };
+    var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
+      ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
+      ['Business', ['mgmtd', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns']]];
+    var CUR = 'home';
+    function ini(l) { var w = l.replace(/[^A-Za-z ]/g, '').split(/\s+/).filter(Boolean); return (((w[0] || '')[0] || '') + ((w[1] || '')[0] || '')).toUpperCase(); }
+    function navBuild() {
+      var N = (DJ && DJ.needs) || {}, h = '<button type="button" class="sd-i' + (CUR === 'home' ? ' on' : '') + '" data-go="home"><i>&#8962;</i><span>Home</span></button>';
+      GROUPS.forEach(function (g) {
+        var ids = g[1].filter(function (id) { var x = I[id]; return x && (!x.can || x.can()); }); if (!ids.length) return;
+        h += '<div class="sd-h">' + esc(g[0]) + '</div>' + ids.map(function (id) {
+          var x = I[id], n = x.n && N[x.n] ? N[x.n] : 0, on = x.os && (CUR === x.os || (x.os === 'today' && CUR === 'home' && false));
+          return '<button type="button" class="sd-i' + (on ? ' on' : '') + (x.os ? '' : ' hub') + '" data-id="' + id + '" title="' + esc(x.os ? x.l : x.l + ' (still in the hub)') + '"><i>' + esc(ini(x.l)) + '</i><span>' + esc(x.l) + '</span>' + (x.os ? (n ? '<em>' + n + '</em>' : '') : '<em>Hub</em>') + '</button>';
+        }).join('');
+      });
+      $('nav').innerHTML = h;
+    }
+    function go(view) {
+      CUR = view; document.body.classList.remove('menu');
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub'].forEach(function (t) { $(t).hidden = true; });
+      if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
+      else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
+      else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view.indexOf('list:') === 0) { $('tabList').hidden = false; loadList(view.slice(5)); window.scrollTo(0, 0); }
+      navBuild();
+    }
+    function hubCard(id) {
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
+      navBuild(); window.scrollTo(0, 0);
+    }
+    $('nav').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.go) return go(b.dataset.go);
+      var x = I[b.dataset.id]; if (!x) return; if (x.os) go(x.os); else hubCard(b.dataset.id);
+    });
+    $('menuBtn').onclick = function () { document.body.classList.toggle('menu'); };
+    $('scrim').onclick = function () { document.body.classList.remove('menu'); };
+    function themeLabel() { $('themeBtn').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Light' : 'Dark'; }
+    $('themeBtn').onclick = function () { var d = document.documentElement.getAttribute('data-theme') === 'dark'; if (d) document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', 'dark');
+      try { localStorage.setItem('amaosTheme', d ? 'light' : 'dark'); } catch (e) {} themeLabel(); };
+    function appStart(j) {
+      ME = { name: j.name, role: j.role, first: String(j.name || '').trim().split(/\s+/)[0].toLowerCase() };
+      $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); $('barName').textContent = String(j.name || '').split(' ')[0];
+      themeLabel(); show('stepIn'); msg(''); go('home'); loadDash();
+    }
+
+    /* ---------- Home (Needs you now, This week, Today's trials) and the management dashboard ---------- */
     function loadDash() {
       var el = $('tabDash'); el.innerHTML = '<p class="note">Loading…</p>';
       api('amaos-dash', { act: 'dash' }).then(function (j) {
-        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load the dashboard.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
-        var T = j.totals, B = j.by, att = T.trialsLast30 ? Math.round(T.attendedLast30 * 100 / T.trialsLast30) : 0;
+        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
+        DJ = j; var N = j.needs || {}, W = j.week || {}, T = j.totals, B = j.by;
+        var sod = new Date(); sod.setHours(0, 0, 0, 0); var now = Date.now(), tr = j.trials || [];
+        var toFinish = tr.filter(function (t) { return t.t >= sod.getTime() && t.t < now && !t.walkin && (!t.status || t.status === 'No update'); }).length;
+        var wkTrials = tr.filter(function (t) { return t.t >= sod.getTime() - 6 * 864e5 && t.t < sod.getTime() + 864e5 && !t.walkin; }).length;
+        var nc = function (n, l, go2, hot) { return '<button type="button" class="nc' + (n > 0 ? (hot ? ' hot' : ' warn') : '') + '" data-go2="' + go2 + '"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></button>'; };
+        var h = '<h2 class="sec">Needs you now</h2><div class="now">' + nc(toFinish, 'Trials to finish', 'today', true) + nc(N.holds || 0, 'Holds to action', 'list:holds') + nc(N.cancels || 0, 'Cancels to action', 'list:cancels') +
+          nc(N.newmem || 0, 'New members (first 90 days)', 'list:newmembers') + nc(N.absent || 0, 'Absent follow-ups', 'hub:absent') + '</div>';
+        var wc = function (n, l) { return '<div class="wc"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></div>'; };
+        h += '<h2 class="sec">This week <small>' + esc(nice(W.from)) + ' – ' + esc(nice(W.to)) + '</small></h2><div class="wk">' + wc(wkTrials, 'Trials') + wc(W.joined || 0, 'Joined') + wc(W.holds || 0, 'Hold requests') + wc(W.cancelled || 0, 'Cancellation requests') + wc(W.members || 0, 'Active students') + '</div>';
+        h += '<div class="box tcard" id="osTrialsBox"></div><p class="note">Counts come from the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '; trials from GHL via the hub every 10 minutes. Read-only: the hub is still the master.</p>';
+        el.innerHTML = h; renderTrials(); navBuild();
+        Array.prototype.forEach.call(el.querySelectorAll('[data-go2]'), function (b) { b.onclick = function () { var g = b.dataset.go2; if (g.indexOf('hub:') === 0) hubCard(g.slice(4)); else go(g); }; });
+        // Management dashboard (Business menu)
+        var att = T.trialsLast30 ? Math.round(T.attendedLast30 * 100 / T.trialsLast30) : 0;
         var tiles = [['Active members', T.members], ['New members, last 30 days', T.newMembers], ['Cancellation requests, last 30 days', T.cancels], ['On hold today', T.holdsNow],
           ['Trials, next 7 days', T.trialsNext7], ['Trials attended, last 30 days', T.trialsLast30 ? att + '%' : '–'], ['Not trained in 14+ days', T.quiet14], ['Absentee follow-ups open', j.absenteesOpen]];
         if (j.money) tiles.push(['Next EFC invoices', '$' + fmtN(j.money.nextInvoicesTotal)], ['Families overdue', fmtN(j.money.overdueFamilies) + ' · $' + fmtN(j.money.overdueTotal)]);
-        var h = '<p class="note">From the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '. Read-only; the hub is still the master.</p><div class="tiles">' +
+        var m = '<h2 class="sec">Management dashboard</h2><p class="note">From the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '.</p><div class="tiles">' +
           tiles.map(function (t) { return '<div class="tile"><div class="n">' + (typeof t[1] === 'number' ? fmtN(t[1]) : esc(t[1])) + '</div><div class="l">' + esc(t[0]) + '</div></div>'; }).join('') + '</div>';
-        h += '<div class="box" id="osTrialsBox"></div>';
         var cols = [['members', 'Members'], ['newMembers', 'New (30d)'], ['cancels', 'Cancel req. (30d)'], ['holdsNow', 'On hold'], ['trialsNext7', 'Trials next 7d'], ['trialsLast30', 'Trials (30d)'], ['attendedLast30', 'Attended'], ['quiet14', '14+ days away']];
-        h += '<div class="box"><h3>By school</h3><table class="t"><tr><th>School</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' +
+        m += '<div class="box"><h3>By school</h3><table class="t"><tr><th>School</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' +
           j.schools.map(function (s) { return '<tr><td>' + esc(s) + '</td>' + cols.map(function (c) { return '<td>' + fmtN(B[c[0]][s]) + '</td>'; }).join('') + '</tr>'; }).join('') +
           '<tr class="tot"><td>All schools</td>' + cols.map(function (c) { return '<td>' + fmtN(T[c[0]]) + '</td>'; }).join('') + '</tr></table></div>';
-        h += '<div class="box"><h3>Joined vs cancellation requests, last 12 weeks</h3><div class="legend"><span><i style="background:var(--ok)"></i>Joined</span><span><i style="background:var(--err)"></i>Cancellation requests</span></div>' + bars(j.weeks) + '</div>';
-        el.innerHTML = h; DJ = j; renderTrials();
+        m += '<div class="box"><h3>Joined vs cancellation requests, last 12 weeks</h3><div class="legend"><span><i style="background:#1B7A3D"></i>Joined</span><span><i style="background:#d9604c"></i>Cancellation requests</span></div>' + bars(j.weeks) + '</div>';
+        $('tabMgmt').innerHTML = m;
       }).catch(function () { el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     var DJ = null, trialMode = 'today', trialLoc = 'All', ST = { 'Rebooked': 'rec', 'Enrolled': 'en', 'Rec sent': 'rec', 'Attended': 'att', 'Absent': 'abs', 'No update': '' };
     function renderTrials() {
       var box = $('osTrialsBox'); if (!box || !DJ) return;
       var all = DJ.trials || [];
-      if (!all.length) { box.innerHTML = '<h3>Trials</h3><p class="note">Trials from GHL start arriving from the hub within 10 minutes (7am to 9pm).</p>'; return; }
+      if (!all.length) { box.innerHTML = '<h3>Today\'s trials</h3><p class="note">Trials from GHL start arriving from the hub within 10 minutes (7am to 9pm).</p>'; return; }
       var sod = new Date(); sod.setHours(0, 0, 0, 0); sod = sod.getTime(); var eod = sod + 864e5, now = Date.now();
       var modes = [['today', 'Today'], ['recent', 'Last 7 days'], ['up', 'Coming up']], locs = ['All'].concat(DJ.schools);
       var list = all.filter(function (t) { if (trialLoc !== 'All' && t.loc !== trialLoc) return false;
         if (trialMode === 'today') return t.t >= sod && t.t < eod; if (trialMode === 'recent') return t.t < now; return t.t >= eod; });
       if (trialMode === 'recent') list = list.slice().reverse();
       var c = {}; list.forEach(function (t) { if (t.status) c[t.status] = (c[t.status] || 0) + 1; });
-      var h = '<h3>Trials</h3><div class="chips">' + modes.map(function (m) { return '<button type="button" class="chip" data-m="' + m[0] + '" aria-pressed="' + (m[0] === trialMode) + '">' + m[1] + '</button>'; }).join('') + '</div>' +
+      var h = '<h3>' + (trialMode === 'today' ? 'Today\'s trials' : trialMode === 'recent' ? 'Trials, last 7 days' : 'Upcoming trials') + '</h3><div class="chips">' + modes.map(function (m) { return '<button type="button" class="chip" data-m="' + m[0] + '" aria-pressed="' + (m[0] === trialMode) + '">' + m[1] + '</button>'; }).join('') + '</div>' +
         '<div class="chips">' + locs.map(function (l) { return '<button type="button" class="chip" data-l="' + esc(l) + '" aria-pressed="' + (l === trialLoc) + '">' + esc(l) + '</button>'; }).join('') + '</div>' +
         '<div class="tsum">' + (trialMode === 'up' ? list.length + ' coming up' : list.length + ' trials' + (c['Enrolled'] ? ' · ' + c['Enrolled'] + ' enrolled' : '') + (c['Rec sent'] ? ' · ' + c['Rec sent'] + ' rec sent' : '') + (c['Absent'] ? ' · ' + c['Absent'] + ' absent' : '') + (c['No update'] ? ' · ' + c['No update'] + ' no update' : '')) + '</div><div class="trials">';
       if (!list.length) h += '<div class="tempty">No trials' + (trialLoc === 'All' ? '' : ' at ' + esc(trialLoc)) + (trialMode === 'today' ? ' today' : trialMode === 'recent' ? ' in the last 7 days' : ' coming up') + '.</div>';
@@ -251,8 +364,8 @@
       var max = 1; W.forEach(function (w) { max = Math.max(max, w.joined, w.left); });
       var bw = 14, gap = 10, grp = bw * 2 + 4 + gap, H = 140, w = W.length * grp + 30;
       var g = W.map(function (x, i) { var X = 30 + i * grp, hj = Math.round(x.joined / max * (H - 20)), hl = Math.round(x.left / max * (H - 20));
-        return '<rect x="' + X + '" y="' + (H - hj) + '" width="' + bw + '" height="' + hj + '" rx="2" fill="var(--ok)"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.joined + ' joined</title></rect>' +
-          '<rect x="' + (X + bw + 4) + '" y="' + (H - hl) + '" width="' + bw + '" height="' + hl + '" rx="2" fill="var(--err)"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.left + ' cancellation requests</title></rect>' +
+        return '<rect x="' + X + '" y="' + (H - hj) + '" width="' + bw + '" height="' + hj + '" rx="2" fill="#1B7A3D"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.joined + ' joined</title></rect>' +
+          '<rect x="' + (X + bw + 4) + '" y="' + (H - hl) + '" width="' + bw + '" height="' + hl + '" rx="2" fill="#d9604c"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.left + ' cancellation requests</title></rect>' +
           (i % 2 === 0 ? '<text x="' + (X + bw) + '" y="' + (H + 16) + '" text-anchor="middle" font-size="8" fill="var(--ink-3)">' + esc(new Date(x.wk + 'T12:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })) + '</text>' : ''); }).join('');
       return '<svg viewBox="0 0 ' + w + ' ' + (H + 22) + '" style="width:100%;max-width:' + (w * 1.6) + 'px;height:auto" role="img" aria-label="Weekly joined and cancellation requests">' +
         '<text x="0" y="12" font-size="8" fill="var(--ink-3)">' + max + '</text><line x1="26" x2="' + w + '" y1="' + H + '" y2="' + H + '" stroke="var(--line)"/>' + g + '</svg>';
@@ -275,18 +388,12 @@
         (f.absent ? '<div class="hist"><b>Absentee follow-ups:</b> ' + f.absent + '</div>' : '') + '</div>';
     }
     $('findForm').onsubmit = function (e) {
-      e.preventDefault(); var q = $('findQ').value.trim(), out = $('findOut'); out.innerHTML = '<p class="note">Searching…</p>';
+      e.preventDefault(); go('find'); var q = $('findQ').value.trim(), out = $('findOut'); out.innerHTML = '<p class="note">Searching…</p>';
       api('amaos-dash', { act: 'find', q: q }).then(function (j) {
         if (!j || !j.ok) { out.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Search failed.') + '</p>'; return; }
         out.innerHTML = j.families.length ? j.families.map(famHtml).join('') + (j.more ? '<p class="note">More matches. Add more of the name or mobile to narrow it down.</p>' : '') : '<p class="note">No current EFC members match. (Families who have left are not in the nightly copy.)</p>';
       }).catch(function () { out.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     };
-    Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
-      b.onclick = function () { var t = b.dataset.tab; Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (x) { x.classList.toggle('on', x === b); });
-        $('tabDash').hidden = t !== 'dash'; $('tabFind').hidden = t !== 'find'; $('tabList').hidden = t === 'dash' || t === 'find';
-        if (t === 'find') $('findQ').focus(); else if (t !== 'dash') loadList(t); };
-    });
-    /* Read-only lists of the critical flows, newest first, from the hub copy. */
     var LT = { followup: { title: 'Trial follow-up', who: ['Child', 'Parent'], sub: ['Class', 'Location', 'Trial time'] }, newmembers: { title: 'New members', who: ['Family'], sub: ['Students', 'School'] },
       holds: { title: 'Holds', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] }, cancels: { title: 'Cancellations', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] } };
     var LS = { kind: '', data: null, q: '', st: 'All', sc: 'All' };
@@ -318,6 +425,7 @@
       Array.prototype.forEach.call(el.querySelectorAll('[data-st]'), function (b) { b.onclick = function () { LS.st = b.dataset.st; drawList(); }; });
       Array.prototype.forEach.call(el.querySelectorAll('[data-sc]'), function (b) { b.onclick = function () { LS.sc = b.dataset.sc; drawList(); }; });
     }
+
     function toPhone(v) { var d = String(v).replace(/\D/g, ''); if (/^04\d{8}$/.test(d)) return '+61' + d.slice(1); if (/^614\d{8}$/.test(d)) return '+' + d; return ''; }
 
     function whoAmI() {
@@ -330,7 +438,7 @@
             if (!j.ok && j.mfa) { msg(''); return startMfa(j.passkeys || 0); }
             if (!j.ok) { msg(j.error || 'Not allowed.', 'err'); sb.auth.signOut(); show('stepEmail'); return; }
             idle(); $('pkAddBtn').hidden = true; if (j.secondStep && window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn()) pk('status').then(function (p) { $('pkAddBtn').hidden = !(p.ok && p.count === 0); });
-            $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); show('stepIn'); msg(''); document.body.classList.add('app'); loadDash();
+            appStart(j);
           });
       }).catch(function () { msg('Could not reach AMA OS. Please try again.', 'err'); });
     }
