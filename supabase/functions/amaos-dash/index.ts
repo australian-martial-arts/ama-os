@@ -11,9 +11,9 @@ import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMem
 
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
 // 27 Nov 2026 (Mark): Tate tests every new system as it comes across, so he gets each preview too.
-const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook", "hubreq", "shifts", "failpay", "stars", "absvideo"];
-const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600, hubreq: 900, shifts: 900, failpay: 900, stars: 900, absvideo: 900 }; // seconds a saved copy may be shown
-const hubKey = (first: string, body: Record<string, unknown>) => "hub:" + first + ":" + String(body.kind) + (body.kind === "check" ? ":" + String(body.loc ?? "") + ":" + String(body.date ?? "") : "");
+const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook", "hubreq", "shifts", "failpay", "stars", "absvideo", "liveatt", "reflist"];
+const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600, hubreq: 900, shifts: 900, failpay: 900, stars: 900, absvideo: 900, liveatt: 120, reflist: 900 }; // seconds a saved copy may be shown
+const hubKey = (first: string, body: Record<string, unknown>) => "hub:" + first + ":" + String(body.kind) + (body.kind === "check" ? ":" + String(body.loc ?? "") + ":" + String(body.date ?? "") : body.kind === "liveatt" ? ":" + String(body.school ?? "") + ":" + String(body.date ?? "") : "");
 async function hubCall(who: string, mobile: string, body: Record<string, unknown>) {
   const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return { ok: false, error: "AMA OS can't reach the hub yet (no sync key)." } as Record<string, unknown>;
   const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
       const body = (b as { body?: Record<string, unknown> }).body ?? {}, kind = String(body.kind ?? ""), fresh = !!(b as { fresh?: boolean }).fresh;
       if (!HUB_KINDS.includes(kind)) return json({ ok: false, error: "Not available in AMA OS yet." });
       if (kind === "failpay" && !MONEY.includes(me.first)) return json({ ok: false, error: "Only Mark, Sarah, Hakan, Ridvan and Busra see payments." }, 403);
-      const ttl = body.act && body.act !== "list" && !(kind === "stars" && body.act === "cfg") ? 0 : HUB_READ[kind];
+      const ttl = body.act && body.act !== "list" && !(kind === "stars" && body.act === "cfg") && !(kind === "liveatt" && body.act === "day") ? 0 : HUB_READ[kind];
       if (ttl) {
         const ck = hubKey(me.first, body), hit = await sql`select data, at from ama_os.cache where key = ${ck}`;
         const age = hit.length ? Date.now() - new Date(hit[0].at as string).getTime() : Infinity;
