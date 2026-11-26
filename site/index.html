@@ -207,6 +207,7 @@
       <section id="tabStock" hidden></section>
       <section id="tabPb" hidden></section>
       <section id="tabIh" hidden></section>
+      <section id="tabRc" hidden></section>
       <section id="tabSec" hidden></section>
     </div>
   </div>
@@ -292,7 +293,7 @@
       book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties', os2: 'parties' }, camp: { l: 'Holiday camp', h: '#camp', os2: 'camp' }, privates: { l: 'Private lessons', h: '', os2: 'privates' }, shop: { l: 'Shop and stock', h: '#stock', os2: 'stock' },
-      ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
+      ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '', os2: 'revcal' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', os2: 'sec:sales', can: isMgmt },
       marketing: { l: 'Marketing', h: '#marketing', os2: 'sec:marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', os2: 'sec:retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', os2: 'failpay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } },
@@ -316,13 +317,14 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
       else if (view.indexOf('sec:') === 0) { $('tabSec').hidden = false; loadSec(view.slice(4)); window.scrollTo(0, 0); }
       else if (view === 'camp') { $('tabCamp').hidden = false; loadCamp(); window.scrollTo(0, 0); }
       else if (view === 'playbook') { $('tabPb').hidden = false; loadPb(); window.scrollTo(0, 0); }
+      else if (view === 'revcal') { $('tabRc').hidden = false; loadRc(); window.scrollTo(0, 0); }
       else if (view === 'ihub') { $('tabIh').hidden = false; loadIh(); window.scrollTo(0, 0); }
       else if (view === 'stock') { $('tabStock').hidden = false; loadStock(); window.scrollTo(0, 0); }
       else if (view === 'parties') { $('tabParty').hidden = false; loadParty(); window.scrollTo(0, 0); }
@@ -346,7 +348,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -690,12 +692,83 @@
           .filter(function (t) { return I[t[0]] && (!I[t[0]].can || I[t[0]].can()); }).map(function (t) { return '<button type="button" class="trial ihgo" data-v="' + t[0] + '" style="text-align:left;width:100%"><div class="w"><b>' + esc(I[t[0]].l) + '</b><span>' + t[1] + '</span></div></button>'; }).join('') + '</div>' +
           '<p class="note" style="margin-top:12px">Onboarding, move reviews, your availability, Grow and earn and class audits are still in the hub: <a href="' + HUB_URL + '" target="_blank" rel="noopener">open the hub &#8599;</a></p>';
       }
-      el.innerHTML = h;
+      if (IHV.tab === 'dev') h += '<div class="tday" style="margin-top:12px">One-on-ones and PPF goals</div><div id="ihPpf"><p class="note">Loading your PPF goals and one-on-ones…</p></div>';
+      el.innerHTML = h; if (IHV.tab === 'dev') { var pb = $('ihPpf'); if (IHV.ppf) ppfMineDraw(pb); ppfMine(pb); }
       Array.prototype.forEach.call(el.querySelectorAll('[data-iht]'), function (b) { b.onclick = function () { if (b.dataset.iht === 'pb') { CUR = 'playbook'; go('playbook'); loadPb('Team'); return; } IHV.tab = b.dataset.iht; drawIh(); }; });
       Array.prototype.forEach.call(el.querySelectorAll('.ihgo'), function (b) { b.onclick = function () { openItem(b.dataset.v); }; });
       Array.prototype.forEach.call(el.querySelectorAll('.ihask'), function (b) { b.onclick = function () { b.disabled = true; b.textContent = 'Sending…';
         hubAct({ kind: 'trainreq', program: b.dataset.v }).then(function (r) { if (r && r.ok) { (IHV.d.asked = IHV.d.asked || []).push({ p: IH_CL[b.dataset.v], s: r.status || 'requested' }); drawIh(); } else { b.disabled = false; b.textContent = 'Try again'; alert((r && r.error) || 'That did not work.'); } }); }; });
     }
+    /* PPF goals and one-on-ones (preview): staff book a time with their manager and fill in their goals; managers add times and prepare (My review calendar). Same sheets as the hub. */
+    var PPF_AREAS = [['personal', 'Personal', 'Health, family, training, life. Who do I want to become?'], ['professional', 'Professional', 'Skills, role, pathway. Where do I want my career to go?'], ['financial', 'Financial', 'Income, savings, security. What do I want my money to do?']], PPF_HZ = [['y1', '1 year'], ['y3', '3 years'], ['y5', '5 years']];
+    var PPF_PREP = [['7 days before', ['Meeting booked in both calendars', 'They have been reminded to update their PPF goals (and self-review for quarterly or annual)', 'Quiet space booked']], ['2 days before', ['Last 4 weekly scorecards pulled', 'Latest class audit (or admin task log) pulled', 'Last one-on-one actions reviewed', 'Parent feedback or notes collected', 'One win to recognise picked out']], ['The day before', ['Their PPF form read', 'My ratings drafted, each with evidence', 'One focus KPI chosen', 'Pay or promotion outcome confirmed with Mark (annual only)']], ['In the meeting', ['Phone away, start on time', 'They talk first', 'Every rating backed with an example', 'Actions have an owner and a date', 'Next meeting booked before they leave']], ['Within 48 hours', ['Record it in Staff management (One-on-one or Review)', 'Actions added with due dates', 'Development plan updated', 'Follow-up note sent']]];
+    function ppfDay(ymd) { if (!ymd) return ''; var p = String(ymd).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); }
+    function ppfHm(t) { if (!t) return ''; var h = +t.slice(0, 2), m = t.slice(3, 5); return (h % 12 || 12) + (m !== '00' ? ':' + m : '') + (h < 12 ? 'am' : 'pm'); }
+    function ppfForm(data, ro) {
+      var g = (data && data.g) || {}, pri = (data && data.pri) || [{}, {}, {}], dis = ro ? ' disabled' : '';
+      var h = PPF_AREAS.map(function (a) { var A = g[a[0]] || {}; return '<div class="box"><b>' + a[1] + '</b><span class="tsum" style="display:block">' + a[2] + '</span>' + PPF_HZ.map(function (z) { var Z = A[z[0]] || {};
+        return '<div class="bkf" style="border-top:1px solid var(--line);margin-top:10px;padding-top:8px"><label>' + z[1] + ': my SMART goal</label><textarea rows="2" data-g="' + a[0] + '.' + z[0] + '.goal"' + dis + '>' + esc(Z.goal || '') + '</textarea><label>Progress since my last one-on-one</label><input data-g="' + a[0] + '.' + z[0] + '.prog" value="' + esc(Z.prog || '') + '"' + dis + '><label>Me or We?</label><select data-g="' + a[0] + '.' + z[0] + '.mw"' + dis + '>' + ['', 'Me', 'We', 'Both'].map(function (o) { return '<option' + ((Z.mw || '') === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select></div>'; }).join('') + '</div>'; }).join('');
+      return h + '<div class="box"><b>My top 3 priorities</b><span class="tsum" style="display:block">Next 90 days</span>' + [0, 1, 2].map(function (i) { var P = pri[i] || {};
+        return '<div class="bkf" style="border-top:1px solid var(--line);margin-top:10px;padding-top:8px"><label>Priority ' + (i + 1) + '</label><input data-p="' + i + '.p" value="' + esc(P.p || '') + '"' + dis + '><label>KPI it links to</label><input data-p="' + i + '.kpi" value="' + esc(P.kpi || '') + '"' + dis + '><label>Support I need</label><input data-p="' + i + '.support" value="' + esc(P.support || '') + '"' + dis + '><label>Check-in date</label><input type="date" data-p="' + i + '.date" value="' + esc(P.date || '') + '"' + dis + '></div>'; }).join('') + '</div>';
+    }
+    function ppfCollect(root) { var g = {}, pri = [{}, {}, {}]; Array.prototype.forEach.call(root.querySelectorAll('[data-g]'), function (i) { var k = i.dataset.g.split('.'); g[k[0]] = g[k[0]] || {}; g[k[0]][k[1]] = g[k[0]][k[1]] || {}; g[k[0]][k[1]][k[2]] = i.value; }); Array.prototype.forEach.call(root.querySelectorAll('[data-p]'), function (i) { var k = i.dataset.p.split('.'); pri[+k[0]][k[1]] = i.value; }); return { g: g, pri: pri }; }
+    /* My development: one-on-one bookings and PPF goals (inside the Instructor Hub). */
+    function ppfMine(box) {
+      hubRead({ kind: 'ppf', act: 'mine' }, 'ihub', function (r) { if (IHV.tab !== 'dev' || !box.isConnected) return; IHV.ppf = r; ppfMineDraw(box); });
+    }
+    function ppfMineDraw(box) {
+      var r = IHV.ppf; if (!r) return; if (!r.ok) { box.innerHTML = '<div class="box"><p class="msg err">' + esc(r.error || 'Could not load your PPF goals.') + '</p></div>'; return; }
+      var p = r.ppf || {}, h = '<div class="box"><b>Your one-on-ones</b>' + (r.mgr ? '<span class="tsum" style="display:block">With ' + esc(r.mgr) + '</span>' : '');
+      h += (r.next || []).length ? r.next.map(function (s) { return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);margin-top:8px"><div><b>' + esc(ppfDay(s.date) + ' ' + ppfHm(s.start)) + '</b><span class="tsum" style="display:block">' + esc([s.type, s.mins + ' min', s.where, s.mgr].filter(Boolean).join(' · ')) + '</span></div><button type="button" class="chip pfx" data-sid="' + esc(s.id) + '">Cancel</button></div>'; }).join('') : '<p class="note">Nothing booked.' + (r.lastOne ? ' Last one-on-one: ' + esc(ppfDay(String(r.lastOne).slice(0, 10))) + '.' : '') + '</p>';
+      if ((r.open || []).length) h += '<div class="bkf" style="margin-top:10px"><label>Book a time: what is it for?</label><select id="pfType">' + (r.types || []).map(function (t) { return '<option>' + esc(t) + '</option>'; }).join('') + '</select></div><div class="chips" style="margin-top:8px">' + r.open.map(function (s) { return '<button type="button" class="chip pfb" data-sid="' + esc(s.id) + '">' + esc(ppfDay(s.date) + ' ' + ppfHm(s.start)) + (s.mgr ? ' · ' + esc(s.mgr) : '') + '</button>'; }).join('') + '</div>';
+      else h += '<p class="note" style="margin-top:8px">No open times from your manager yet.</p>';
+      h += '</div><div class="tday" style="margin-top:12px">Your PPF goals</div><p class="note">' + (p.at ? 'Last saved ' + esc(ppfDay(String(p.at).slice(0, 10))) : 'Not filled in yet') + (p.mSigned ? ' · signed off by your manager' : p.sSigned ? ' · ready for your one-on-one' : '') + '</p><div id="pfForm">' + ppfForm(p.data, false) + '</div>' +
+        '<div class="chips"><button type="button" class="btn pfs" style="width:auto;padding:10px 18px">Save</button><button type="button" class="chip pfs" data-sign="1">Save and mark ready for my one-on-one</button></div><p class="tmsg note" id="pfMsg"></p>';
+      box.innerHTML = h;
+      Array.prototype.forEach.call(box.querySelectorAll('.pfb'), function (b) { b.onclick = function () { var ty = $('pfType').value; if (!confirm('Book ' + b.textContent + ' for your ' + ty.toLowerCase() + '?')) return; b.disabled = true;
+        hubAct({ kind: 'ppf', act: 'book', sid: b.dataset.sid, type: ty }).then(function (x) { if (!(x && x.ok)) alert((x && x.error) || 'Not booked.'); ppfReload(box); }); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('.pfx'), function (b) { b.onclick = function () { if (!confirm('Cancel this booking?')) return; b.disabled = true;
+        hubAct({ kind: 'ppf', act: 'cancelbook', sid: b.dataset.sid }).then(function (x) { if (!(x && x.ok)) alert((x && x.error) || 'Not cancelled.'); ppfReload(box); }); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('.pfs'), function (b) { b.onclick = function () { var m = $('pfMsg'); b.disabled = true; m.textContent = 'Saving…';
+        hubAct({ kind: 'ppf', act: 'saveppf', data: ppfCollect($('pfForm')), sign: !!b.dataset.sign }).then(function (x) { b.disabled = false; m.textContent = x && x.ok ? (b.dataset.sign ? 'Saved and ready for your one-on-one.' : 'Saved.') : ((x && x.error) || 'Not saved.'); if (x && x.ok) ppfReload(box); }); }; });
+    }
+    function ppfReload(box) { hubAct({ kind: 'ppf', act: 'mine' }, true).then(function (r) { IHV.ppf = r; if (box.isConnected) ppfMineDraw(box); }); }
+    /* My review calendar (managers and head instructors): times your team can book, and prep for each meeting. */
+    var RCV = {};
+    function loadRc() {
+      var el = $('tabRc'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">My review calendar</h2><p class="note">Loading…</p>';
+      hubRead({ kind: 'ppf', act: 'cal' }, 'revcal', function (j) { RCV.d = j; drawRc(); });
+    }
+    function drawRc() {
+      var el = $('tabRc'), r = RCV.d, today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
+      if (!r || !r.ok) { el.innerHTML = '<h2 class="sec">My review calendar</h2><p class="msg err">' + esc((r && r.error) || 'Could not load.') + '</p>'; return; }
+      var up = (r.slots || []).filter(function (s) { return s.date >= today; }), booked = up.filter(function (s) { return s.status === 'Booked'; }), last = '';
+      var h = '<h2 class="sec">My review calendar</h2><p class="note">Times your team can book for one-on-ones and reviews. They book from My development in the Instructor Hub.</p>' +
+        '<div class="box"><b>Add times staff can book</b><div class="bkf"><label>Date</label><input type="date" id="rcD" min="' + today + '"><label>First start time</label><input type="time" id="rcS" value="15:00"><label>Length</label><select id="rcM"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select><label>How many back-to-back</label><input type="number" id="rcN" value="3" min="1" max="12"><label>Where</label><input id="rcW" placeholder="For example: Marrickville office, or phone"></div>' +
+        '<button type="button" class="btn" id="rcAdd" style="width:auto;padding:10px 18px;margin-top:10px">Add these times</button><p class="tmsg note" id="rcE"></p></div>' +
+        '<div class="box"><b>Coming up</b><span class="tsum" style="display:block">' + booked.length + ' booked · ' + (up.length - booked.length) + ' open</span>';
+      if (!up.length) h += '<p class="note">No times yet. Add some above.</p>';
+      up.forEach(function (s) { if (s.date !== last) { h += '<div class="tday" style="margin-top:12px">' + esc(ppfDay(s.date)) + '</div>'; last = s.date; }
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 0;border-top:1px solid var(--line)"><span>' + esc(ppfHm(s.start)) + ' · ' + s.mins + ' min' + (s.where ? ' · ' + esc(s.where) : '') + '</span><span class="chips" style="margin:0">' +
+          (s.status === 'Booked' ? '<span class="chip" aria-pressed="true">' + esc(s.staff) + ' · ' + esc(s.type) + '</span><button type="button" class="chip rcp" data-id="' + esc(s.sid) + '">Prepare</button><button type="button" class="chip rcx" data-sid="' + esc(s.id) + '">Cancel booking</button>'
+            : '<span class="tsum">Open</span><button type="button" class="chip rcd" data-sid="' + esc(s.id) + '">Remove</button>') + '</span></div>'; });
+      h += '</div><div id="rcPrep"></div>';
+      el.innerHTML = h;
+      $('rcAdd').onclick = function () { var b = this; b.disabled = true; $('rcE').textContent = 'Adding…';
+        hubAct({ kind: 'ppf', act: 'addslots', date: $('rcD').value, start: $('rcS').value, mins: $('rcM').value, n: $('rcN').value, where: $('rcW').value }).then(function (x) { b.disabled = false; if (x && x.ok) { $('rcE').textContent = x.added + ' time' + (x.added > 1 ? 's' : '') + ' added.'; rcReload(); } else $('rcE').textContent = (x && x.error) || 'Not added.'; }); };
+      Array.prototype.forEach.call(el.querySelectorAll('.rcd'), function (b) { b.onclick = function () { b.disabled = true; hubAct({ kind: 'ppf', act: 'delslot', sid: b.dataset.sid }).then(function (x) { if (!(x && x.ok)) alert((x && x.error) || 'Not removed.'); rcReload(); }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.rcx'), function (b) { b.onclick = function () { if (!confirm('Cancel this booking? Let them know, and the time opens up again.')) return; b.disabled = true; hubAct({ kind: 'ppf', act: 'cancelbook', sid: b.dataset.sid }).then(function (x) { if (!(x && x.ok)) alert((x && x.error) || 'Not cancelled.'); rcReload(); }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.rcp'), function (b) { b.onclick = function () { var id = b.dataset.id, box = $('rcPrep'); box.innerHTML = '<div class="box"><p class="note">Loading their PPF goals…</p></div>'; box.scrollIntoView({ behavior: 'smooth' });
+        hubAct({ kind: 'ppf', act: 'get', id: id }).then(function (x) {
+          if (!x || !x.ok) { box.innerHTML = '<div class="box"><p class="msg err">' + esc((x && x.error) || 'Could not load.') + '</p></div>'; return; }
+          var p = x.ppf || {};
+          box.innerHTML = '<div class="box"><b>Prepare</b><span class="tsum" style="display:block">Manager review prep checklist</span>' + PPF_PREP.map(function (q) { return '<div style="margin-top:10px"><b>' + esc(q[0]) + '</b>' + q[1].map(function (t) { return '<label style="display:block;padding:3px 0"><input type="checkbox"> ' + esc(t) + '</label>'; }).join('') + '</div>'; }).join('') + '<p class="note">Their scorecard, class audits and records are on their profile in Staff management.</p></div>' +
+            '<div class="tday" style="margin-top:12px">Their PPF goals</div><p class="note">' + (p.at ? 'Updated ' + esc(ppfDay(String(p.at).slice(0, 10))) : 'Not filled in yet') + (p.mSigned ? ' · you signed off ' + esc(ppfDay(String(p.mSigned).slice(0, 10))) : '') + '</p>' + ppfForm(p.data, true) +
+            (p.at ? '<button type="button" class="btn" id="rcSign" style="width:auto;padding:10px 18px">Sign off their PPF goals</button><p class="tmsg note" id="rcSm"></p>' : '');
+          var sg = $('rcSign'); if (sg) sg.onclick = function () { sg.disabled = true; hubAct({ kind: 'ppf', act: 'mgrsign', id: id }).then(function (y) { $('rcSm').textContent = y && y.ok ? 'Signed off.' : ((y && y.error) || 'Not signed.'); if (!(y && y.ok)) sg.disabled = false; }); };
+        }); }; });
+    }
+    function rcReload() { hubAct({ kind: 'ppf', act: 'cal' }, true).then(function (j) { RCV.d = j; if (CUR === 'revcal') drawRc(); }); }
     /* Birthday parties (preview): every party by stage, its details, stage, checklist and notes. Placing a party in a time slot stays in the hub. */
     var PT = { open: '', st: 'Open' };
     function loadParty() {
