@@ -5834,6 +5834,7 @@ function hubMgmt_(who, b) {
 }
 
 function hubMgmtWarm() {
+  try { amaosSyncTick_(); } catch (e) { } /* 26 Nov 2026: AMA OS nightly copy (1am-4am only, needs AMAOS_SYNC_KEY) */
   const out = mgmtBuild_(true);
   mgmtKeepMonths_(out);
   try { CacheService.getScriptCache().put(MGMT.cacheKey, JSON.stringify(out), MGMT.cacheSecs); } catch (err) { Logger.log('mgmt cache: ' + err); }
@@ -23700,3 +23701,33 @@ function mhub2DocsWrite_(rows) {
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, MHUB2.docCols.length).clearContent();
   if (rows.length) sh.getRange(2, 1, rows.length, MHUB2.docCols.length).setValues(rows);
 }
+
+/* 26 Nov 2026 (Mark): AMA OS nightly copy. Sends a read-only copy of the hub's main sheets to AMA OS (Supabase, amaos-sync)
+   between 1am and 4am, three tabs per run of hubMgmtWarm. Does nothing until AMAOS_SYNC_KEY is in Script Properties (Tate adds it,
+   the same value as in Supabase). Columns that look like PINs, passwords, tokens, card or bank details are never sent. Nothing comes back. */
+const AMAOS_SYNC = { url: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-sync', keyProp: 'AMAOS_SYNC_KEY', curProp: 'AMAOS_SYNC_CUR', perTick: 3, hours: [1, 2, 3],
+  tabs: ['Hub staff', 'EFC live', 'Holds', 'Cancellations', 'New members', 'Hub trial bookings', 'Trial follow-up', 'Recommendations', 'Sales chase', 'Membership changes', 'LD grading', 'Promotions', 'Media opt-out', 'Member docs', 'Stars ledger', 'Absentees', 'Failed payments', 'Instructor onboarding'],
+  skip: /pin|password|passcode|token|secret|api.?key|card|bsb|account.?number/i };
+function amaosSyncTab_(tab) {
+  const key = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp); if (!key) return { ok: false, error: 'No sync key yet.' };
+  const sh = SpreadsheetApp.openById(HOLD.sheetId).getSheetByName(tab); if (!sh) return { ok: false, error: 'No tab called ' + tab + '.' };
+  const v = sh.getDataRange().getValues(); if (!v.length) return { ok: true, rows: 0 };
+  const tz = CONFIG.timezone, H = v[0].map(function (h) { return String(h).trim(); }), keep = H.map(function (h) { return !!h && !AMAOS_SYNC.skip.test(h); });
+  const rows = v.slice(1).map(function (r, i) { const d = {}; let any = false; r.forEach(function (x, j) { if (!keep[j] || x === '' || x === null) return; any = true; d[H[j]] = x instanceof Date ? Utilities.formatDate(x, tz, "yyyy-MM-dd'T'HH:mm:ssXXX") : x; }); return any ? { key: 'r' + (i + 2), data: d } : null; }).filter(Boolean);
+  const res = UrlFetchApp.fetch(AMAOS_SYNC.url, { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': key }, payload: JSON.stringify({ source: tab, rows: rows }), muteHttpExceptions: true });
+  let body = {}; try { body = JSON.parse(res.getContentText()); } catch (e) { }
+  return { ok: res.getResponseCode() === 200 && !!body.ok, code: res.getResponseCode(), rows: rows.length, staff: body.staff || 0, error: body.error || '' };
+}
+function amaosSyncTick_() {
+  const P = PropertiesService.getScriptProperties(); if (!P.getProperty(AMAOS_SYNC.keyProp)) return;
+  const now = new Date(), h = +Utilities.formatDate(now, CONFIG.timezone, 'H'); if (AMAOS_SYNC.hours.indexOf(h) < 0) return;
+  const day = Utilities.formatDate(now, CONFIG.timezone, 'yyyy-MM-dd'); let cur = {}; try { cur = JSON.parse(P.getProperty(AMAOS_SYNC.curProp) || '{}'); } catch (e) { }
+  if (cur.day !== day) cur = { day: day, i: 0, log: [] };
+  for (let n = 0; n < AMAOS_SYNC.perTick && cur.i < AMAOS_SYNC.tabs.length; n++, cur.i++) {
+    const t = AMAOS_SYNC.tabs[cur.i]; let r; try { r = amaosSyncTab_(t); } catch (e) { r = { ok: false, error: String(e.message || e) }; }
+    cur.log.push(t + ': ' + (r.ok ? r.rows + ' rows' : 'failed (' + (r.error || r.code) + ')'));
+  }
+  P.setProperty(AMAOS_SYNC.curProp, JSON.stringify(cur));
+}
+/* Run by hand from the editor to send everything now (after the key is added). */
+function amaosSyncNow() { AMAOS_SYNC.tabs.forEach(function (t) { Logger.log(t + ': ' + JSON.stringify(amaosSyncTab_(t))); }); }
