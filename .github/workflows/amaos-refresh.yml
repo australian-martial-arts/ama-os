@@ -28,7 +28,7 @@ jobs:
           KEY=$(psql -tA -c "select value from ama_os.connections where name = 'REFRESH_KEY'")
           echo "::add-mask::$KEY"
           ANON=$(grep -o "eyJ[^']*" site/config.js)
-          call() { curl -s -m 140 -X POST "$URL" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "content-type: application/json" -H "x-amaos-refresh: $KEY" -d "$1"; echo; }
+          call() { curl -s -m 140 -X POST "$URL" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "content-type: application/json" -H "x-amaos-refresh: $KEY" -H "x-region: ap-southeast-2" -d "$1"; echo; }
           if [ -n "${{ github.event.inputs.only }}" ]; then call "{\"what\":\"${{ github.event.inputs.only }}\"}"; exit 0; fi
           M=$(date -u +%M)
           if [ $((10#$M % 10)) -lt 5 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
