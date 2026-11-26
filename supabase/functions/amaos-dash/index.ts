@@ -9,6 +9,7 @@ import { membersSaved, pullSchool, SCHOOLS as EFC_SCHOOLS } from "../_shared/efc
 import { sha256 } from "../_shared/amaos.ts";
 import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMemberCalls, replyOpen } from "../_shared/flows.ts";
 
+let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
 const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
@@ -251,16 +252,23 @@ Deno.serve(async (req) => {
   try {
     const rk = req.headers.get("x-amaos-refresh");
     if (rk) {
-      const want = await sql`select value from ama_os.connections where name = 'REFRESH_KEY'`;
-      if (!want.length || (await sha256(rk)) !== (await sha256(String(want[0].value)))) return json({ ok: false, error: "Not allowed." }, 401);
+      // The refresh key is kept in memory for 10 minutes, so a timer call can be answered without waiting for the database.
+      if (!refreshKeyHash || Date.now() - refreshKeyAt > 600000) {
+        const want = await sql`select value from ama_os.connections where name = 'REFRESH_KEY'`;
+        refreshKeyHash = want.length ? await sha256(String(want[0].value)) : ""; refreshKeyAt = Date.now();
+      }
+      if (!refreshKeyHash || (await sha256(rk)) !== refreshKeyHash) { refreshKeyHash = ""; return json({ ok: false, error: "Not allowed." }, 401); }
       const rb = await req.json().catch(() => ({})) as { what?: string; school?: string; from?: string };
-      if (rb.from === "db") await sql`insert into ama_os.cache (key, data, at) values ('timer_beat', ${sql.json({ what: String(rb.what ?? "") } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
       if (rb.from === "db") {
-        // Database timers: answer at once and do the work in the background, so the database's shared web-call
-        // queue (also used by the Toolkit's timers) is never held open by a slow refresh.
-        const job = refresh(String(rb.what ?? ""), String(rb.school ?? "")).catch((e) => console.error("refresh", rb.what, String(e)));
+        // Database timers: answer at once and do the work in the background, one job after another, so the database's
+        // shared web-call queue (also used by the Toolkit's timers) is never held open by a slow refresh.
+        const what = String(rb.what ?? ""), school = String(rb.school ?? "");
+        const job = (bgQueue = bgQueue.then(async () => {
+          await sql`insert into ama_os.cache (key, data, at) values ('timer_beat', ${sql.json({ what } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+          await refresh(what, school);
+        }).catch((e) => console.error("refresh", what, String(e))));
         (globalThis as unknown as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(job);
-        return json({ ok: true, started: String(rb.what ?? "") }, 202);
+        return json({ ok: true, started: what }, 202);
       }
       return json({ ok: true, ...(await refresh(String(rb.what ?? ""), String(rb.school ?? ""))) });
     }
