@@ -1,0 +1,7 @@
+// Cloudflare Pages project for AMA OS. Publishes the site/ folder as-is: no build step.
+// (The apps-script/ folder is a backup of the Google Apps Script source and is NOT served.)
+{
+  "name": "ama-os",
+  "compatibility_date": "2026-11-07",
+  "pages_build_output_dir": "./site"
+}
