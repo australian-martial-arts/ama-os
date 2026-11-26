@@ -13892,6 +13892,7 @@ function mhubEvents_(schools) {
 function mhub_(who, b) {
   b = b || {}; const me = String((who && who.name) || '').toLowerCase().split(' ')[0], act = String(b.act || 'find');
   if (MHUB.viewers.indexOf(me) < 0) return { ok: false, error: 'The Member Hub is coming soon. Only the leadership team can see it for now.' };
+  if (['extra', 'makeups', 'request', 'team', 'teamsave'].indexOf(act) > -1) return mhub2_(who, b, act);
   if (act === 'find') {
     const q = String(b.q || '').trim().toLowerCase(), qd = q.replace(/\D/g, ''); if (q.length < 2) return { ok: true, list: [] };
     const fam = {};
@@ -23500,7 +23501,7 @@ function ionb_(who, b) {
 const MEDIAOPT = { tab: 'Media opt-out', cols: ['School', 'Member ID', 'Student', 'Age', 'Parent', 'Groups', 'Photo', 'Ticked on', 'Form', 'Pulled at'], prop: 'MEDIAOPT_STATS', maxAgeHrs: 6,
   field: 'Bmf6lEsAuQHGdBhqGqdg', formRe: /enrol|join/i };
 function mediaOptRefresh_() {
-  const now = new Date(), tz = CONFIG.timezone, F = MEDIAOPT.field, out = [], stats = { forms: [], ticked: 0 };
+  const now = new Date(), tz = CONFIG.timezone, F = MEDIAOPT.field, out = [], stats = { forms: [], ticked: 0 }, docs = [];
   const forms = ((ghlFetch_('/forms/', { locationId: CONFIG.locationId, limit: 50 }) || {}).forms || []).filter(function (f) { return MEDIAOPT.formRe.test(f.name); });
   const efc = mhubEfc_(), byKey = {}; efc.forEach(function (x) { (byKey[x.key] = byKey[x.key] || []).push(x); });
   forms.forEach(function (f) {
@@ -23509,6 +23510,7 @@ function mediaOptRefresh_() {
       const r = ghlFetch_('/forms/submissions', { locationId: CONFIG.locationId, formId: f.id, limit: 100, page: page }) || {}, subs = r.submissions || [];
       subs.forEach(function (sb) {
         n++; const o = sb.others || {}, v = o[F];
+        try { const dk = starsKey_(String(o.phone || sb.phone || '')); if (dk) docs.push([dk, String(sb.name || o.full_name || [o.first_name, o.last_name].filter(Boolean).join(' ') || ''), f.name, sb.createdAt ? new Date(sb.createdAt) : '', (Array.isArray(v) ? v.length : String(v || '').trim()) ? 'please don\'t use' : 'OK to use', String(sb.id || sb._id || ''), now]); } catch (e) { }
         if (!(Array.isArray(v) ? v.length : String(v || '').trim())) return;
         hit++;
         let phone = String(o.phone || sb.phone || ''), parent = String(sb.name || o.full_name || [o.first_name, o.last_name].filter(Boolean).join(' ') || '');
@@ -23528,6 +23530,7 @@ function mediaOptRefresh_() {
   rows.sort(function (a, b) { return (a[0] + a[2]).localeCompare(b[0] + b[2]); });
   if (rows.length) sh.getRange(2, 1, rows.length, MEDIAOPT.cols.length).setValues(rows);
   PropertiesService.getScriptProperties().setProperty(MEDIAOPT.prop, JSON.stringify({ at: now.getTime(), stats: stats }));
+  try { mhub2DocsWrite_(docs); } catch (e) { }
   return rows.length;
 }
 function mediaOptDaily() { try { mediaOptRefresh_(); } catch (e) { } }
@@ -23540,3 +23543,160 @@ function mediaopt_(who, b) {
     list: v.filter(function (r) { return r[2]; }).map(function (r) { return { school: String(r[0]), student: String(r[2]), age: r[3], parent: String(r[4]), groups: String(r[5]), photo: String(r[6]), since: String(r[7]), form: String(r[8]) }; }) };
 }
 
+
+
+/* 26 Nov 2026 (Mark): Member Hub part 2 (PREVIEW, from the Col Jones app review). Home: coming up, recent activity, grading countdown, notices, tiles.
+   My kids: classes, attendance, QR code, absence and make-ups, documents. Account: payments (view only, from EFC), guardians, account deletion.
+   More: Meet the Team (bios and photos set by management), signed documents. Nothing is saved or sent to families while MHUB.live is false:
+   absences, make-ups, guardians and deletion requests are checked and shown as a preview only. No card or bank details ever. */
+const MHUB2 = {
+  teamTab: 'Member Hub team', teamCols: ['Name', 'Show', 'Role', 'Schools', 'Bio', 'Photo', 'Order', 'Updated by', 'Updated at'],
+  docTab: 'Member docs', docCols: ['Family key', 'Parent', 'Form', 'Signed at', 'Photos', 'Submission id', 'Pulled at'],
+  absReasons: ['Sick', 'Injured', 'Holiday', 'School or family commitment', 'Other']
+};
+function mhub2Fam_(key) { return mhubEfc_().filter(function (x) { return (x.key || x.id) === key; }); }
+function mhub2Ymd_(d) { return Utilities.formatDate(d, CONFIG.timezone, 'yyyy-MM-dd'); }
+function mhub2Xmas_(today) {
+  const out = [], yr = +today.slice(0, 4), M = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+  const ymd = function (lab) { const m = /(\d{1,2}) ([A-Za-z]{3})/.exec(String(lab)); if (!m || M[m[2]] === undefined) return ''; let d = new Date(yr, M[m[2]], +m[1], 12); if (d.getTime() < Date.now() - 60 * 864e5) d = new Date(yr + 1, M[m[2]], +m[1], 12); return mhub2Ymd_(d); };
+  try {
+    const days = (XMAS_DAYS || []).map(function (x) { return { y: ymd(x.d), l: x.d, c: x.closed || '' }; }).filter(function (x) { return x.y; });
+    if (!days.length) return out;
+    const last = days[days.length - 1].y; if (last < today) return out;
+    out.push({ d: days[0].y, t: 'Christmas timetable', b: 'Our Christmas timetable runs from ' + days[0].l + ' to ' + days[days.length - 1].l + '. Some classes change, so check the times before you come.' });
+    const closed = days.filter(function (x) { return x.c && x.y >= today; });
+    if (closed.length) out.push({ d: closed[0].y, t: 'AMA is closed on these days', b: closed.map(function (x) { return x.l + ' (' + x.c + ')'; }).join(', ') + '.' });
+  } catch (e) { }
+  return out;
+}
+function mhub2Docs_(key) {
+  const sh = SpreadsheetApp.openById(HOLD.sheetId).getSheetByName(MHUB2.docTab); if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 5).getValues().filter(function (r) { return String(r[0]) === key; }).map(function (r) { return { form: String(r[2]), at: r[3] instanceof Date ? mhub2Ymd_(r[3]) : String(r[3] || '').slice(0, 10), photos: String(r[4] || '') }; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; });
+}
+function mhub2MediaNo_(ids) {
+  const sh = SpreadsheetApp.openById(HOLD.sheetId).getSheetByName(MEDIAOPT.tab), out = {}; if (!sh || sh.getLastRow() < 2) return out;
+  sh.getRange(2, 2, sh.getLastRow() - 1, 1).getValues().forEach(function (r) { if (ids.indexOf(String(r[0])) > -1) out[String(r[0])] = 1; });
+  return out;
+}
+function mhub2Team_(all) {
+  const sh = staffSheet_(MHUB2.teamTab, MHUB2.teamCols), paid = {};
+  try { ionbRows_().forEach(function (r) { if (r.paid) paid[r.name.toLowerCase()] = r.paid; }); } catch (e) { }
+  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 7).getValues() : [], have = {}, out = [];
+  rows.forEach(function (r) { if (!r[0]) return; have[String(r[0]).toLowerCase()] = 1; out.push({ name: String(r[0]), show: r[1] === true || /^y/i.test(String(r[1])), role: String(r[2] || ''), schools: String(r[3] || ''), bio: String(r[4] || ''), photo: String(r[5] || ''), order: +r[6] || 99, paid: paid[String(r[0]).toLowerCase()] || '' }); });
+  if (all) { try { ionbStaff_().forEach(function (s) { if (!have[s.name.toLowerCase()]) out.push({ name: s.name, show: false, role: s.role, schools: '', bio: '', photo: '', order: 99, paid: paid[s.name.toLowerCase()] || '' }); }); } catch (e) { } }
+  return out.sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name); });
+}
+function mhub2_(who, b, act) {
+  const today = mhub2Ymd_(new Date());
+  if (act === 'extra') {
+    const ck = 'mh2x_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(b.key || ''))).slice(0, 16), C = CacheService.getScriptCache();
+    if (!b.fresh) { const hit = C.get(ck); if (hit) { try { return JSON.parse(hit); } catch (e) { } } }
+    const res = mhub2Extra_(who, b, today); try { const s = JSON.stringify(res); if (res.ok && s.length < 95000) C.put(ck, s, 600); } catch (e) { }
+    return res;
+  }
+  return mhub2b_(who, b, act, today);
+}
+function mhub2Extra_(who, b, today) {
+  {
+    const key = String(b.key || ''), kids = mhub2Fam_(key); if (!kids.length) return { ok: false, error: 'Family not found in EFC.' };
+    const out = { ok: true, live: MHUB.live, kids: [], feed: [], notices: mhub2Xmas_(today), docs: mhub2Docs_(key), team: [], share: null, absReasons: MHUB2.absReasons, timetable: {} };
+    const S = mvSubs_().filter(function (x) { return x.fam === key; }), noMedia = mhub2MediaNo_(kids.map(function (k) { return String(k.id); }));
+    let earliest = mhub2Ymd_(new Date(Date.now() - 90 * 864e5)), belts = [];
+    try { belts = mhubBelts_(kids); } catch (e) { }
+    kids.forEach(function (k, i) {
+      const SK = S.filter(function (x) { return x.sid === String(k.id); });
+      const progs = (belts[i] || []).map(function (bl) { const P = mvMoves_(bl.programme, bl.belt, bl.content), left = []; let done = 0, vt = 0;
+        P.moves.forEach(function (m) { if (m.cls) return; vt++; if (SK.some(function (x) { return x.p === bl.programme && x.g === bl.belt && x.mkey === m.key && x.coach === 'achieved'; })) done++; else if (left.length < 4) left.push(m.text); });
+        return { programme: bl.programme, belt: bl.belt, since: bl.since, towards: P.towards, min: P.min, done: done, total: vt, ready: (vt > 0 && done === vt) || bl.ready, left: left }; });
+      progs.forEach(function (p) { if (p.since && p.since < earliest && p.since > mhub2Ymd_(new Date(Date.now() - 400 * 864e5))) earliest = p.since; });
+      out.kids[i] = { id: k.id, name: k.student, school: k.school, progs: progs, upcoming: [], att: [], err: '', media: !noMedia[String(k.id)], payments: [], next: '' };
+      try { out.timetable[k.school] = (STAGE4.timetable || {})[efcSchoolOf_(k.school)] || ''; } catch (e) { }
+    });
+    // EFC: bookings (coming up + attendance) and payments, per school, in parallel.
+    const to = mhub2Ymd_(new Date(Date.now() + 21 * 864e5)), by = {};
+    kids.forEach(function (k, i) { const s = efcSchoolOf_(k.school); (by[s] = by[s] || []).push(i); });
+    Object.keys(by).forEach(function (s) {
+      if (!s || !efcKey_(s)) { by[s].forEach(function (i) { out.kids[i].err = 'EFC is not connected for this school yet.'; }); return; }
+      const loc = efcLoc_(s), ix = by[s], paths = [];
+      ix.forEach(function (i) { const id = encodeURIComponent(kids[i].id); paths.push('/version/1/locations/' + loc + '/members/' + id + '/bookings?startDate=' + earliest + '&endDate=' + to); paths.push('/version/1/locations/' + loc + '/members/' + id + '/payments?limit=50'); });
+      let res = []; try { res = efcFetchMany_(s, paths); } catch (e) { }
+      ix.forEach(function (i, j) {
+        const K = out.kids[i], bk = res[j * 2], pay = res[j * 2 + 1];
+        if (!Array.isArray(bk)) K.err = 'EFC did not return classes just now.';
+        else bk.forEach(function (x) { if (x.status === 'cancelled') return; const bb = x.bookable || {}, d = String(x.date || '').slice(0, 10), row = { d: d, t: String(x.startTime || bb.startTime || '').slice(0, 5), n: String(bb.name || ''), p: String((bb.programme || {}).name || '') };
+          if (d >= today) K.upcoming.push(row); else if (x.attended || (x.checkIn && x.checkIn.status === 'present')) K.att.push(row); });
+        K.upcoming.sort(function (a, c) { return (a.d + a.t).localeCompare(c.d + c.t); }); K.upcoming = K.upcoming.slice(0, 6);
+        K.att.sort(function (a, c) { return (c.d + c.t).localeCompare(a.d + a.t); });
+        K.progs.forEach(function (p) { p.classes = p.since ? K.att.filter(function (a) { return a.d >= p.since; }).length : null; p.classesKnown = !!p.since && p.since >= earliest; });
+        const arr = Array.isArray(pay) ? pay : ((pay && (pay.records || pay.items)) || []);
+        K.payments = arr.slice().sort(function (a, c) { return String(c.dateProcessed || c.dateFailed || c.dueDate || c.date || '').localeCompare(String(a.dateProcessed || a.dateFailed || a.dueDate || a.date || '')); }).slice(0, 8).map(function (p) { const st = String(p.status || ''); return { d: String(p.dateProcessed || p.dateFailed || p.dueDate || p.date || '').slice(0, 10), amt: Number(p.amount) || 0, st: st === 'failed' ? 'Failed' : /success|processed|paid|settled/i.test(st) ? 'Paid' : st ? st.charAt(0).toUpperCase() + st.slice(1) : '', why: st === 'failed' ? String(p.statusDescription || '') : '', how: p.paymentMethod === 'eft' ? 'Bank account' : p.paymentMethod === 'creditCard' ? 'Card' : '' }; });
+        K.att = K.att.slice(0, 40);
+      });
+    });
+    // Next debit and overdue from the EFC live pull (view only).
+    try { const sh = SpreadsheetApp.openById(HUB.sheetId).getSheetByName(EFC_LIVE.tab), H = EFC_LIVE.headers; if (sh && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, H.length).getValues().forEach(function (r) { const i = kids.map(function (k) { return String(k.id); }).indexOf(String(r[H.indexOf('Member ID')])); if (i < 0) return; const ni = r[H.indexOf('Next invoice')]; out.kids[i].next = ni instanceof Date ? mhub2Ymd_(ni) : String(ni || '').slice(0, 10); out.kids[i].nextAmt = Number(r[H.indexOf('Next amount')]) || 0; out.kids[i].overdue = Number(r[H.indexOf('Overdue')]) || 0; out.kids[i].ref = String(r[H.indexOf('Reference')] || ''); }); } catch (e) { }
+    // Recent activity feed.
+    const F = out.feed, cut = mhub2Ymd_(new Date(Date.now() - 120 * 864e5));
+    out.kids.forEach(function (K) {
+      const fn = String(K.name).split(' ')[0];
+      K.progs.forEach(function (p) { if (p.since && p.since >= cut && !/white|entry|no belt/i.test(p.belt)) F.push({ d: p.since, kid: fn, i: '🥋', t: 'Earned ' + p.belt + ' in ' + p.programme, proud: 1 }); if (p.ready) F.push({ d: today, kid: fn, i: '🎉', t: 'Ready for the next ' + p.programme + ' grading', proud: 1 }); });
+      K.att.slice(0, 6).forEach(function (a) { F.push({ d: a.d, kid: fn, i: '✔️', t: 'Trained' + (a.n ? ': ' + a.n : '') + (a.t ? ' at ' + (function (h, m) { return (h % 12 || 12) + (m !== '00' ? ':' + m : '') + (h < 12 ? 'am' : 'pm'); })(+a.t.slice(0, 2), a.t.slice(3, 5)) : '') }); });
+    });
+    S.forEach(function (x) {
+      const fn = String(x.student).split(' ')[0], d = String(x.rev || x.at).slice(0, 10);
+      if (x.coach === 'achieved') F.push({ d: d, kid: fn, i: '✅', t: x.move + ' signed off' + (x.coachBy ? ' by ' + String(x.coachBy).split(' ')[0] : ''), proud: 1 });
+      else if (x.coach) F.push({ d: d, kid: fn, i: '💬', t: 'Coach feedback on ' + x.move });
+      else F.push({ d: String(x.at).slice(0, 10), kid: fn, i: '📹', t: 'Sent a video of ' + x.move });
+    });
+    try { (starsFamily_(starsKey_(kids[0].mobile)).history || []).slice(0, 8).forEach(function (h) { const d = new Date(h.at); F.push({ d: isNaN(d) ? '' : mhub2Ymd_(d), kid: '', i: '⭐', t: (h.n > 0 ? '+' : '') + h.n + ' stars: ' + h.src + (h.note ? ' (' + h.note + ')' : '') }); }); } catch (e) { }
+    F.sort(function (a, c) { return String(c.d).localeCompare(String(a.d)); }); out.feed = F.filter(function (x) { return x.d; }).slice(0, 20);
+    // Referral prompt at a proud moment, only for children who have not opted out of photos and video.
+    const pr = out.feed.filter(function (x) { return x.proud && x.d >= mhub2Ymd_(new Date(Date.now() - 30 * 864e5)); })[0];
+    if (pr) { const K = out.kids.filter(function (k) { return String(k.name).split(' ')[0] === pr.kid; })[0]; if (K && K.media) out.share = { kid: pr.kid, t: pr.t }; }
+    try { const sc = kids.map(function (k) { return efcSchoolOf_(k.school); }); out.team = mhub2Team_(false).filter(function (t) { return t.show && (!t.schools || sc.some(function (s) { return t.schools.indexOf(s) > -1; })); }); } catch (e) { }
+    return out;
+  }
+}
+function mhub2b_(who, b, act, today) {
+  if (act === 'makeups') {
+    const kid = mhub2Fam_(String(b.key || '')).filter(function (k) { return String(k.id) === String(b.id); })[0]; if (!kid) return { ok: false, error: 'Student not found.' };
+    const s = efcSchoolOf_(kid.school); if (!s || !efcKey_(s)) return { ok: false, error: 'EFC is not connected for this school yet.' };
+    const loc = efcLoc_(s), from = mhub2Ymd_(new Date(Date.now() + 864e5)), to = mhub2Ymd_(new Date(Date.now() + 14 * 864e5));
+    const r = efcGet_(s, '/version/1/locations/' + loc + '/calendar/sessions?dateFrom=' + from + '&dateTo=' + to);
+    if (r.code !== 200 || !Array.isArray(r.body)) return { ok: false, error: 'EFC did not return the timetable.' };
+    const progs = (mhubBelts_([kid])[0] || []).map(function (p) { return p.programme; }), groups = String(kid.groups || '');
+    const list = r.body.filter(function (x) { return x.location && x.location.id === loc; }).map(function (x) { return { id: x.id, d: String(x.date || '').slice(0, 10), t: String(x.startTime || '').slice(0, 5), n: String(x.name || ''), p: String((x.programme || {}).name || ''), g: (x.groups || []).map(function (g) { return g.name; }).join(', ') }; })
+      .filter(function (x) { return (!progs.length || !x.p || progs.indexOf(x.p) > -1) && (!x.g || !groups || x.g.split(', ').some(function (g) { return groups.indexOf(g) > -1; })); })
+      .sort(function (a, c) { return (a.d + a.t).localeCompare(c.d + c.t); }).slice(0, 30);
+    return { ok: true, school: s, list: list };
+  }
+  if (act === 'request') {
+    const what = String(b.what || ''), d = b.d || {};
+    const need = { absence: ['child', 'date', 'reason'], makeup: ['child', 'session'], guardian: ['name', 'mobile', 'relationship'], deletion: ['confirm'], details: ['field', 'value'] }[what];
+    if (!need) return { ok: false, error: 'Unknown request.' };
+    const miss = need.filter(function (k) { return d[k] === undefined || String(d[k]).trim() === ''; });
+    if (miss.length) return { ok: false, error: 'Please fill in: ' + miss.join(', ') + '.' };
+    if (what === 'absence' && !/^\d{4}-\d{2}-\d{2}$/.test(String(d.date))) return { ok: false, error: 'Pick the date they will miss.' };
+    if (what === 'guardian' && String(d.mobile).replace(/\D/g, '').length < 9) return { ok: false, error: 'Check the mobile number.' };
+    if (!MHUB.live) return { ok: true, preview: true, msg: { absence: 'Preview only. Live, this tells the office and the instructor, and offers a make-up class.', makeup: 'Preview only. Live, this books the make-up class in EFC.', guardian: 'Preview only. Live, this sends the office a request to add them, and they get their own login once approved.', deletion: 'Preview only. Live, this sends the office a request to close the Member Hub login. It does not cancel the membership.', details: 'Preview only. Live, this sends the office the change to update in EFC.' }[what] };
+    return { ok: false, error: 'The live Member Hub is not switched on.' };
+  }
+  if (act === 'team') { if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' }; return { ok: true, team: mhub2Team_(true) }; }
+  if (act === 'teamsave') {
+    if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' };
+    const t = b.t || {}, name = String(t.name || '').trim().slice(0, 80); if (!name) return { ok: false, error: 'Name missing.' };
+    const photo = String(t.photo || ''); if (photo && (!/^data:image\/(jpeg|png|webp);base64,/.test(photo) || photo.length > 45000)) return { ok: false, error: 'That photo is too big. Try a smaller one.' };
+    const sh = staffSheet_(MHUB2.teamTab, MHUB2.teamCols), v = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
+    let row = 0; v.forEach(function (r, i) { if (String(r[0]).toLowerCase() === name.toLowerCase()) row = i + 2; });
+    const vals = [name, !!t.show, String(t.role || '').slice(0, 80), String(t.schools || '').slice(0, 120), String(t.bio || '').slice(0, 1200), photo, +t.order || 99, String((who && who.name) || ''), new Date()];
+    if (row) sh.getRange(row, 1, 1, vals.length).setValues([vals]); else sh.appendRow(vals);
+    return { ok: true };
+  }
+  return { ok: false, error: 'Unknown Member Hub action.' };
+}
+/* Signed joining forms per family, for the Member Hub "Documents" page. Rebuilt with the media opt-out list (daily). */
+function mhub2DocsWrite_(rows) {
+  const sh = staffSheet_(MHUB2.docTab, MHUB2.docCols);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, MHUB2.docCols.length).clearContent();
+  if (rows.length) sh.getRange(2, 1, rows.length, MHUB2.docCols.length).setValues(rows);
+}
