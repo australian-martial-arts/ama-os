@@ -11140,7 +11140,7 @@ html.hb-light .hc-test{background:#fff6cc!important;border-color:#f0d36b!importa
     return '<span class="kj-chip b">Sent, waiting for your instructor</span>';
   }
   function vidLink(u){
-    var y=String(u).match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{6,})/); if(y) return 'https://www.youtube.com/embed/'+y[1];
+    var y=String(u).match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{6,})/); if(y){ var ys=(String(u).match(/[?&](?:t|start)=(\d+)/)||[])[1], ye=(String(u).match(/[?&]end=(\d+)/)||[])[1]; return 'https://www.youtube.com/embed/'+y[1]+'?rel=0'+(ys?'&start='+ys:'')+(ye?'&end='+ye:''); } /* 26 Nov 2026: plays just this move's part of the belt video */
     var d=String(u).match(/drive\.google\.com\/file\/d\/([\w-]+)/); if(d) return 'https://drive.google.com/file/d/'+d[1]+'/preview';
     var vm=String(u).match(/vimeo\.com\/(\d+)/); if(vm) return 'https://player.vimeo.com/video/'+vm[1];
     return '';
