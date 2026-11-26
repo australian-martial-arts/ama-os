@@ -1,10 +1,10 @@
 // amaos-dash: read-only dashboard and family lookup for AMA OS, built from the nightly copy of the hub (ama_os.mirror).
 // Signed-in AMA OS staff only (owners, full-access admins and admins also need their second step).
 // Uses the ama_os_app database login only. Reads nothing from EFC, GHL or the Toolkit, and writes only the audit log.
-// EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan and Ridvan only (Mark's rule).
+// EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan, Ridvan and Busra only (Mark's rule).
 import { cors, requireStaff, sql } from "../_shared/amaos.ts";
 
-const MONEY = ["mark", "sarah", "hakan", "ridvan"];
+const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
 type Row = Record<string, unknown>;
 
