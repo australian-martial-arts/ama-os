@@ -23753,7 +23753,7 @@ const AMAOS_SYNC = { url: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1
    trial list (hubDashboard_, already read from GHL) every 10 minutes, only when it has changed: no extra GHL calls, at most one outside call. */
 function amaosTrialsPush_() {
   const key = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp); if (!key) return { ok: false, error: 'No sync key yet.' };
-  const C = CacheService.getScriptCache(), raw = C.get(HUBDASH.cacheKey); if (!raw) return { ok: false, error: 'Hub trial list not warm.' };
+  const C = CacheService.getScriptCache(), raw = C.get(HUBDASH.cacheKey) || C.get(HUBDASH_LAST); if (!raw) return { ok: false, error: 'Hub trial list not warm.' };
   let d = {}; try { d = JSON.parse(raw); } catch (e) { return { ok: false, error: 'bad cache' }; }
   if (!d.trials || (d.notes || []).some(function (n) { return /trials could not/i.test(n); })) return { ok: false, error: 'GHL trials not read this time.' };
   const rows = d.trials.filter(function (t) { return !t.promo; }).map(function (t, i) { return { key: String(t.id || ('w' + i + '_' + t.t)), data: t }; });
