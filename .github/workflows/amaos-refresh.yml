@@ -37,4 +37,5 @@ jobs:
             done
           fi
           call '{"what":"trials"}'
+          call '{"what":"absent"}'
           call '{"what":"dash"}'
