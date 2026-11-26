@@ -10665,7 +10665,7 @@ function absReplies_(items) {
       const c = (((res[i] || {}).conversations) || [])[0] || {};
       const raw = c.lastMessageDate, ms = raw ? (isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw)) : 0;
       const h = { conv: c.id || '', dir: c.lastMessageDirection || '', t: String(c.lastMessageBody || '').replace(/\s+/g, ' ').replace(/\s*(On (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*|-+\s*Original Message.*|From: .*)$/i, '').trim().slice(0, 300), ms: ms || 0 };
-      cache.put('absr2_' + x.cid, JSON.stringify(h), 600);
+      cache.put('absr2_' + x.cid, JSON.stringify(h), 1800); /* 27 Nov 2026: 30 min (was 10) to keep outside calls well under Google's daily limit */
       x._c = h;
     });
   }
@@ -20471,7 +20471,7 @@ function retFunnel_(att, today, dRecent) {
    many have signed in, who they are, who usually comes to that class but has not signed in yet, and a quick way to add
    anyone who forgot. Adding uses the same EFC booking + check-in as "Add missed class" (efcAttRoute_ add), so every add is
    logged on the "Attendance added" tab with who added it. Reads are cached for 60 seconds per school and day. */
-const LIVEATT = { cacheSecs: 60, regularWeeks: 4, regularMin: 2 };
+const LIVEATT = { cacheSecs: 120, /* 27 Nov 2026: 2 min (was 1) */ regularWeeks: 4, regularMin: 2 };
 function liveAtt_(who, b) {
   const act = String(b.act || 'day'), tz = CONFIG.timezone, today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
   const ymd = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? String(b.date) : today;
@@ -21394,7 +21394,7 @@ function promoPersonInfo_(cid) {
   const o = { phone: c.phone || '', email: c.email || '', first: c.firstName || '', kids: [f[TBOOK.f.student_1], f[TBOOK.f.student_2]].filter(Boolean).map(String),
     school: (up[0] || past[past.length - 1] || {}).school || '', next: up[0] || null, upcoming: up.slice(0, 8), past: past.slice(-8), missed: past.filter(function (x) { return !x.here; }).length,
     added: String(c.dateAdded || '').slice(0, 10), source: String(c.source || '') };
-  try { C.put(key, JSON.stringify(o), 600); } catch (e) { }
+  try { C.put(key, JSON.stringify(o), 1800); } catch (e) { } /* 27 Nov 2026: 30 min (was 10) */
   return o;
 }
 // Every GHL calendar (active or not) -> school and class name (cached 6 h).
@@ -21412,7 +21412,7 @@ function promoCalMap_() {
 function promoToBook_() {
   const C = CacheService.getScriptCache(), hit = C.get('promo_tobook_v1'); if (hit) { try { return JSON.parse(hit); } catch (e) { } }
   const out = []; promoPeople_().forEach(function (x) { if (x.finished || x.joined) return; let i = null; try { i = promoPersonInfo_(x.cid); } catch (e) { } if (i && !i.next) out.push({ cid: x.cid, name: x.name, promo: x.promo, label: x.label, done: x.done, phone: i.phone, kids: i.kids }); });
-  try { C.put('promo_tobook_v1', JSON.stringify(out), 600); } catch (e) { }
+  try { C.put('promo_tobook_v1', JSON.stringify(out), 1800); } catch (e) { }
   return out;
 }
 // What the recommendation form should start with for someone on a promotion.
