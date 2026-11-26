@@ -204,6 +204,8 @@ async function refresh(what: string, school: string) {
     const rows = (await sql`select key, data from ama_os.mirror where source = 'Absentees'`).sort((a, b) => Number(String(a.key).slice(1)) - Number(String(b.key).slice(1))).map((r) => r.data as Row);
     const fams = absentFamilies(rows, await src("Holds"), await src("Cancellations"));
     const want = fams.filter(needsReplyCheck), last = await ghlConnected() ? await lastMessages([...new Set(want.map((f) => f.e164))]) : {};
+    const done = want.every((f) => f.e164 in last);
+    if (!done) return { incomplete: true, checked: Object.keys(last).length, of: want.length };
     let absreply = 0, absent = 0;
     for (const f of fams) { const open = needsReplyCheck(f) && replyOpen(f, last[f.e164] ?? null);
       if (open) absreply++; else if ((f.group === "office" || f.group === "check") && f.days >= 7 && f.days <= 21) absent++; }

@@ -120,11 +120,12 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
 
 /** Last message in each family's GHL conversation (for absentee replies), the same calls as the hub's absReplies_.
  *  Contact ids cached 7 days, "not in GHL" 6 hours, last message 10 minutes, grading check 6 hours. */
-export async function lastMessages(e164s: string[]) {
+export async function lastMessages(e164s: string[], deadline = Date.now() + 90000) {
   const out: Record<string, { dir: string; t: string; ms: number; grading: boolean } | null> = {};
   const GRADE = /\bgrad(e|es|ed|ing)\b|\bbelt\b|invitation to grade|book (their|your) spot/i;
   const norm = (p: string) => { const d = String(p || "").replace(/\D/g, ""); return d.length >= 9 ? "+61" + d.slice(-9) : ""; };
   await pool(e164s, 5, async (e) => {
+    if (Date.now() > deadline) return; // not finished: the next run carries on from the saved lookups
     try {
       const c = await cached("ghl_cid_" + e, 7 * 86400, async () => {
         const r = await ghl("/contacts/", { locationId: LOCATION, query: e }); const k = ((r.contacts ?? []) as { id: string; phone?: string }[]).find((x) => norm(x.phone ?? "") === e);
