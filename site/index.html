@@ -55,9 +55,25 @@
       </form>
     </section>
 
+    <section id="stepMfa" hidden>
+      <p id="mfaIntro">Owners and admins confirm it's them with a second step.</p>
+      <div style="display:grid;gap:10px;margin-bottom:14px">
+        <button type="button" id="pkUseBtn" hidden>Use Face ID / fingerprint (passkey)</button>
+        <button type="button" class="link" id="totpShowBtn" hidden>Use my authenticator app instead</button>
+      </div>
+      <div id="mfaQr" style="background:#fff;border-radius:12px;padding:12px;margin:0 auto 12px;width:fit-content" hidden></div>
+      <p id="mfaSecret" style="font-size:13px;word-break:break-all" hidden></p>
+      <form id="mfaForm" hidden>
+        <label for="mfaCode">6-digit code from your authenticator app</label>
+        <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" required placeholder="123456">
+        <button id="mfaBtn" type="submit">Confirm</button>
+      </form>
+    </section>
+
     <section id="stepIn" hidden>
       <div class="who"><b id="whoName"></b><span id="whoRole"></span></div>
       <p style="margin-top:16px">You're in. AMA OS is being built here; your hub pages will appear as they move across.</p>
+      <button type="button" id="pkAddBtn" hidden>Add a passkey on this device (Face ID / fingerprint)</button>
       <button class="link" type="button" id="outBtn">Sign out</button>
     </section>
 
@@ -66,24 +82,62 @@
 
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
   <script>
   (function () {
     var C = window.AMAOS_CONFIG || {}, $ = function (id) { return document.getElementById(id); };
     var ROLE = { owner: 'Owner', full: 'Full-access admin', marketing: 'Marketing', admin: 'Admin', junior: 'Junior admin', instructor: 'Instructor' };
     function msg(t, kind) { var m = $('msg'); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
-    function show(id) { ['stepEmail', 'stepCode', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); }
+    function show(id) { ['stepEmail', 'stepCode', 'stepMfa', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); }
     if (!C.supabaseAnonKey || /PASTE/.test(C.supabaseAnonKey)) { msg('Sign-in is being connected. Check back shortly.', 'err'); $('sendBtn').disabled = true; return; }
     var sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });
-    var email = '';
+    var email = '', justSignedIn = false, mfaFactor = null, mfaChallenge = null, idleTimer = null;
+    var IDLE_MIN = 30; // shared front-desk computers: sign out after 30 minutes with no activity
+    function idle() { clearTimeout(idleTimer); idleTimer = setTimeout(function () { setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out after ' + IDLE_MIN + ' minutes of no activity.'); }); }, IDLE_MIN * 60000); }
+    ['click', 'keydown', 'touchstart', 'scroll'].forEach(function (ev) { document.addEventListener(ev, function () { if (!$('stepIn').hidden) idle(); }, { passive: true }); });
+    function getStep() { try { return sessionStorage.getItem('amaosStepup') || ''; } catch (e) { return ''; } }
+    function setStep(t) { try { if (t) sessionStorage.setItem('amaosStepup', t); else sessionStorage.removeItem('amaosStepup'); } catch (e) {} }
+    function pk(act, extra) {
+      return sb.auth.getSession().then(function (r) {
+        var s = r.data && r.data.session; var hdr = { Authorization: 'Bearer ' + (s ? s.access_token : ''), apikey: C.supabaseAnonKey, 'content-type': 'application/json' };
+        var su = getStep(); if (su) hdr['x-amaos-stepup'] = su;
+        return fetch(C.supabaseUrl + '/functions/v1/amaos-passkey', { method: 'POST', headers: hdr, body: JSON.stringify(Object.assign({ act: act }, extra || {})) }).then(function (x) { return x.json(); });
+      });
+    }
+    var canPk = !!(window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn());
+    function startMfa(passkeys) {
+      show('stepMfa');
+      $('pkUseBtn').hidden = !(canPk && passkeys > 0);
+      if (canPk && passkeys > 0) { $('mfaIntro').textContent = "Confirm it's you with Face ID, fingerprint or your device PIN."; $('mfaForm').hidden = true; $('totpShowBtn').hidden = false; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; return Promise.resolve(); }
+      $('totpShowBtn').hidden = true; return startTotp();
+    }
+    function startTotp() {
+      $('mfaForm').hidden = false; $('pkUseBtn').hidden = true; $('totpShowBtn').hidden = true;
+      return sb.auth.mfa.listFactors().then(function (r) {
+        var f = (r.data && r.data.totp || []).filter(function (x) { return x.status === 'verified'; })[0];
+        show('stepMfa'); $('mfaCode').value = '';
+        if (f) { mfaFactor = f.id; $('mfaIntro').textContent = 'Enter the 6-digit code from your authenticator app.'; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; return; }
+        return sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'AMA OS ' + new Date().toISOString().slice(0, 10) }).then(function (e) {
+          if (e.error) { msg('Could not set up the authenticator. Please try again.', 'err'); return; }
+          mfaFactor = e.data.id;
+          $('mfaIntro').textContent = 'One-time set-up: scan this with Google Authenticator or Microsoft Authenticator, then enter the 6-digit code it shows.';
+          $('mfaQr').innerHTML = e.data.totp.qr_code.indexOf('<svg') === 0 ? e.data.totp.qr_code : '<img alt="Authenticator QR code" width="180" height="180" src="' + e.data.totp.qr_code + '">'; $('mfaQr').hidden = false;
+          $('mfaSecret').textContent = 'Can\'t scan? Enter this key: ' + e.data.totp.secret; $('mfaSecret').hidden = false;
+        });
+      });
+    }
     function toPhone(v) { var d = String(v).replace(/\D/g, ''); if (/^04\d{8}$/.test(d)) return '+61' + d.slice(1); if (/^614\d{8}$/.test(d)) return '+' + d; return ''; }
 
     function whoAmI() {
       return sb.auth.getSession().then(function (r) {
         var s = r.data && r.data.session; if (!s) { show('stepEmail'); return; }
-        return fetch(C.supabaseUrl + '/functions/v1/amaos-me', { method: 'POST', headers: { Authorization: 'Bearer ' + s.access_token, apikey: C.supabaseAnonKey } })
+        var hdr = { Authorization: 'Bearer ' + s.access_token, apikey: C.supabaseAnonKey }; var su = getStep(); if (su) hdr['x-amaos-stepup'] = su; if (justSignedIn) { hdr['x-amaos-event'] = 'signin'; justSignedIn = false; }
+        return fetch(C.supabaseUrl + '/functions/v1/amaos-me', { method: 'POST', headers: hdr })
           .then(function (res) { return res.json(); })
           .then(function (j) {
+            if (!j.ok && j.mfa) { msg(''); return startMfa(j.passkeys || 0); }
             if (!j.ok) { msg(j.error || 'Not allowed.', 'err'); sb.auth.signOut(); show('stepEmail'); return; }
+            idle(); $('pkAddBtn').hidden = true; if (j.secondStep && window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn()) pk('status').then(function (p) { $('pkAddBtn').hidden = !(p.ok && p.count === 0); });
             $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); show('stepIn'); msg('');
           });
       }).catch(function () { msg('Could not reach AMA OS. Please try again.', 'err'); });
@@ -108,9 +162,36 @@
         whoAmI();
       });
     };
+    $('mfaForm').onsubmit = function (e) {
+      e.preventDefault(); $('mfaBtn').disabled = true; msg('Checking…');
+      sb.auth.mfa.challengeAndVerify({ factorId: mfaFactor, code: $('mfaCode').value.trim() }).then(function (r) {
+        $('mfaBtn').disabled = false;
+        if (r.error) { msg("That code didn't work. Check the time on your phone is set automatically, then try again.", 'err'); return; }
+        justSignedIn = true; whoAmI();
+      });
+    };
+    $('totpShowBtn').onclick = function () { startTotp(); };
+    $('pkUseBtn').onclick = function () {
+      $('pkUseBtn').disabled = true; msg('Waiting for your passkey…');
+      pk('login-options').then(function (o) {
+        if (!o.ok) throw new Error(o.error);
+        return SimpleWebAuthnBrowser.startAuthentication(o.options);
+      }).then(function (resp) { return pk('login-verify', { response: resp }); })
+        .then(function (v) { $('pkUseBtn').disabled = false; if (!v.ok) throw new Error(v.error); setStep(v.stepup); justSignedIn = true; whoAmI(); })
+        .catch(function (e) { $('pkUseBtn').disabled = false; msg((e && e.message && !/NotAllowed|abort/i.test(e.name || '')) ? e.message : 'Passkey cancelled. Try again, or use your authenticator app.', 'err'); });
+    };
+    $('pkAddBtn').onclick = function () {
+      $('pkAddBtn').disabled = true; msg('Follow the prompt on your device…');
+      pk('reg-options').then(function (o) {
+        if (!o.ok) throw new Error(o.error);
+        return SimpleWebAuthnBrowser.startRegistration(o.options);
+      }).then(function (resp) { return pk('reg-verify', { response: resp, label: navigator.platform || 'device' }); })
+        .then(function (v) { $('pkAddBtn').disabled = false; if (!v.ok) throw new Error(v.error); $('pkAddBtn').hidden = true; msg('Passkey added. Next time, confirm with Face ID or your fingerprint.', 'ok'); })
+        .catch(function (e) { $('pkAddBtn').disabled = false; msg((e && e.message && !/NotAllowed|abort/i.test(e.name || '')) ? e.message : 'Passkey set-up cancelled.', 'err'); });
+    };
     $('backBtn').onclick = function () { show('stepEmail'); msg(''); };
-    $('outBtn').onclick = function () { sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); }); };
-    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN') whoAmI(); });
+    $('outBtn').onclick = function () { setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); }); };
+    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN') { justSignedIn = true; whoAmI(); } });
     whoAmI();
   })();
   </script>
