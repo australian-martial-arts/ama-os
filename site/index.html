@@ -196,6 +196,9 @@
       <section id="tabBook" hidden></section>
       <section id="tabHreq" hidden></section>
       <section id="tabShift" hidden></section>
+      <section id="tabFp" hidden></section>
+      <section id="tabStars" hidden></section>
+      <section id="tabAv" hidden></section>
     </div>
   </div>
 
@@ -278,13 +281,13 @@
     var I = {
       myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
       book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
-      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
+      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
       ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
-      marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
-      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
+      marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', os2: 'failpay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } },
+      stars: { l: 'AMA Stars', h: '', os2: 'stars', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
     };
     var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
       ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
@@ -304,10 +307,13 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'failpay') { $('tabFp').hidden = false; loadFp(); window.scrollTo(0, 0); }
+      else if (view === 'stars') { $('tabStars').hidden = false; loadStars(); window.scrollTo(0, 0); }
+      else if (view === 'absvideo') { $('tabAv').hidden = false; loadAv(); window.scrollTo(0, 0); }
       else if (view === 'hubreq') { $('tabHreq').hidden = false; loadHreq(); window.scrollTo(0, 0); }
       else if (view === 'shifts') { $('tabShift').hidden = false; loadShift(); window.scrollTo(0, 0); }
       else if (view === 'book') { $('tabBook').hidden = false; loadBook(); window.scrollTo(0, 0); }
@@ -322,7 +328,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -539,6 +545,55 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
       var f = box.querySelector('.tform'); if (f) wireChk(f);
     }
+    /* Failed payments (preview; the five money viewers only): families with an overdue EFC balance and what has been tried. */
+    function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { maximumFractionDigits: 0 }); }
+    function loadFp() {
+      var el = $('tabFp'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Failed payments</h2><p class="note">Loading…</p>';
+      hubRead({ kind: 'failpay' }, 'failpay', function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Failed payments</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var L = j.list || [], O = j.outcomes || [];
+        el.innerHTML = '<h2 class="sec">Failed payments</h2><p class="note">' + L.length + (L.length === 1 ? ' family' : ' families') + ' overdue in EFC' + (j.total != null ? ', ' + money(j.total) + ' in total' : '') + (j.pulled ? '. EFC checked ' + esc(j.pulled) : '') + '. Call, then log what happened.</p>' +
+          L.map(function (f, i) {
+            return '<div class="box fp" data-i="' + i + '" style="margin:8px 0"><div class="chips" style="margin:0 0 4px"><span class="chip" aria-pressed="true">' + money(f.overdue) + '</span><span class="tsum" style="margin:6px 0 0 4px">' + esc(f.school) + (f.hold ? ' · ' + esc(f.hold) : '') + (f.tries ? ' · ' + f.tries + (f.tries === 1 ? ' try' : ' tries') : '') + '</span></div>' +
+              '<b>' + esc(f.parent || '') + '</b> <a class="tsum" href="tel:' + esc(f.mobile) + '">' + esc(f.mobile) + '</a><p class="tsum" style="margin:2px 0">' + esc((f.students || []).join(', ')) + (f.fail ? ' · last failed ' + esc(f.fail.at || '') + (f.fail.reason ? ' (' + esc(f.fail.reason) + ')' : '') : '') + '</p>' +
+              (f.last ? '<p class="tsum" style="margin:2px 0 6px">Last: ' + esc(f.last.outcome) + ', ' + esc(f.last.at) + ' by ' + esc(f.last.by) + (f.last.note ? '. ' + esc(f.last.note) : '') + '</p>' : '') +
+              '<div class="chips">' + O.map(function (o) { return '<button type="button" class="chip" data-o="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div><p class="tmsg note" style="margin:4px 0 0"></p></div>'; }).join('');
+        Array.prototype.forEach.call(el.querySelectorAll('.fp [data-o]'), function (b) { b.onclick = function () {
+          var c = b.closest('.fp'), f = L[+c.dataset.i], m = c.querySelector('.tmsg'), note = prompt('Note (optional)') || ''; m.textContent = 'Saving…';
+          hubAct({ kind: 'failpay', act: 'log', key: f.key, school: f.school, family: f.parent, outcome: b.dataset.o, note: note }).then(function (r) { m.textContent = r && r.ok ? 'Logged: ' + b.dataset.o : (r && r.error) || 'Not saved.'; }); }; });
+      });
+    }
+    /* AMA Stars (preview; office and management): look up a family by mobile, award or redeem. Saved by the hub. */
+    function loadStars() {
+      var el = $('tabStars'); el.innerHTML = '<h2 class="sec">AMA Stars</h2><div class="box bkf"><div><label for="stM">Family mobile</label><input id="stM" type="tel" placeholder="04xx xxx xxx"></div><button type="button" class="btn" id="stGo" style="width:auto;padding:10px 18px;margin-top:10px">Look up</button><div id="stOut"></div></div><div id="stTop"><p class="note">Loading…</p></div>';
+      hubRead({ kind: 'stars', act: 'cfg' }, 'stars', function (j) {
+        var t = $('stTop'); if (!t) return; if (!j || !j.ok) { t.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        STC = j; t.innerHTML = '<div class="tday" style="margin-top:14px">Top families, last 12 months</div>' + (j.top || []).map(function (f) { return '<div class="trial"><div class="t">' + esc(String(f.earned12)) + '</div><div class="w"><b>' + esc(f.name) + '</b><span>Balance ' + esc(String(f.balance)) + '</span></div><div></div></div>'; }).join('');
+      });
+      $('stGo').onclick = function () { var mob = $('stM').value, o = $('stOut'); o.innerHTML = '<p class="note">Looking up…</p>';
+        hubAct({ kind: 'stars', act: 'family', mobile: mob }).then(function (f) {
+          if (!f || !f.ok) { o.innerHTML = '<p class="msg err">' + esc((f && f.error) || 'Not found.') + '</p>'; return; }
+          var man = (STC && STC.manual) || [], lab = f.labels || {};
+          o.innerHTML = '<p style="margin:12px 0 4px"><b>' + esc(String(f.balance)) + ' stars</b> · ' + esc(String(f.earned12)) + ' earned in 12 months' + (f.next ? ' · next reward at ' + f.next.s + ': ' + esc(f.next.t) : '') + '</p>' +
+            '<div class="tsum">Award</div><div class="chips">' + man.map(function (k) { return '<button type="button" class="chip" data-aw="' + esc(k) + '">' + esc(lab[k] || k) + (f.earn && f.earn[k] ? ' (+' + f.earn[k] + ')' : '') + '</button>'; }).join('') + '</div>' +
+            '<div class="tsum">Redeem</div><div class="chips">' + (f.rewards || []).map(function (r, i) { return '<button type="button" class="chip" data-rd="' + i + '"' + (r.s > f.balance ? ' disabled' : '') + '>' + esc(r.t) + ' (' + r.s + ')</button>'; }).join('') + '</div><p class="tmsg note" id="stMsg"></p>' +
+            '<div class="tday" style="margin-top:10px">History</div>' + (f.history || []).map(function (h) { return '<p class="tsum" style="margin:2px 0">' + esc(h.at) + ' · ' + (h.n > 0 ? '+' : '') + h.n + ' · ' + esc(lab[h.src] || h.src) + (h.note ? ' · ' + esc(h.note) : '') + '</p>'; }).join('');
+          var act = function (body, label) { if (!confirm(label + '?')) return; $('stMsg').textContent = 'Saving…'; hubAct(Object.assign({ kind: 'stars', mobile: mob }, body)).then(function (r) { if (r && r.ok) $('stGo').onclick(); else $('stMsg').textContent = (r && r.error) || 'Not saved.'; }); };
+          Array.prototype.forEach.call(o.querySelectorAll('[data-aw]'), function (b) { b.onclick = function () { act({ act: 'award', src: b.dataset.aw, note: prompt('Note (optional)') || '' }, 'Award stars for ' + b.textContent); }; });
+          Array.prototype.forEach.call(o.querySelectorAll('[data-rd]'), function (b) { b.onclick = function () { act({ act: 'redeem', reward: +b.dataset.rd }, 'Redeem ' + b.textContent); }; });
+        }); };
+    }
+    var STC = null;
+    /* Absentee videos (preview): families waiting on a short video from their instructor, with the script. Recording stays in the hub for now. */
+    function loadAv() {
+      var el = $('tabAv'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Absentee videos</h2><p class="note">Loading…</p>';
+      hubRead({ kind: 'absvideo' }, 'absvideo', function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Absentee videos</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var L = j.items || [];
+        el.innerHTML = '<h2 class="sec">Absentee videos</h2><p class="note">' + L.length + ' families waiting on a short video. Record and send it in the hub: <a href="' + HUB_URL + '#absvideo" target="_blank" rel="noopener">Absentee videos &#8599;</a></p>' +
+          (L.length ? L.map(function (x) { return '<details class="row"><summary><span class="a">' + esc(x.parent || '') + '</span><span class="b">' + esc([x.school, (x.members || []).join ? (x.members || []).join(', ') : x.members, x.days + ' days'].filter(Boolean).join(' · ')) + '</span><span class="c st">' + esc(x.stageText || '') + '</span></summary><p style="white-space:pre-wrap;margin:10px 0">' + esc(x.script || '') + '</p></details>'; }).join('') : '<div class="box"><p>No videos waiting.</p></div>');
+      });
+    }
     /* Hub change requests (preview): ask for a change; Mark sets the status. Saved by the hub (it texts Mark as before). */
     function loadHreq() {
       var el = $('tabHreq'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Hub change requests</h2><p class="note">Loading…</p>';
@@ -694,7 +749,7 @@
       }).catch(function () { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     /* My Day (preview on Mark's login): the hub's own "Your work today" list, ticks saved by the hub. */
-    var HUBMAP = { '#hubreq': 'hubreq', '#shifts': 'shifts', '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
+    var HUBMAP = { '#absvideo': 'absvideo', '#stars': 'stars', '#failpay': 'failpay', '#hubreq': 'hubreq', '#shifts': 'shifts', '#book': 'book', '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
     function openHref(u) { u = String(u || ''); if (!u) return; if (/^https?:/.test(u)) { window.open(u, '_blank', 'noopener'); return; } var k = u.split('?')[0]; if (HUBMAP[k]) return go(HUBMAP[k]); window.open(HUB_URL + u, '_blank', 'noopener'); }
     function loadDay(fresh) {
       var el = $('tabDay'); if (!el.innerHTML || fresh) el.innerHTML = '<h2 class="sec">My Day</h2><p class="note">Loading your work…</p>';
