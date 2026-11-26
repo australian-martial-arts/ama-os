@@ -35,5 +35,5 @@ jobs:
           psql -c "select data, at from ama_os.cache where key = 'absent_counts'" || true
           psql -c "select source, count(*) from ama_os.mirror where source in ('Later starts','Absentees','New members') group by 1" || true
           echo "== Database timers: last beat and recent calls =="
-          psql -c "select key, at, data from ama_os.cache where key in ('timer_beat','trials_live','absent_counts','dash_m') order by key" -P format=wrapped | cut -c1-160 || true
+          psql -c "select key, at, case when key in ('dash_m','trials_live') then coalesce(data->'needs', to_jsonb(jsonb_array_length(data->'trials'))) else data end from ama_os.cache where key in ('timer_beat','trials_live','absent_counts','dash_m') order by key" -P format=wrapped | cut -c1-160 || true
           psql -c "select status_code, count(*), max(created) from net._http_response where created > now() - interval '30 minutes' group by 1" || true
