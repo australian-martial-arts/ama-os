@@ -111,6 +111,12 @@
       show('stepMfa');
       $('pkUseBtn').hidden = !(canPk && passkeys > 0);
       if (canPk && passkeys > 0) { $('mfaIntro').textContent = "Confirm it's you with Face ID, fingerprint or your device PIN."; $('mfaForm').hidden = true; $('totpShowBtn').hidden = false; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; return Promise.resolve(); }
+      if (canPk) { // first time: offer Face ID / fingerprint set-up, or the authenticator app
+        $('mfaIntro').textContent = "One-time set-up: choose how you'll confirm it's you each time you sign in.";
+        $('pkUseBtn').textContent = 'Set up Face ID / fingerprint (passkey)'; $('pkUseBtn').hidden = false; $('pkUseBtn').dataset.mode = 'setup';
+        $('totpShowBtn').textContent = 'Use an authenticator app instead'; $('totpShowBtn').hidden = false; $('mfaForm').hidden = true; $('mfaQr').hidden = true; $('mfaSecret').hidden = true;
+        return Promise.resolve();
+      }
       $('totpShowBtn').hidden = true; return startTotp();
     }
     function startTotp() {
@@ -185,7 +191,11 @@
     $('totpShowBtn').onclick = function () { startTotp(); };
     $('pkUseBtn').onclick = function () {
       $('pkUseBtn').disabled = true; msg('Waiting for your passkey…');
-      pk('login-options').then(function (o) {
+      var setup = $('pkUseBtn').dataset.mode === 'setup';
+      (setup ? pk('reg-options').then(function (o) { if (!o.ok) throw new Error(o.error); return SimpleWebAuthnBrowser.startRegistration(o.options); })
+        .then(function (resp) { return pk('reg-verify', { response: resp, label: navigator.platform || 'device' }); })
+        .then(function (v) { if (!v.ok) throw new Error(v.error); $('pkUseBtn').dataset.mode = ''; msg('Passkey saved. Now confirm with it once.', 'ok'); }) : Promise.resolve())
+      .then(function () { return pk('login-options'); }).then(function (o) {
         if (!o.ok) throw new Error(o.error);
         return SimpleWebAuthnBrowser.startAuthentication(o.options);
       }).then(function (resp) { return pk('login-verify', { response: resp }); })
