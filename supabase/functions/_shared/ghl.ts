@@ -21,22 +21,6 @@ async function ghl(path: string, q: Record<string, string | number> = {}) {
   if (!r.ok) throw new Error("GHL " + path + " " + r.status);
   return await r.json();
 }
-async function ghlPost(path: string, body: unknown) {
-  const r = await fetch(BASE + path, { method: "POST", headers: { Authorization: "Bearer " + (await token()), Version: VERSION, Accept: "application/json", "content-type": "application/json" }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error("GHL " + path + " " + r.status);
-  return await r.json();
-}
-/** Contacts on paid promotions (hub promoCids_): they skip the trial process, so their bookings don't count as trials. Cached 1 hour. */
-async function promoCids(): Promise<string[]> {
-  return await cached("ghl_promo_cids", 3600, async () => {
-    const ids = new Set<string>();
-    for (const tag of PROMO_TAGS) for (let page = 1; page <= 20; page++) {
-      const r = await ghlPost("/contacts/search", { locationId: LOCATION, pageLimit: 100, page, filters: [{ field: "tags", operator: "contains", value: tag }] });
-      const cs = (r.contacts ?? []) as { id: string }[]; cs.forEach((c) => ids.add(c.id)); if (cs.length < 100) break;
-    }
-    return [...ids];
-  });
-}
 export async function cached<T>(key: string, secs: number, fn: () => Promise<T>): Promise<T> {
   const hit = await sql`select data, at from ama_os.cache where key = ${key}`;
   if (hit.length && Date.now() - new Date(hit[0].at as string).getTime() < secs * 1000) return hit[0].data as T;
@@ -105,8 +89,7 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
   const fu: Record<string, Record<string, unknown>> = {}; rec.followup.forEach((r) => { if (r["Event ID"]) fu[String(r["Event ID"])] = r; });
   const absent = new Set(Object.keys(fu).filter((id) => fu[id]["Attended"] === "Absent"));
   const byC: Record<string, Record<string, string[]>> = {};
-  const promoSet = new Set(await promoCids().catch(() => [] as string[]));
-  raw.forEach(({ e }) => { if (!e.contactId || promoSet.has(e.contactId)) return; const d = ymd(new Date(e.startTime).getTime()); ((byC[e.contactId] ??= {})[d] ??= []).push(e.id); });
+  raw.forEach(({ e }) => { if (!e.contactId) return; const d = ymd(new Date(e.startTime).getTime()); ((byC[e.contactId] ??= {})[d] ??= []).push(e.id); });
   // Walk-ins count as visits too (hub tcTrialNums_): event IDs starting with W, by trial date.
   Object.values(fu).forEach((r) => { const id = String(r["Event ID"]), cid = String(r["Contact ID"] ?? ""); if (id.charAt(0) !== "W" || !cid) return;
     const d0 = String(r["Trial date"] ?? ""), m = /^(\d{4}-\d{2}-\d{2})/.exec(d0); const d = m ? m[1] : (d0 ? ymd(new Date(d0).getTime()) : ""); if (!d || sydMidnight(d) < from) return;
@@ -116,7 +99,8 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
     return n === 2 ? "Trial " + Math.min(k, 2) + " of 2" : (k === 1 ? "1st" : k === 2 ? "2nd" : k === 3 ? "3rd" : k + "th") + " trial"; };
   const src: Record<string, string> = {}; rec.bookings.forEach((r) => { const k = String(r["Event ID"] ?? ""); if (!k) return; if (/\(confirmed/i.test(String(r["Booked by"] ?? ""))) { src[k] ??= "confirmed"; } else src[k] = "hub"; });
   const promo = (c: Contact | null) => !!c && c.tags.some((t) => PROMO_TAGS.includes(t));
-  const trials = shown.filter(({ e }) => !promo(contacts[e.contactId ?? ""] ?? null)).map(({ loc, e }) => {
+  // 26 Nov 2026 (Mark): promotion families count as trials too (they are all families to convert); marked so staff can see it.
+  const trials = shown.map(({ loc, e }) => {
     const t = new Date(e.startTime).getTime(), c = e.contactId ? contacts[e.contactId] : null, past = t + 45 * 60000 < now;
     const kids = (titleKids(e.title ?? "").length ? titleKids(e.title ?? "") : (c?.kids ?? [])).map(short);
     const row = fu[e.id], att = row ? String(row["Attended"] ?? "") : "", tags = c?.tags ?? [];
@@ -124,7 +108,7 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
     const recd = (row && String(row["Recommendation sent"]) === "Yes") || REC_TAGS.some((x) => tags.includes(x));
     const status = enrolled ? "Enrolled" : recd ? "Rec sent" : progMid(e.title ?? "") || (att === "Absent" ? "Absent" : att === "Attended" ? "Attended" : att === "Rebooked" ? "Rebooked" : past ? "No update" : "");
     return { t, id: e.id, cid: e.contactId ?? "", src: src[e.id] ?? "online", day: dayText(t), time: timeText(t), loc,
-      who: kids.length ? kids.join(" & ") : short(c?.name ?? "") + " (parent)", cls: (e as Ev & { cls: string }).cls, num: e.contactId ? num(e.contactId, ymd(t)) : "", past: t < now, status,
+      who: kids.length ? kids.join(" & ") : short(c?.name ?? "") + " (parent)", cls: (e as Ev & { cls: string }).cls, num: e.contactId ? num(e.contactId, ymd(t)) : "", past: t < now, status, promo: promo(c ?? null),
       att, rec: row ? String(row["Recommendation sent"] ?? "") : "" };
   });
   // Walk-ins: recommendations logged with no trial booked (event IDs start with W), as on the hub.
