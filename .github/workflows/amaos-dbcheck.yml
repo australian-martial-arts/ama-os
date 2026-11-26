@@ -48,4 +48,4 @@ jobs:
           psql -c "select id, status_code, left(coalesce(error_msg,''),120) err, left(content::text,140) body, created from net._http_response where created > now() - interval '40 minutes' and (content::text like '%\"ok\"%' or error_msg is not null) order by created desc limit 15" || true
           psql -c "select jobid, status, left(return_message,140) msg, start_time from cron.job_run_details where jobid in (select jobid from cron.job where jobname like 'amaos-%') order by start_time desc limit 10" || true
           echo "== Web-call results by hour (all jobs) =="
-          psql -c "select date_trunc('hour', created) h, count(*) filter (where status_code is not null) ok, count(*) filter (where error_msg like 'Timeout%') timeouts from net._http_response group by 1 order by 1" || true
+          psql -c "select date_trunc('hour', created) + floor(extract(minute from created)/10)*interval '10 min' h, count(*) filter (where status_code is not null) ok, count(*) filter (where error_msg like 'Timeout%') timeouts from net._http_response where created > now() - interval '2 hours' group by 1 order by 1" || true
