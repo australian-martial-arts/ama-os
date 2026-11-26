@@ -11,11 +11,11 @@ import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMem
 
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
 // 27 Nov 2026 (Mark): Tate tests every new system as it comes across, so he gets each preview too.
-const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook", "hubreq", "shifts", "failpay", "stars", "absvideo", "liveatt", "reflist", "partyhub", "pvlist", "camphub", "stocklist", "stockmove", "links", "ihub", "staff", "trainreq", "ppf"];
-const HUB_READ_ACTS: Record<string, string[]> = { stars: ["cfg"], liveatt: ["day"], staff: ["me"], ppf: ["mine", "cal"] }; // other actions that only read, so a saved copy can be shown
+const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook", "hubreq", "shifts", "failpay", "stars", "absvideo", "liveatt", "reflist", "partyhub", "pvlist", "camphub", "stocklist", "stockmove", "links", "ihub", "staff", "trainreq", "ppf", "skills", "myavail", "epblist", "epbtoken", "epbnewstaff", "epbsave"];
+const HUB_READ_ACTS: Record<string, string[]> = { stars: ["cfg"], liveatt: ["day"], staff: ["me"], ppf: ["mine", "cal"], skills: ["mine", "queue"], myavail: ["get"] }; // other actions that only read, so a saved copy can be shown
 const HUB_LOOKUP: Record<string, string[]> = { stars: ["family"], ppf: ["get"] }; // read-only look-ups that are not saved or logged
-const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600, hubreq: 900, shifts: 900, failpay: 900, stars: 900, absvideo: 900, liveatt: 120, reflist: 900, partyhub: 600, pvlist: 900, camphub: 600, stocklist: 600, links: 3600, ihub: 600, staff: 900, ppf: 600 }; // seconds a saved copy may be shown
-const hubKey = (first: string, body: Record<string, unknown>) => "hub:" + first + ":" + String(body.kind) + (body.kind === "check" ? ":" + String(body.loc ?? "") + ":" + String(body.date ?? "") : body.kind === "liveatt" ? ":" + String(body.school ?? "") + ":" + String(body.date ?? "") : body.kind === "staff" || body.kind === "ppf" ? ":" + String(body.act ?? "") : "");
+const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600, hubreq: 900, shifts: 900, failpay: 900, stars: 900, absvideo: 900, liveatt: 120, reflist: 900, partyhub: 600, pvlist: 900, camphub: 600, stocklist: 600, links: 3600, ihub: 600, staff: 900, ppf: 600, skills: 600, myavail: 600, epblist: 600 }; // seconds a saved copy may be shown
+const hubKey = (first: string, body: Record<string, unknown>) => "hub:" + first + ":" + String(body.kind) + (body.kind === "check" ? ":" + String(body.loc ?? "") + ":" + String(body.date ?? "") : body.kind === "liveatt" ? ":" + String(body.school ?? "") + ":" + String(body.date ?? "") : ["staff", "ppf", "skills", "myavail"].includes(String(body.kind)) ? ":" + String(body.act ?? "") : "");
 async function hubCall(who: string, mobile: string, body: Record<string, unknown>) {
   const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return { ok: false, error: "AMA OS can't reach the hub yet (no sync key)." } as Record<string, unknown>;
   const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
@@ -322,6 +322,7 @@ Deno.serve(async (req) => {
       const body = (b as { body?: Record<string, unknown> }).body ?? {}, kind = String(body.kind ?? ""), fresh = !!(b as { fresh?: boolean }).fresh;
       if (!HUB_KINDS.includes(kind)) return json({ ok: false, error: "Not available in AMA OS yet." });
       if (kind === "failpay" && !MONEY.includes(me.first)) return json({ ok: false, error: "Only Mark, Sarah, Hakan, Ridvan and Busra see payments." }, 403);
+      if (kind.startsWith("epb") && !["mark", "sarah", "hakan", "ridvan"].includes(me.first)) return json({ ok: false, error: "Employment packs are for Mark, Sarah, Hakan and Ridvan." }, 403);
       if (kind === "staff" && body.act !== "me") return json({ ok: false, error: "Staff management is still in the hub." }); // AMA OS only reads your own profile
       const ttl = body.act && body.act !== "list" && !(HUB_READ_ACTS[kind] ?? []).includes(String(body.act)) ? 0 : HUB_READ[kind];
       if (ttl) {
@@ -334,8 +335,8 @@ Deno.serve(async (req) => {
         return json(out);
       }
       const out = await hubCall(me.name, String(me.login ?? ""), body);
-      if ((HUB_LOOKUP[kind] ?? []).includes(String(body.act))) return json(out); // a look-up, not a change
-      if (!["trialslots"].includes(kind)) await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body: kind === "ppf" && body.data ? { ...body, data: "(their goals)" } : body, ok: !!out.ok, error: out.error ?? null } as never)})`;
+      if ((HUB_LOOKUP[kind] ?? []).includes(String(body.act)) || kind === "epbtoken") return json(out); // a look-up, not a change
+      if (!["trialslots"].includes(kind)) await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body: kind === "ppf" && body.data ? { ...body, data: "(their goals)" } : Array.isArray(body.files) ? { ...body, files: (body.files as { name?: string }[]).map((f) => f.name) } : body, ok: !!out.ok, error: out.error ?? null } as never)})`;
       // Something changed: this person's saved copies are out of date (class lists stay).
       if (out.ok && kind !== "trialslots") await sql`delete from ama_os.cache where key like ${"hub:" + me.first + ":%"} and key not like ${"hub:" + me.first + ":trialopts%"}`;
       return json(out);
