@@ -46,3 +46,20 @@ export async function hasStepUp(req: Request, userId: string) {
   const rows = await sql`select 1 from ama_os.stepup where token_hash = ${await sha256(t)} and user_id = ${userId} and expires_at > now()`;
   return rows.length > 0;
 }
+
+const SECOND_STEP = ["owner", "full", "admin"];
+export type Staff = { name: string; role: string; email: string; first: string; login: string };
+/** Signed-in, active, preview staff only; owners/full/admins must have done their second step. Returns staff or an error. */
+export async function requireStaff(req: Request): Promise<{ staff?: Staff; error?: string; status?: number }> {
+  const auth = req.headers.get("authorization") ?? "";
+  const u = await getUser(auth);
+  if (!u) return { error: "Please sign in again.", status: 401 };
+  const rows = await sql`select name, role, preview, email from ama_os.staff
+    where active and ((${u.digits} <> '' and regexp_replace(coalesce(phone, ''), '\\D', '', 'g') = ${u.digits})
+                      or (${u.email} <> '' and email = ${u.email}))
+    order by (role = 'full') desc, preview desc limit 1`;
+  if (!rows.length || !rows[0].preview) return { error: "Not allowed.", status: 403 };
+  const s = rows[0];
+  if (SECOND_STEP.includes(s.role) && String(claims(auth).aal ?? "aal1") !== "aal2" && !(await hasStepUp(req, u.id))) return { error: "Confirm it's you first.", status: 403 };
+  return { staff: { name: s.name, role: s.role, email: s.email, first: String(s.name).trim().split(/\s+/)[0].toLowerCase(), login: u.digits || u.email } };
+}

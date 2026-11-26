@@ -29,6 +29,36 @@
     .who { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; text-align: left; }
     .who b { display: block; font-size: 18px; } .who span { color: var(--ink-3); font-size: 14px; }
     [hidden] { display: none !important; }
+    /* Signed-in app (26 Nov 2026): dashboard + family lookup */
+    body.app { display: block; padding: 0; }
+    body.app main.card { max-width: 1100px; margin: 0 auto; text-align: left; padding: max(14px, env(safe-area-inset-top)) 16px 40px; }
+    body.app main.card > .badge, body.app main.card > h1 { display: none; }
+    .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .top .badge { font-size: 11px; padding: 4px 10px; } .top h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    .top .sp { flex: 1; } .top .me { color: var(--ink-2); font-size: 14px; } .top .link { padding: 4px; font-size: 14px; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .tabs button { background: none; color: var(--ink-2); border-radius: 0; padding: 10px 12px; font-weight: 700; border-bottom: 2px solid transparent; }
+    .tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+    .note { color: var(--ink-3); font-size: 13px; margin: 0 0 12px; max-width: none; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+    .tile .n { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .tile .l { color: var(--ink-2); font-size: 13px; }
+    .box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; overflow-x: auto; }
+    .box h3 { margin: 0 0 10px; font-size: 15px; }
+    table.t { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+    table.t th, table.t td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    table.t th:first-child, table.t td:first-child { text-align: left; } table.t th { color: var(--ink-3); font-weight: 600; font-size: 12px; }
+    table.t tr.tot td { font-weight: 800; border-bottom: 0; }
+    .legend { display: flex; gap: 14px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; } .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+    .srch { display: flex; gap: 8px; margin-bottom: 14px; } .srch input { flex: 1; } .srch button { padding: 0 18px; }
+    .fam { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .fam .h { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-bottom: 8px; } .fam .h b { font-size: 17px; } .fam .h span { color: var(--ink-2); font-size: 14px; }
+    .kid { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; } .kid b { font-size: 15px; } .kid .m { color: var(--ink-2); }
+    .pill { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: #3a2f10; color: var(--accent); }
+    .pill.bad { background: #3b1d19; color: var(--err); }
+    .hist { font-size: 13px; color: var(--ink-2); margin-top: 6px; } .hist b { color: var(--ink); font-weight: 600; }
+    @media (max-width: 560px) { .tile .n { font-size: 24px; } }
   </style>
 </head>
 <body>
@@ -73,10 +103,16 @@
     </section>
 
     <section id="stepIn" hidden>
-      <div class="who"><b id="whoName"></b><span id="whoRole"></span></div>
-      <p style="margin-top:16px">You're in. AMA OS is being built here; your hub pages will appear as they move across.</p>
-      <button type="button" id="pkAddBtn" hidden>Add a passkey on this device (Face ID / fingerprint)</button>
-      <button class="link" type="button" id="outBtn">Sign out</button>
+      <div class="top"><span class="badge">AMA</span><h2>AMA OS</h2><span class="sp"></span>
+        <span class="me"><b id="whoName"></b> · <span id="whoRole"></span></span>
+        <button class="link" type="button" id="outBtn">Sign out</button></div>
+      <button type="button" id="pkAddBtn" hidden style="margin-bottom:12px">Add a passkey on this device (Face ID / fingerprint)</button>
+      <nav class="tabs"><button type="button" data-tab="dash" class="on">Dashboard</button><button type="button" data-tab="find">Family lookup</button></nav>
+      <div id="tabDash"><p class="note">Loading…</p></div>
+      <div id="tabFind" hidden>
+        <form class="srch" id="findForm"><input id="findQ" placeholder="Student, parent, mobile, email or EFC reference" autocomplete="off"><button type="submit">Search</button></form>
+        <div id="findOut"><p class="note">Read-only. Searches the copy of EFC members the hub sends each night. Each search is logged.</p></div>
+      </div>
     </section>
 
     <div id="msg" class="msg" role="status" aria-live="polite"></div>
@@ -90,7 +126,7 @@
     var C = window.AMAOS_CONFIG || {}, $ = function (id) { return document.getElementById(id); };
     var ROLE = { owner: 'Owner', full: 'Full-access admin', marketing: 'Marketing', admin: 'Admin', junior: 'Junior admin', instructor: 'Instructor' };
     function msg(t, kind) { var m = $('msg'); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
-    function show(id) { ['stepEmail', 'stepCode', 'stepMfa', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); }
+    function show(id) { ['stepEmail', 'stepCode', 'stepMfa', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); document.body.classList.toggle('app', id === 'stepIn'); }
     if (!C.supabaseAnonKey || /PASTE/.test(C.supabaseAnonKey)) { msg('Sign-in is being connected. Check back shortly.', 'err'); $('sendBtn').disabled = true; return; }
     var sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });
     var email = '', justSignedIn = false, mfaFactor = null, mfaChallenge = null, idleTimer = null;
@@ -134,6 +170,76 @@
         });
       });
     }
+    function api(fn, body) {
+      return sb.auth.getSession().then(function (r) {
+        var s = r.data && r.data.session; var hdr = { Authorization: 'Bearer ' + (s ? s.access_token : ''), apikey: C.supabaseAnonKey, 'content-type': 'application/json' };
+        var su = getStep(); if (su) hdr['x-amaos-stepup'] = su;
+        return fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: hdr, body: JSON.stringify(body || {}) }).then(function (x) { return x.json(); });
+      });
+    }
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function fmtN(n) { return Number(n || 0).toLocaleString('en-AU'); }
+    function nice(d) { if (!d) return ''; var t = new Date(String(d).length === 10 ? d + 'T12:00:00' : d); return isNaN(t) ? String(d) : t.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); }
+    function when(d) { var t = new Date(d); return isNaN(t) ? '' : t.toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); }
+    function loadDash() {
+      var el = $('tabDash'); el.innerHTML = '<p class="note">Loading…</p>';
+      api('amaos-dash', { act: 'dash' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load the dashboard.') + '</p>'; return; }
+        var T = j.totals, B = j.by, att = T.trialsLast30 ? Math.round(T.attendedLast30 * 100 / T.trialsLast30) : 0;
+        var tiles = [['Active members', T.members], ['New members, last 30 days', T.newMembers], ['Cancellation requests, last 30 days', T.cancels], ['On hold today', T.holdsNow],
+          ['Trials, next 7 days', T.trialsNext7], ['Trials attended, last 30 days', T.trialsLast30 ? att + '%' : '–'], ['Not trained in 14+ days', T.quiet14], ['Absentee follow-ups open', j.absenteesOpen]];
+        if (j.money) tiles.push(['Next EFC invoices', '$' + fmtN(j.money.nextInvoicesTotal)], ['Families overdue', fmtN(j.money.overdueFamilies) + ' · $' + fmtN(j.money.overdueTotal)]);
+        var h = '<p class="note">From the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '. Read-only; the hub is still the master.</p><div class="tiles">' +
+          tiles.map(function (t) { return '<div class="tile"><div class="n">' + (typeof t[1] === 'number' ? fmtN(t[1]) : esc(t[1])) + '</div><div class="l">' + esc(t[0]) + '</div></div>'; }).join('') + '</div>';
+        var cols = [['members', 'Members'], ['newMembers', 'New (30d)'], ['cancels', 'Cancel req. (30d)'], ['holdsNow', 'On hold'], ['trialsNext7', 'Trials next 7d'], ['trialsLast30', 'Trials (30d)'], ['attendedLast30', 'Attended'], ['quiet14', '14+ days away']];
+        h += '<div class="box"><h3>By school</h3><table class="t"><tr><th>School</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' +
+          j.schools.map(function (s) { return '<tr><td>' + esc(s) + '</td>' + cols.map(function (c) { return '<td>' + fmtN(B[c[0]][s]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+          '<tr class="tot"><td>All schools</td>' + cols.map(function (c) { return '<td>' + fmtN(T[c[0]]) + '</td>'; }).join('') + '</tr></table></div>';
+        h += '<div class="box"><h3>Joined vs cancellation requests, last 12 weeks</h3><div class="legend"><span><i style="background:var(--ok)"></i>Joined</span><span><i style="background:var(--err)"></i>Cancellation requests</span></div>' + bars(j.weeks) + '</div>';
+        var up = j.upcoming || [];
+        h += '<div class="box"><h3>Trials in the next 7 days (' + up.length + ')</h3>' + (up.length ? '<table class="t"><tr><th>Day</th><th style="text-align:left">Child</th><th style="text-align:left">School</th><th style="text-align:left">Class</th></tr>' +
+          up.map(function (u) { return '<tr><td>' + esc(nice(u.date)) + '</td><td style="text-align:left">' + esc(u.child) + '</td><td style="text-align:left">' + esc(u.school) + '</td><td style="text-align:left">' + esc(u.cls) + '</td></tr>'; }).join('') + '</table>' : '<p class="note">None booked in the copy.</p>') + '</div>';
+        el.innerHTML = h;
+      }).catch(function () { el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function bars(W) {
+      var max = 1; W.forEach(function (w) { max = Math.max(max, w.joined, w.left); });
+      var bw = 14, gap = 10, grp = bw * 2 + 4 + gap, H = 140, w = W.length * grp + 30;
+      var g = W.map(function (x, i) { var X = 30 + i * grp, hj = Math.round(x.joined / max * (H - 20)), hl = Math.round(x.left / max * (H - 20));
+        return '<rect x="' + X + '" y="' + (H - hj) + '" width="' + bw + '" height="' + hj + '" rx="2" fill="var(--ok)"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.joined + ' joined</title></rect>' +
+          '<rect x="' + (X + bw + 4) + '" y="' + (H - hl) + '" width="' + bw + '" height="' + hl + '" rx="2" fill="var(--err)"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.left + ' cancellation requests</title></rect>' +
+          (i % 2 === 0 ? '<text x="' + (X + bw) + '" y="' + (H + 16) + '" text-anchor="middle" font-size="8" fill="var(--ink-3)">' + esc(new Date(x.wk + 'T12:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })) + '</text>' : ''); }).join('');
+      return '<svg viewBox="0 0 ' + w + ' ' + (H + 22) + '" style="width:100%;max-width:' + (w * 1.6) + 'px;height:auto" role="img" aria-label="Weekly joined and cancellation requests">' +
+        '<text x="0" y="12" font-size="8" fill="var(--ink-3)">' + max + '</text><line x1="26" x2="' + w + '" y1="' + H + '" y2="' + H + '" stroke="var(--line)"/>' + g + '</svg>';
+    }
+    function famHtml(f) {
+      var k = f.kids.map(function (x) {
+        var tags = (x['Hub hold'] ? '<span class="pill">On hold</span>' : '') + (x['Flags'] ? '<span class="pill bad">' + esc(x['Flags']) + '</span>' : '') + (Number(x['Overdue']) > 0 ? '<span class="pill bad">Overdue $' + esc(x['Overdue']) + '</span>' : '');
+        return '<div class="kid"><b>' + esc(x['Student']) + '</b>' + (x['Age'] ? ' <span class="m">· ' + esc(x['Age']) + '</span>' : '') + tags +
+          '<div class="m">' + esc([x['School'], x['Groups']].filter(Boolean).join(' · ')) + '</div>' +
+          '<div class="m">Last trained ' + esc(nice(x['Last attended']) || '—') + (x['Days since'] !== undefined ? ' (' + esc(x['Days since']) + ' days ago)' : '') + ' · ' + esc(x['Classes this month'] || 0) + ' this month · ' + esc(x['Total classes'] || 0) + ' total' + (x['Enrolled on'] ? ' · joined ' + esc(nice(x['Enrolled on'])) : '') + '</div>' +
+          (x['Next amount'] !== undefined ? '<div class="m">Next EFC invoice ' + esc(nice(x['Next invoice'])) + ' · $' + esc(x['Next amount']) + '</div>' : '') + '</div>';
+      }).join('');
+      var hist = function (label, rows, fn) { return rows && rows.length ? '<div class="hist"><b>' + label + ':</b> ' + rows.map(fn).join(' · ') + '</div>' : ''; };
+      return '<div class="fam"><div class="h"><b>' + esc(f.parent || 'Family') + '</b><span>' + esc(f.mobile) + '</span><span>' + esc(f.email) + '</span></div>' + k +
+        hist('Holds', f.holds, function (h) { return esc((h['Status'] || '') + ' ' + nice(h['Freeze starts']) + ' to ' + nice(h['Freeze ends'])); }) +
+        hist('Cancellations', f.cancellations, function (c) { return esc((c['Status'] || '') + ', logged ' + nice(c['Logged at']) + (c['Last class'] ? ', last class ' + nice(c['Last class']) : '')); }) +
+        hist('Trials', f.trials, function (t) { return esc((t['Child'] || '') + ' ' + (t['Trial'] || '') + ' ' + (t['School'] || '')); }) +
+        hist('Joined', f.joined, function (n) { return esc((n['Students'] || '') + ' from ' + nice(n['Start date'])); }) +
+        (f.docs && f.docs.length ? '<div class="hist"><b>Documents:</b> ' + f.docs.length + '</div>' : '') +
+        (f.absent ? '<div class="hist"><b>Absentee follow-ups:</b> ' + f.absent + '</div>' : '') + '</div>';
+    }
+    $('findForm').onsubmit = function (e) {
+      e.preventDefault(); var q = $('findQ').value.trim(), out = $('findOut'); out.innerHTML = '<p class="note">Searching…</p>';
+      api('amaos-dash', { act: 'find', q: q }).then(function (j) {
+        if (!j || !j.ok) { out.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Search failed.') + '</p>'; return; }
+        out.innerHTML = j.families.length ? j.families.map(famHtml).join('') + (j.more ? '<p class="note">More matches. Add more of the name or mobile to narrow it down.</p>' : '') : '<p class="note">No current EFC members match. (Families who have left are not in the nightly copy.)</p>';
+      }).catch(function () { out.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    };
+    Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (b) {
+      b.onclick = function () { Array.prototype.forEach.call(document.querySelectorAll('.tabs button'), function (x) { x.classList.toggle('on', x === b); });
+        $('tabDash').hidden = b.dataset.tab !== 'dash'; $('tabFind').hidden = b.dataset.tab !== 'find'; if (b.dataset.tab === 'find') $('findQ').focus(); };
+    });
     function toPhone(v) { var d = String(v).replace(/\D/g, ''); if (/^04\d{8}$/.test(d)) return '+61' + d.slice(1); if (/^614\d{8}$/.test(d)) return '+' + d; return ''; }
 
     function whoAmI() {
@@ -146,7 +252,7 @@
             if (!j.ok && j.mfa) { msg(''); return startMfa(j.passkeys || 0); }
             if (!j.ok) { msg(j.error || 'Not allowed.', 'err'); sb.auth.signOut(); show('stepEmail'); return; }
             idle(); $('pkAddBtn').hidden = true; if (j.secondStep && window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn()) pk('status').then(function (p) { $('pkAddBtn').hidden = !(p.ok && p.count === 0); });
-            $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); show('stepIn'); msg('');
+            $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); show('stepIn'); msg(''); document.body.classList.add('app'); loadDash();
           });
       }).catch(function () { msg('Could not reach AMA OS. Please try again.', 'err'); });
     }
