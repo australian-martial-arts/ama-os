@@ -23877,6 +23877,14 @@ const CONN = { owners: ['mark', 'sarah', 'hakan', 'ridvan'], keys: { AMAOS_SYNC_
 function conn_(who, b) {
   const me = String((who && who.name) || '').toLowerCase().split(' ')[0]; if (CONN.owners.indexOf(me) < 0) return { ok: false, error: 'Owners only.' };
   const P = PropertiesService.getScriptProperties(), act = String(b.act || 'list');
+  if (act === 'toamaos') { // 26 Nov 2026 (Mark): hand the hub's EFC and GHL keys to AMA OS so it reads from the source, not the hub. Values never shown.
+    const sk = P.getProperty(AMAOS_SYNC.keyProp); if (!sk) return { ok: false, error: 'Add the AMA OS sync key first.' };
+    const keys = {}; EFC_API.schools.forEach(function (s) { const v = P.getProperty('EFC_KEY_' + s.toUpperCase()); if (v) keys['EFC_KEY_' + s.toUpperCase()] = v; });
+    const g = P.getProperty('GHL_TOKEN'); if (g) keys.GHL_TOKEN = g;
+    const res = UF_.fetch('https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-conn', { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': sk }, payload: JSON.stringify({ act: 'import', keys: keys, by: String(who.name || '') }), muteHttpExceptions: true });
+    let j = {}; try { j = JSON.parse(res.getContentText()); } catch (e) { }
+    return j.ok ? { ok: true, imported: j.imported } : { ok: false, error: 'AMA OS did not accept them (' + res.getResponseCode() + ').' };
+  }
   if (act === 'set') {
     const name = String(b.name || ''), v = String(b.value || '').trim();
     if (!CONN.keys[name]) return { ok: false, error: 'Unknown connection.' };
