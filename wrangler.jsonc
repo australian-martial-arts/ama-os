@@ -1,7 +1,8 @@
-// Cloudflare Pages project for AMA OS. Publishes the site/ folder as-is: no build step.
-// (The apps-script/ folder is a backup of the Google Apps Script source and is NOT served.)
+// Cloudflare Worker for AMA OS. Serves the static site/ folder as assets (no backend code yet).
+// Deploys with `npx wrangler deploy`. The apps-script/ folder is a backup and is NOT served.
+// Later, the hub's backend goes here as a Worker (add a "main" entry) alongside these assets.
 {
   "name": "ama-os",
   "compatibility_date": "2026-11-07",
-  "pages_build_output_dir": "./site"
+  "assets": { "directory": "./site" }
 }
