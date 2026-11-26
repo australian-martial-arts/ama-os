@@ -40,6 +40,6 @@ jobs:
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "SUPABASE_ACCESS_TOKEN not added yet - skipping"; exit 0; fi
           for d in supabase/functions/amaos-*/; do
             n=$(basename "$d"); echo "deploy $n"
-            flags=""; case "$n" in amaos-sync|amaos-oath) flags="--no-verify-jwt";; esac   # called by the hub with its sync key, not a sign-in
+            flags=""; case "$n" in amaos-sync|amaos-oath|amaos-photos) flags="--no-verify-jwt";; esac   # called by the hub with its sync key, not a sign-in
             supabase functions deploy "$n" --project-ref "$SUPABASE_PROJECT_REF" --use-api $flags
           done
