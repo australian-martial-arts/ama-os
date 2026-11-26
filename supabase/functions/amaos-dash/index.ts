@@ -10,7 +10,7 @@ import { sha256 } from "../_shared/amaos.ts";
 import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMemberCalls, replyOpen } from "../_shared/flows.ts";
 
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
-const HUB_PREVIEW = ["mark"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork"];
+const HUB_PREVIEW = ["mark"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate"];
 const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
 const MGMT = ["mark", "sarah", "hakan", "ridvan"];
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
       const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
         body: JSON.stringify({ kind: "amaoswrite", key, who: me.name, act: "route", mobile: String(me.login ?? ""), body }) });
       const out = await r.json().catch(() => ({ ok: false, error: "The hub didn't answer properly (" + r.status + ")." })) as Record<string, unknown>;
-      if (kind !== "approvals" && kind !== "mywork") await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body, ok: !!out.ok, error: out.error ?? null } as never)})`;
+      if (!["approvals", "mywork", "mwtick"].includes(kind)) await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body, ok: !!out.ok, error: out.error ?? null } as never)})`;
       return json(out);
     }
     if (b.act === "checksave") {
