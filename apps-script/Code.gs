@@ -3273,6 +3273,7 @@ catch (err) { return out({ ok: false, error: 'bad json' }); }
   // GHL workflow webhooks put our key-value pairs under customData; lift them to the top level.
   if (body.customData && typeof body.customData === 'object') Object.keys(body.customData).forEach(function (k) { body[k] = body.customData[k]; });
 /* 4 Nov 2026: the Pack Builder page (martialartsmentors.com) sends packs here with a one-time token instead of the hub key */ if (body.kind === 'epbprefill') { try { return out(epbPrefill_(body)); } catch (err) { return out({ ok: false }); } }
+  if (body.kind === 'amaoswrite') { try { return out(amaosWrite_(body)); } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); } } /* 26 Nov 2026: AMA OS saves through the hub until switch-over */
   if (body.kind === 'epbupload') { try { return out(epbUpload_(body)); } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); } }
   if (body.secret !== HOLD.secret) {
 Logger.log('Rejected post, bad secret');
@@ -23781,6 +23782,27 @@ function amaosLiveTick_() {
     } catch (e) { out[tab] = 'error ' + e; }
   });
   return { ok: true, sent: out };
+}
+/* 26 Nov 2026 (Mark): until switch-over the hub stays the master, so actions taken in AMA OS are saved THROUGH the hub, using the
+   hub's own save code (texts, notes, caches all exactly as if done in the hub; nothing is sent twice). Locked with the AMA OS
+   sync key; the staff name comes from AMA OS's own sign-in. The changed tab goes straight back to AMA OS. Only the actions listed here. */
+function amaosWrite_(b) {
+  const want = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp), got = String(b.key || '');
+  const dg = function (s) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s)); };
+  if (!want || !got || dg(got) !== dg(want)) return { ok: false, error: 'not authorised' };
+  const who = { name: String(b.who || '').trim().slice(0, 60), role: 'staff' };
+  if (!who.name) return { ok: false, error: 'Who is saving this?' };
+  if (b.act === 'checksave') {
+    // keep what is already recorded (recommendation, notes) unless AMA OS sends a new value
+    const have = tcRowsById_()[String(b.id || '')], C = tcCols_();
+    const rec = b.rec !== undefined && b.rec !== null ? b.rec : (have ? String(have.v[C['Recommendation sent']] || '') : '');
+    const notes = b.notes !== undefined && b.notes !== null ? b.notes : (have ? String(have.v[C['Notes']] || '') : '');
+    const r = tcSave_({ loc: b.loc, date: b.date, id: b.id, attended: b.attended, rec: rec, notes: notes }, who);
+    try { actRow_(who.name, 'Trials', 'After-trial check (via AMA OS)', String(b.id || ''), String(b.attended || '') + (rec ? ', rec ' + rec : '')); } catch (e) { }
+    if (r && r.ok) { try { amaosSyncTab_(TRIALCHECK.tab); } catch (e) { } }
+    return r;
+  }
+  return { ok: false, error: 'Not available from AMA OS yet.' };
 }
 function amaosLiveNow() { Logger.log(JSON.stringify(amaosLiveTick_())); }
 function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
