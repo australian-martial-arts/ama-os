@@ -11,8 +11,8 @@ import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMem
 
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
 // 27 Nov 2026 (Mark): Tate tests every new system as it comes across, so he gets each preview too.
-const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook", "hubreq", "shifts", "failpay", "stars", "absvideo", "liveatt", "reflist", "partyhub", "pvlist"];
-const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600, hubreq: 900, shifts: 900, failpay: 900, stars: 900, absvideo: 900, liveatt: 120, reflist: 900, partyhub: 600, pvlist: 900 }; // seconds a saved copy may be shown
+const HUB_PREVIEW = ["mark", "tate"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork", "mwtick", "partyupdate", "check", "checksave", "reqlist", "reqact", "trialopts", "trialslots", "trialbook", "hubreq", "shifts", "failpay", "stars", "absvideo", "liveatt", "reflist", "partyhub", "pvlist", "camphub", "stocklist", "stockmove"];
+const HUB_READ: Record<string, number> = { approvals: 900, mywork: 900, reqlist: 900, check: 600, trialopts: 21600, hubreq: 900, shifts: 900, failpay: 900, stars: 900, absvideo: 900, liveatt: 120, reflist: 900, partyhub: 600, pvlist: 900, camphub: 600, stocklist: 600 }; // seconds a saved copy may be shown
 const hubKey = (first: string, body: Record<string, unknown>) => "hub:" + first + ":" + String(body.kind) + (body.kind === "check" ? ":" + String(body.loc ?? "") + ":" + String(body.date ?? "") : body.kind === "liveatt" ? ":" + String(body.school ?? "") + ":" + String(body.date ?? "") : "");
 async function hubCall(who: string, mobile: string, body: Record<string, unknown>) {
   const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return { ok: false, error: "AMA OS can't reach the hub yet (no sync key)." } as Record<string, unknown>;
