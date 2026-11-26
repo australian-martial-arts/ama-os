@@ -14,3 +14,9 @@ Set-up rules (match the AMA Toolkit):
 - AMA OS uses only the `ama_os` schema and the `ama_os_app` login. It never uses the service-role key, so it cannot read or change Toolkit tables.
 - Sign-in uses the shared Supabase logins (one sign-in for the Toolkit and the hub).
 - Secrets live in GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) and Supabase function secrets (`AMA_OS_DB_URL`). Never in this repository.
+
+## Nightly copy of the hub (read-only)
+Between 1am and 4am the Apps Script hub sends a copy of its main sheets to AMA OS (`amaos-sync` edge function -> `ama_os.mirror`).
+The `Hub staff` tab also fills `ama_os.staff` (mobile, name, role; PIN columns are never sent).
+It only runs once `AMAOS_SYNC_KEY` is set in both places: Supabase Edge Function secrets and the hub's Script Properties (same value).
+Nothing in AMA OS writes back to the hub, EFC or GHL from this copy.
