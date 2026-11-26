@@ -65,7 +65,9 @@ Deno.serve(async (req) => {
         // Anyone the hub no longer lists is switched off (only rows this sync created or matched).
         if (seen.length) await tx`update ama_os.staff set active = false, updated_at = now() where synced_at is not null and regexp_replace(coalesce(phone, ''), '\\D', '', 'g') <> all(${seen})`;
       }
-      await tx`insert into ama_os.mirror_runs (source, rows, note) values (${source}, ${clean.length}, ${staff ? staff + " staff" : null})`;
+      // 26 Nov 2026: hub tabs for the critical flows also go into AMA OS's own record tables (hub rows only; AMA OS's own rows are never overwritten).
+      const imp = await tx`select ama_os.import_mirror(${source}) as n`;
+      await tx`insert into ama_os.mirror_runs (source, rows, note) values (${source}, ${clean.length}, ${[staff ? staff + " staff" : "", imp[0].n ? imp[0].n + " records" : ""].filter(Boolean).join(", ") || null})`;
     });
     return json({ ok: true, source, rows: clean.length, staff });
   } catch (e) {

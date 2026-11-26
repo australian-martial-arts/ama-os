@@ -40,9 +40,12 @@ const pick = (r: Row, keys: string[]) => { const o: Row = {}; for (const k of ke
 
 // Small per-instance cache so a busy front desk doesn't re-read the same copy every few seconds.
 const CACHE = new Map<string, { at: number; rows: Row[] }>();
+// 26 Nov 2026 (Mark): the critical flows read AMA OS's own record tables (filled from the hub until switch-over).
+const RECORDS: Record<string, string> = { "Holds": "holds", "Cancellations": "cancellations", "Trial follow-up": "trial_followups", "New members": "new_members", "Enrolments": "enrolments", "Hub trial bookings": "trial_bookings" };
 async function src(name: string): Promise<Row[]> {
   const hit = CACHE.get(name); if (hit && Date.now() - hit.at < 60000) return hit.rows;
-  const rows = (await sql`select data from ama_os.mirror where source = ${name}`).map((r) => r.data as Row);
+  const t = RECORDS[name];
+  const rows = (t ? await sql.unsafe("select data from ama_os." + t) /* t is from the fixed RECORDS list */ : await sql`select data from ama_os.mirror where source = ${name}`).map((r) => r.data as Row);
   CACHE.set(name, { at: Date.now(), rows }); return rows;
 }
 
