@@ -23748,7 +23748,7 @@ function mhub2DocsWrite_(rows) {
    between 1am and 4am, three tabs per run of hubMgmtWarm. Does nothing until AMAOS_SYNC_KEY is in Script Properties (Tate adds it,
    the same value as in Supabase). Columns that look like PINs, passwords, tokens, card or bank details are never sent. Nothing comes back. */
 const AMAOS_SYNC = { url: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-sync', keyProp: 'AMAOS_SYNC_KEY', curProp: 'AMAOS_SYNC_CUR', perTick: 4, hours: [1, 2, 3], /* 26 Nov 2026: 4 per tick so 19 tabs fit the night window */
-  tabs: ['Hub staff', 'EFC live', 'Holds', 'Cancellations', 'New members', 'Hub trial bookings', 'Trial follow-up', 'Recommendations', 'Sales chase', 'Membership changes', 'LD grading', 'Promotions', 'Media opt-out', 'Member docs', 'Stars ledger', 'Absentees', 'Failed payments', 'Instructor onboarding', 'Enrolments'], /* 26 Nov 2026: Enrolments for AMA OS trial statuses */
+  tabs: ['Hub staff', 'EFC live', 'Holds', 'Cancellations', 'New members', 'Hub trial bookings', 'Trial follow-up', 'Recommendations', 'Sales chase', 'Membership changes', 'LD grading', 'Promotions', 'Media opt-out', 'Member docs', 'Stars ledger', 'Absentees', 'Failed payments', 'Instructor onboarding', 'Enrolments', 'Later starts'], /* 26 Nov 2026: Enrolments for AMA OS trial statuses; Later starts for new-member call dates */
   skip: /pin|password|passcode|token|secret|api.?key|card|bsb|account.?number/i };
 /* 26 Nov 2026 (Mark): every GHL trial shows on the AMA OS dashboard exactly like the hub's list. Sends the hub's own cached
    trial list (hubDashboard_, already read from GHL) every 10 minutes, only when it has changed: no extra GHL calls, at most one outside call. */
@@ -23767,7 +23767,7 @@ function amaosTrialsPush_() {
 /* 26 Nov 2026 (Mark): work done in the hub reaches AMA OS through the day, not just overnight. Every 10 minutes (7am-9pm, from
    mydayWarm) the record tabs AMA OS keeps are checked, and only a tab that has changed is sent (one outside call per changed tab).
    AMA OS stores them in its own record tables. Change markers live in the cache (no new Script Properties). */
-const AMAOS_LIVE = { tabs: ['Holds', 'Cancellations', 'Trial follow-up', 'New members', 'Enrolments', 'Hub trial bookings', 'Absentees'] };
+const AMAOS_LIVE = { tabs: ['Holds', 'Cancellations', 'Trial follow-up', 'New members', 'Enrolments', 'Hub trial bookings', 'Absentees', 'Later starts'] };
 function amaosLiveTick_() {
   if (!PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp)) return { ok: false, error: 'No sync key yet.' };
   const C = CacheService.getScriptCache(), ss = SpreadsheetApp.openById(HOLD.sheetId), out = {};
