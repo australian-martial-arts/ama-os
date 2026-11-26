@@ -10473,7 +10473,7 @@ function previewNewMembers() {
 const MYDAY = { sundayCalls: 20, customerFrom: 16 * 60, perHourBefore: 10, perHourAfter: 3, reach: 0.5, winsPerHours: 3, minWins: 2, cacheKey: 'myday_q4', cacheSecs: 900 };
 // Every 10 minutes from 7am to 9pm the list is rebuilt in the background, so My day opens quickly.
 function mydayWarm() {
-  try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
+  try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { amaosTrialsPush_(); } catch (e) { Logger.log('amaosTrialsPush_ ' + e); } /* 26 Nov 2026: GHL trials to AMA OS */ try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
 
 function mydayShift_(name, d) {
   const first = String(name || '').toLowerCase().split(' ')[0], tz = CONFIG.timezone, day = Number(Utilities.formatDate(d, tz, 'u')) - 1;
@@ -23749,6 +23749,21 @@ function mhub2DocsWrite_(rows) {
 const AMAOS_SYNC = { url: 'https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-sync', keyProp: 'AMAOS_SYNC_KEY', curProp: 'AMAOS_SYNC_CUR', perTick: 3, hours: [1, 2, 3],
   tabs: ['Hub staff', 'EFC live', 'Holds', 'Cancellations', 'New members', 'Hub trial bookings', 'Trial follow-up', 'Recommendations', 'Sales chase', 'Membership changes', 'LD grading', 'Promotions', 'Media opt-out', 'Member docs', 'Stars ledger', 'Absentees', 'Failed payments', 'Instructor onboarding'],
   skip: /pin|password|passcode|token|secret|api.?key|card|bsb|account.?number/i };
+/* 26 Nov 2026 (Mark): every GHL trial shows on the AMA OS dashboard exactly like the hub's list. Sends the hub's own cached
+   trial list (hubDashboard_, already read from GHL) every 10 minutes, only when it has changed: no extra GHL calls, at most one outside call. */
+function amaosTrialsPush_() {
+  const key = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp); if (!key) return { ok: false, error: 'No sync key yet.' };
+  const C = CacheService.getScriptCache(), raw = C.get(HUBDASH.cacheKey); if (!raw) return { ok: false, error: 'Hub trial list not warm.' };
+  let d = {}; try { d = JSON.parse(raw); } catch (e) { return { ok: false, error: 'bad cache' }; }
+  if (!d.trials || (d.notes || []).some(function (n) { return /trials could not/i.test(n); })) return { ok: false, error: 'GHL trials not read this time.' };
+  const rows = d.trials.filter(function (t) { return !t.promo; }).map(function (t, i) { return { key: String(t.id || ('w' + i + '_' + t.t)), data: t }; });
+  const h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(rows)));
+  if (C.get('amaos_trh') === h) return { ok: true, same: true };
+  const res = UF_.fetch(AMAOS_SYNC.url, { method: 'post', contentType: 'application/json', headers: { 'x-amaos-sync-key': key }, payload: JSON.stringify({ source: 'GHL trials', rows: rows }), muteHttpExceptions: true });
+  if (res.getResponseCode() === 200) C.put('amaos_trh', h, 3600);
+  return { ok: res.getResponseCode() === 200, rows: rows.length };
+}
+function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
 function amaosSyncTab_(tab) {
   const key = PropertiesService.getScriptProperties().getProperty(AMAOS_SYNC.keyProp); if (!key) return { ok: false, error: 'No sync key yet.' };
   const sh = SpreadsheetApp.openById(HOLD.sheetId).getSheetByName(tab); if (!sh) return { ok: false, error: 'No tab called ' + tab + '.' };
