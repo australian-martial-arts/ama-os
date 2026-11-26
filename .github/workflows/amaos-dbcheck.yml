@@ -51,3 +51,6 @@ jobs:
           psql -c "select date_trunc('hour', created) + floor(extract(minute from created)/10)*interval '10 min' h, count(*) filter (where status_code is not null) ok, count(*) filter (where error_msg like 'Timeout%') timeouts from net._http_response where created > now() - interval '2 hours' group by 1 order by 1" || true
           echo "== Mirrored tabs and their columns =="
           psql -c "select source, count(*) n, (select string_agg(k, ' | ' order by k) from (select distinct jsonb_object_keys(m2.data) k from ama_os.mirror m2 where m2.source = m.source) z) cols from ama_os.mirror m group by source order by source" -P format=unaligned -P fieldsep='  ##  ' || true
+          echo "== Preview testers on the hub staff list =="
+          psql -c "select data->>'Name' name, data->>'Active' active, data->>'Role' role, right(regexp_replace(coalesce(data->>'Mobile',''),'\D','','g'),3) mob_end from ama_os.mirror where source='Hub staff' and lower(data->>'Name') ~ '^(mark|tate)'" || true
+          psql -c "select name, role, preview, active, right(regexp_replace(coalesce(phone,''),'\D','','g'),3) phone_end from ama_os.staff where lower(name) ~ '^(mark|tate)'" || true
