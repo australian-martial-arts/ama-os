@@ -184,7 +184,7 @@
     function loadDash() {
       var el = $('tabDash'); el.innerHTML = '<p class="note">Loading…</p>';
       api('amaos-dash', { act: 'dash' }).then(function (j) {
-        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load the dashboard.') + '</p>'; return; }
+        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load the dashboard.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
         var T = j.totals, B = j.by, att = T.trialsLast30 ? Math.round(T.attendedLast30 * 100 / T.trialsLast30) : 0;
         var tiles = [['Active members', T.members], ['New members, last 30 days', T.newMembers], ['Cancellation requests, last 30 days', T.cancels], ['On hold today', T.holdsNow],
           ['Trials, next 7 days', T.trialsNext7], ['Trials attended, last 30 days', T.trialsLast30 ? att + '%' : '–'], ['Not trained in 14+ days', T.quiet14], ['Absentee follow-ups open', j.absenteesOpen]];

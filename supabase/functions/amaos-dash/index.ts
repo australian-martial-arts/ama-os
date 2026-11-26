@@ -47,7 +47,7 @@ async function dash(money: boolean) {
   const today = sydToday(), d30 = addDays(today, -30), d7 = addDays(today, 7);
   const [efc, holds, cx, nm, tb, tf, ab, runs] = await Promise.all([
     src("EFC live"), src("Holds"), src("Cancellations"), src("New members"), src("Hub trial bookings"), src("Trial follow-up"), src("Absentees"),
-    sql`select source, max(synced_at) as at from ama_os.mirror_runs group by source`,
+    sql`select source, max(at) as at from ama_os.mirror_runs group by source`,
   ]);
   const by = () => Object.fromEntries(SCHOOLS.map((s) => [s, 0])) as Record<string, number>;
   const S: Record<string, Record<string, number>> = { members: by(), onHold: by(), newMembers: by(), cancels: by(), trialsNext7: by(), trialsLast30: by(), attendedLast30: by(), quiet14: by() };
