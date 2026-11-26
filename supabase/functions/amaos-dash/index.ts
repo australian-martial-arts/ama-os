@@ -3,10 +3,10 @@
 // Uses the ama_os_app database login only. Reads nothing from EFC, GHL or the Toolkit, and writes only the audit log.
 // EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan, Ridvan and Busra only (Mark's rule).
 import { cors, requireStaff, sql } from "../_shared/amaos.ts";
-import { ghlConnected, trialsFromGhl } from "../_shared/ghl.ts";
+import { ghlConnected, lastMessages, trialsFromGhl } from "../_shared/ghl.ts";
 import { membersSaved, pullSchool, SCHOOLS as EFC_SCHOOLS } from "../_shared/efc.ts";
 import { sha256 } from "../_shared/amaos.ts";
-import { cancelsToAction, holdsToAction, newMemberCalls } from "../_shared/flows.ts";
+import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMemberCalls, replyOpen } from "../_shared/flows.ts";
 
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
@@ -118,7 +118,8 @@ async function dash(money: boolean) {
   const wk7 = addDays(today, -6), d90 = addDays(today, -90);
   // Same rules as the hub's My Day queues (holds to action, cancellations to action in EFC, new member calls).
   const enr = await src("Enrolments");
-  const needs = { holds: holdsToAction(holds).length, cancels: cancelsToAction(cx).length, newmem: newMemberCalls(enr, nm, holds, cx).length, absent: absOpen };
+  const ac = await sql`select data from ama_os.cache where key = 'absent_counts' and at > now() - interval '30 minutes'`, A = ac.length ? ac[0].data as { absreply: number; absent: number } : null;
+  const needs = { holds: holdsToAction(holds).length, cancels: cancelsToAction(cx).length, newmem: newMemberCalls(enr, nm, holds, cx).length, absent: A ? A.absreply + A.absent : null, absreply: A ? A.absreply : null };
   const week = {
     from: wk7, to: today,
     joined: nm.filter((r) => { const d = ymd(r["Start date"], today); return d >= wk7 && d <= today; }).length,
@@ -197,6 +198,17 @@ async function refresh(what: string, school: string) {
     const trials = await trialsFromGhl({ followup: fuRows, bookings: tb, enrolledCids: new Set(enr.map((r) => String(r["Contact ID"] ?? "").trim()).filter(Boolean)) });
     await sql`insert into ama_os.cache (key, data, at) values ('trials_live', ${sql.json({ trials } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
     return { trials: trials.length };
+  }
+  if (what === "absent") {
+    // Hub absentee rules (read-only) + parents' replies read straight from GHL.
+    const rows = (await sql`select key, data from ama_os.mirror where source = 'Absentees'`).sort((a, b) => Number(String(a.key).slice(1)) - Number(String(b.key).slice(1))).map((r) => r.data as Row);
+    const fams = absentFamilies(rows, await src("Holds"), await src("Cancellations"));
+    const want = fams.filter(needsReplyCheck), last = await ghlConnected() ? await lastMessages([...new Set(want.map((f) => f.e164))]) : {};
+    let absreply = 0, absent = 0;
+    for (const f of fams) { const open = needsReplyCheck(f) && replyOpen(f, last[f.e164] ?? null);
+      if (open) absreply++; else if ((f.group === "office" || f.group === "check") && f.days >= 7 && f.days <= 21) absent++; }
+    await sql`insert into ama_os.cache (key, data, at) values ('absent_counts', ${sql.json({ absreply, absent, families: fams.length } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+    return { absreply, absent, families: fams.length, checked: want.length };
   }
   if (what === "dash") {
     const t0 = Date.now(), ms: number[] = [];

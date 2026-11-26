@@ -117,3 +117,38 @@ export async function trialsFromGhl(rec: { followup: Record<string, unknown>[]; 
       status: rec.enrolledCids.has(String(r["Contact ID"] ?? "")) ? "Enrolled" : "Rec sent", walkin: true } as never); });
   return trials.sort((a, b) => a.t - b.t);
 }
+
+/** Last message in each family's GHL conversation (for absentee replies), the same calls as the hub's absReplies_.
+ *  Contact ids cached 7 days, "not in GHL" 6 hours, last message 10 minutes, grading check 6 hours. */
+export async function lastMessages(e164s: string[]) {
+  const out: Record<string, { dir: string; t: string; ms: number; grading: boolean } | null> = {};
+  const GRADE = /\bgrad(e|es|ed|ing)\b|\bbelt\b|invitation to grade|book (their|your) spot/i;
+  const norm = (p: string) => { const d = String(p || "").replace(/\D/g, ""); return d.length >= 9 ? "+61" + d.slice(-9) : ""; };
+  await pool(e164s, 5, async (e) => {
+    try {
+      const c = await cached("ghl_cid_" + e, 7 * 86400, async () => {
+        const r = await ghl("/contacts/", { locationId: LOCATION, query: e }); const k = ((r.contacts ?? []) as { id: string; phone?: string }[]).find((x) => norm(x.phone ?? "") === e);
+        return { id: k?.id ?? "" };
+      });
+      if (!c.id) { out[e] = null; return; }
+      const h = await cached("ghl_last_" + c.id, 600, async () => {
+        const r = await ghl("/conversations/search", { locationId: LOCATION, contactId: c.id }); const cv = (r.conversations ?? [])[0] ?? {};
+        const raw = cv.lastMessageDate, ms = raw ? (isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw)) : 0;
+        return { conv: String(cv.id ?? ""), dir: String(cv.lastMessageDirection ?? ""), t: String(cv.lastMessageBody ?? "").replace(/\s+/g, " ").replace(/\s*(On (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*|-+\s*Original Message.*|From: .*)$/i, "").trim().slice(0, 300), ms: ms || 0 };
+      });
+      let grading = false;
+      if (h.dir === "inbound" && h.t && h.ms) {
+        if (GRADE.test(h.t)) grading = true;
+        else if (h.conv) grading = (await cached("ghl_grade_" + h.conv + "_" + h.ms, 6 * 3600, async () => {
+          const r = await ghl("/conversations/" + h.conv + "/messages", { limit: 15 }); const box = r.messages; const list = (box?.messages ?? (Array.isArray(box) ? box : [])) as { direction?: string; messageType?: string; type?: string; body?: string; dateAdded?: string; dateUpdated?: string }[];
+          let prev: { t: number; body: string } | null = null;
+          for (const m of list) { const t = new Date(m.dateAdded || m.dateUpdated || 0).getTime();
+            if (String(m.direction) === "outbound" && !/EMAIL/i.test(String(m.messageType || m.type || "")) && t && t < h.ms && (!prev || t > prev.t)) prev = { t, body: String(m.body || "") }; }
+          return { g: !!(prev && GRADE.test(prev.body)) };
+        })).g;
+      }
+      out[e] = { dir: h.dir, t: h.t, ms: h.ms, grading };
+    } catch { out[e] = null; }
+  });
+  return out;
+}
