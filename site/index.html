@@ -1348,7 +1348,7 @@
     function hubAct(body, fresh) { return api('amaos-dash', { act: 'hub', body: body, fresh: !!fresh }); }
     /* Read screens show the last saved copy at once, then quietly fetch the latest from the hub and redraw if anything changed. */
     function hubRead(body, view, cb) {
-      return hubAct(body).then(function (j) { cb(j);
+      return hubAct(body).catch(function () { return { ok: false, error: 'Could not reach AMA OS. Check your connection and try again.' }; }).then(function (j) { cb(j);
         if (j && j.cachedAt) hubAct(body, true).then(function (j2) { if (CUR !== view || !j2 || !j2.ok) return; var a = Object.assign({}, j); delete a.cachedAt; if (JSON.stringify(a) !== JSON.stringify(j2)) cb(j2); }).catch(function () {}); });
     }
     function loadAppr() {
