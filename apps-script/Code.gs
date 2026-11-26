@@ -1,7 +1,7 @@
 // 26 Nov 2026: outside-call counter. Google caps the hub's outside calls per day; this records which function makes them.
 // Run ufReport in the editor (or hub act 'ufreport') to see today's counts by function and hour.
 var UF_ = {
-  tag_: function () { try { const st = String(new Error().stack || '').split('\n'), out = []; for (let i = 3; i < st.length && out.length < 2; i++) { const m = st[i].match(/at (\S+) \(/); if (m && !/^UF_|^Object\./.test(m[1])) out.push(m[1]); } return out.join('<') || 'top'; } catch (e) { return '?'; } },
+  tag_: function () { try { const st = String(new Error().stack || '').split('\n'), out = []; for (let i = 3; i < st.length && out.length < 3; i++) { const m = st[i].match(/at (\S+) \(/); if (m && !/^UF_|^Object\.|^Array\.|anonymous/.test(m[1])) out.push(m[1]); } /* 27 Nov 2026: skip forEach/anonymous frames and keep 3 names, so the real caller shows */ return out.join('<') || 'top'; } catch (e) { return '?'; } },
   add_: function (n) { try { const C = CacheService.getScriptCache(), d = Utilities.formatDate(new Date(), 'Australia/Sydney', 'yyyyMMdd'), h = Utilities.formatDate(new Date(), 'Australia/Sydney', 'HH'), t = UF_.tag_();
     const k = 'uf_' + d + '_' + h + '_' + t, ik = 'ufi_' + d, idx = C.get(ik) || ''; if (idx.indexOf('|' + h + '_' + t + '|') < 0) C.put(ik, (idx || '|') + h + '_' + t + '|', 21600);
     C.put(k, String((+C.get(k) || 0) + n), 21600); } catch (e) { } },
