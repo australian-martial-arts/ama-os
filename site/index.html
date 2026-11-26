@@ -508,7 +508,7 @@
         var past = t.t < now, num = t.num ? '<span class="tnum' + (/^1st|^Trial 1/.test(t.num) ? ' first' : '') + '">' + esc(t.num) + '</span>' : '';
         var pill = t.src === 'online' && !past ? '<span class="tpill">Online, to confirm</span>' : t.src === 'confirmed' ? '<span class="tpill">Confirmed</span>' : '';
         if (t.promo) pill += '<span class="tpill">Promotion</span>';
-        var canChk = DJ.me && DJ.me.check && past && !t.walkin && String(t.id).charAt(0) !== 'W';
+        var canChk = DJ.me && DJ.me.check && past && !t.walkin && !t.promo && String(t.id).charAt(0) !== 'W'; // the hub's after-trial check has no promotion families
         h += '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.who) + num + pill + '</b><span>' + esc(t.cls) + ' · ' + esc(t.loc) + '</span></div>' +
           '<div class="tright">' + (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') +
           (canChk ? '<button type="button" class="chip tchk" data-chk="' + esc(t.id) + '">' + (t.att ? 'Edit check' : 'Check') + '</button>' : '') + '</div></div>' +
