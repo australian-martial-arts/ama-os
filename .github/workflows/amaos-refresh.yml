@@ -1,0 +1,36 @@
+# AMA OS scheduled refresh: does the slow reads (EFC members, GHL trials) and builds the home page,
+# so AMA OS screens only read saved results and open instantly. Uses the refresh key stored in the
+# database (read with the ama_os_app login); the key is masked and never printed.
+name: AMA OS refresh
+on:
+  schedule: [{ cron: '*/5 * * * *' }]
+  workflow_dispatch:
+concurrency: { group: amaos-refresh, cancel-in-progress: false }
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PGHOST: ${{ vars.SUPABASE_DB_HOST || 'aws-0-ap-southeast-2.pooler.supabase.com' }}
+      PGPORT: '5432'
+      PGDATABASE: postgres
+      PGUSER: ama_os_app.ptdrcxngaptcgswfbjhg
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGSSLMODE: require
+      URL: https://ptdrcxngaptcgswfbjhg.supabase.co/functions/v1/amaos-dash
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: amaos, sparse-checkout: site/config.js }
+      - run: sudo apt-get install -y -qq postgresql-client >/dev/null
+      - name: Refresh
+        run: |
+          KEY=$(psql -tA -c "select value from ama_os.connections where name = 'REFRESH_KEY'")
+          echo "::add-mask::$KEY"
+          ANON=$(grep -o "eyJ[^']*" site/config.js)
+          call() { curl -s -m 140 -X POST "$URL" -H "apikey: $ANON" -H "Authorization: Bearer $ANON" -H "content-type: application/json" -H "x-amaos-refresh: $KEY" -d "$1"; echo; }
+          M=$(date -u +%M)
+          if [ $((10#$M % 10)) -lt 5 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            for s in Marrickville Concord Sydenham Auburn Sylvania; do call "{\"what\":\"efc\",\"school\":\"$s\"}"; done
+          fi
+          call '{"what":"trials"}'
+          call '{"what":"dash"}'

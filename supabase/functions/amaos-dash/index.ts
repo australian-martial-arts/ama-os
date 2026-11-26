@@ -4,7 +4,8 @@
 // EFC money (next invoice amounts, overdue amounts) is shown to Mark, Sarah, Hakan, Ridvan and Busra only (Mark's rule).
 import { cors, requireStaff, sql } from "../_shared/amaos.ts";
 import { ghlConnected, trialsFromGhl } from "../_shared/ghl.ts";
-import { efcConnected, membersLive } from "../_shared/efc.ts";
+import { membersSaved, pullSchool, SCHOOLS as EFC_SCHOOLS } from "../_shared/efc.ts";
+import { sha256 } from "../_shared/amaos.ts";
 
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
@@ -47,14 +48,12 @@ async function src(name: string): Promise<Row[]> {
 
 // 26 Nov 2026 (Mark): members straight from EFC with AMA OS's own keys; the hub's nightly copy is only the fallback.
 async function members(): Promise<{ rows: Row[]; live: boolean; at: string }> {
-  if (await efcConnected()) {
-    try {
-      const today = sydToday(), hold: Record<string, string> = {};
-      (await src("Holds")).forEach((r) => { const a = ymd(r["Freeze starts"], today), b = ymd(r["Freeze ends"], today);
-        if (a && b && a <= today && today <= b && !/reject|declin|cancel|withdr/i.test(String(r["Status"] ?? ""))) hold[last9(r["Mobile"])] = "On hold until " + b; });
-      const r = await membersLive(hold); return { rows: r.rows as Row[], live: true, at: r.at };
-    } catch (e) { console.log("efc members: " + (e as Error).message); }
-  }
+  try {
+    const today = sydToday(), hold: Record<string, string> = {};
+    (await src("Holds")).forEach((r) => { const a = ymd(r["Freeze starts"], today), b = ymd(r["Freeze ends"], today);
+      if (a && b && a <= today && today <= b && !/reject|declin|cancel|withdr/i.test(String(r["Status"] ?? ""))) hold[last9(r["Mobile"])] = "On hold until " + b; });
+    const r = await membersSaved(hold); if (r) return { rows: r.rows as Row[], live: true, at: r.at };
+  } catch (e) { console.log("efc members: " + (e as Error).message); }
   return { rows: await src("EFC live"), live: false, at: "" };
 }
 
@@ -85,11 +84,9 @@ async function dash(money: boolean) {
   // GHL trials (sent by the hub every 10 minutes, the same list as the hub's Trials card). When present, they set the 7-day count.
   // 26 Nov 2026 (Mark): straight from GHL with AMA OS's own key; the hub's copy is only the fallback.
   let trials: Row[] = [], trialsLive = false;
-  if (await ghlConnected()) {
-    try { const [fuRows, enr] = await Promise.all([src("Trial follow-up"), src("Enrolments")]);
-      trials = await trialsFromGhl({ followup: fuRows, bookings: tb, enrolledCids: new Set(enr.map((r) => String(r["Contact ID"] ?? "").trim()).filter(Boolean)) }) as unknown as Row[]; trialsLive = true;
-    } catch (e) { console.log("ghl trials: " + (e as Error).message); }
-  }
+  let trialsSavedAt = "";
+  { const t = await sql`select data, at from ama_os.cache where key = 'trials_live'`;
+    if (t.length && Date.now() - new Date(t[0].at as string).getTime() < 30 * 60000) { trials = (t[0].data as { trials: Row[] }).trials; trialsLive = true; trialsSavedAt = new Date(t[0].at as string).toISOString(); } }
   if (!trialsLive) trials = gt.filter((t) => typeof t.t === "number").sort((a, b) => (a.t as number) - (b.t as number));
   if (trials.length) {
     const off = (new Intl.DateTimeFormat("en-US", { timeZone: "Australia/Sydney", timeZoneName: "shortOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "GMT+11").replace("GMT", "") || "+11";
@@ -137,7 +134,7 @@ async function dash(money: boolean) {
   cx.forEach((r) => { const d = ymd(r["Logged at"], today); const i = d ? wkOf(d) : -1; if (i > -1) weeks[i].left++; });
   const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : "");
   const at = runs.filter((r) => r.source !== "GHL trials").reduce((m: string, r) => { const t = iso(r.at); return t > m ? t : m; }, "");
-  const trialsAt = trialsLive ? new Date().toISOString() : iso((runs.find((r) => r.source === "GHL trials") || {}).at);
+  const trialsAt = trialsLive ? trialsSavedAt : iso((runs.find((r) => r.source === "GHL trials") || {}).at);
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
@@ -189,11 +186,42 @@ async function find(q: string, money: boolean) {
   return { today, families, more: fams.size > list.length, membersLive: mem.live, membersAt: mem.at };
 }
 
+/* Scheduled refresh (GitHub Actions every 5 minutes, key read from the database): does all the slow work so screens open instantly.
+   what: "efc" (one school), "trials" (GHL), "dash" (both home page versions). */
+async function refresh(what: string, school: string) {
+  if (what === "efc") return await pullSchool(EFC_SCHOOLS.includes(school) ? school : "Marrickville");
+  if (what === "trials") {
+    if (!(await ghlConnected())) return { skipped: true };
+    const [fuRows, enr, tb] = await Promise.all([src("Trial follow-up"), src("Enrolments"), src("Hub trial bookings")]);
+    const trials = await trialsFromGhl({ followup: fuRows, bookings: tb, enrolledCids: new Set(enr.map((r) => String(r["Contact ID"] ?? "").trim()).filter(Boolean)) });
+    await sql`insert into ama_os.cache (key, data, at) values ('trials_live', ${sql.json({ trials } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+    return { trials: trials.length };
+  }
+  if (what === "dash") {
+    for (const m of [true, false]) { const d = await dash(m);
+      await sql`insert into ama_os.cache (key, data, at) values (${m ? "dash_m" : "dash_n"}, ${sql.json(d as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`; }
+    return { dash: true };
+  }
+  return { error: "unknown" };
+}
+async function dashFast(money: boolean) {
+  const t = await sql`select data, at from ama_os.cache where key = ${money ? "dash_m" : "dash_n"}`;
+  if (t.length && Date.now() - new Date(t[0].at as string).getTime() < 20 * 60000) return { ...(t[0].data as Record<string, unknown>), builtAt: new Date(t[0].at as string).toISOString() };
+  return await dash(money);
+}
+
 Deno.serve(async (req) => {
   const c = cors(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: c.headers });
   const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...c.headers, "content-type": "application/json" } });
   try {
+    const rk = req.headers.get("x-amaos-refresh");
+    if (rk) {
+      const want = await sql`select value from ama_os.connections where name = 'REFRESH_KEY'`;
+      if (!want.length || (await sha256(rk)) !== (await sha256(String(want[0].value)))) return json({ ok: false, error: "Not allowed." }, 401);
+      const rb = await req.json().catch(() => ({})) as { what?: string; school?: string };
+      return json({ ok: true, ...(await refresh(String(rb.what ?? ""), String(rb.school ?? ""))) });
+    }
     const g = await requireStaff(req);
     if (!g.staff) return json({ ok: false, error: g.error }, g.status ?? 403);
     const me = g.staff, money = MONEY.includes(me.first);
@@ -205,7 +233,7 @@ Deno.serve(async (req) => {
       await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, 'lookup', ${sql.json({ q })})`;
       return json({ ok: true, ...(await find(q, money)) });
     }
-    return json({ ok: true, me: { name: me.name, role: me.role }, ...(await dash(money)) });
+    return json({ ok: true, me: { name: me.name, role: me.role }, ...(await dashFast(money)) });
   } catch (e) {
     return json({ ok: false, error: "Something went wrong. Please try again.", detail: String((e as Error).message ?? e).slice(0, 200) }, 500);
   }

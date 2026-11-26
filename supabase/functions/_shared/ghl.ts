@@ -21,25 +21,6 @@ async function ghl(path: string, q: Record<string, string | number> = {}) {
   if (!r.ok) throw new Error("GHL " + path + " " + r.status);
   return await r.json();
 }
-/** Returns the last saved copy straight away (or null if there is none yet) and, when it is older than secs,
- *  refreshes it in the background (one refresh at a time). For slow reads like every EFC member. */
-export async function cachedBg<T>(key: string, secs: number, fn: () => Promise<T>): Promise<{ data: T | null; at: string }> {
-  const hit = await sql`select data, at from ama_os.cache where key = ${key}`;
-  const age = hit.length ? Date.now() - new Date(hit[0].at as string).getTime() : Infinity;
-  if (age > secs * 1000) {
-    const lock = await sql`insert into ama_os.cache (key, data, at) values (${"lock:" + key}, '{}'::jsonb, now())
-      on conflict (key) do update set at = now() where ama_os.cache.at < now() - interval '5 minutes' returning key`;
-    if (lock.length) {
-      const job = (async () => { try { const data = await fn();
-          await sql`insert into ama_os.cache (key, data, at) values (${key}, ${sql.json(data as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
-        } catch (e) { console.log("refresh " + key + ": " + (e as Error).message); }
-        finally { await sql`delete from ama_os.cache where key = ${"lock:" + key}`; } })();
-      // deno-lint-ignore no-explicit-any
-      const er = (globalThis as any).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); else await job;
-    }
-  }
-  return { data: hit.length ? hit[0].data as T : null, at: hit.length ? new Date(hit[0].at as string).toISOString() : "" };
-}
 export async function cached<T>(key: string, secs: number, fn: () => Promise<T>): Promise<T> {
   const hit = await sql`select data, at from ama_os.cache where key = ${key}`;
   if (hit.length && Date.now() - new Date(hit[0].at as string).getTime() < secs * 1000) return hit[0].data as T;

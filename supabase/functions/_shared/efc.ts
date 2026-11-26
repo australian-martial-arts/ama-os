@@ -1,6 +1,8 @@
 // AMA OS reads EFC directly (its own keys from ama_os.connections), the same way the hub's "EFC live" pull does.
+// The slow pull runs on a schedule (amaos-dash act "refresh", one school at a time) and is saved in ama_os.cache;
+// screens only ever read the saved copy, so they open instantly.
 import { sql } from "./amaos.ts";
-import { cached, cachedBg } from "./ghl.ts";
+import { cached } from "./ghl.ts";
 
 export const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
 const BASES = ["https://api.efcaquila.com", "https://api.efcaquila.net"];
@@ -23,53 +25,48 @@ export async function efcGet(school: string, path: string): Promise<{ code: numb
   return { code: last, body: null };
 }
 export async function efcLoc(school: string) {
-  return await cached("efc_loc_" + school, 86400, async () => {
+  return (await cached("efc_loc_" + school, 86400, async () => {
     const r = await efcGet(school, "/version/1/identity"); const l = (r.body as { locations?: { id?: string; locationId?: string }[] })?.locations?.[0];
+    if (!l) throw new Error(school + ": EFC identity " + r.code);
     return { id: String(l?.id ?? l?.locationId ?? "") };
-  }).then((x) => x.id);
+  })).id;
 }
-const ymdNow = () => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
 const last9 = (v: unknown) => String(v ?? "").replace(/\D/g, "").slice(-9);
-
 type M = Record<string, unknown> & { id: string; groups?: { name: string }[] };
-async function enrolled(school: string) {
-  const loc = await efcLoc(school); if (!loc) throw new Error(school + ": could not find the EFC location");
-  let all: M[] = [], cur = "", n = 0;
+
+/** Scheduled: every enrolled member of one school, saved as "efc_school_<School>". */
+export async function pullSchool(school: string) {
+  if (!(await key(school))) return { school, skipped: true };
+  const loc = await efcLoc(school); let all: M[] = [], cur = "", n = 0;
   do {
     const r = await efcGet(school, `/version/1/locations/${loc}/members/query?status=enrolled&pageSize=200` + (cur ? "&cursor=" + encodeURIComponent(cur) : ""));
     if (r.code !== 200 || !r.body) throw new Error(school + ": EFC answered " + r.code);
     const b = r.body as { records?: M[]; nextCursor?: string }; all = all.concat(b.records ?? []); cur = b.nextCursor ?? ""; n++;
   } while (cur && n < 40);
-  return all;
+  const rows = all.map((m) => ({ "School": school, "Member ID": m.id, "Reference": m.reference ?? "", "Student": [m.firstName, m.lastName].filter(Boolean).join(" ").trim(), "Age": m.age ?? "",
+    "Parent": [m.contactFirstName, m.contactLastName].filter(Boolean).join(" ").trim(), "Mobile": m.telephoneMobile ?? "", "Email": m.email ?? "",
+    "Groups": (m.groups ?? []).map((g) => g.name).join(", "), "Last attended": m.lastAttended ? String(m.lastAttended).slice(0, 10) : "", "Classes this month": m.monthlyAttended ?? "", "Total classes": m.totalAttended ?? "",
+    "Next invoice": m.nextInvoiceDate ? String(m.nextInvoiceDate).slice(0, 10) : "", "Next amount": m.nextInvoiceAmount ?? "", "Overdue": Number(m.overdueBalance) || 0,
+    "Enrolled on": m.enrolledOn ? String(m.enrolledOn).slice(0, 10) : "" }));
+  const at = new Date().toISOString();
+  await sql`insert into ama_os.cache (key, data, at) values (${"efc_school_" + school}, ${sql.json({ at, rows } as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
+  return { school, members: rows.length };
 }
 
-/** Every enrolled member at every school, in the same shape (and with the same flags) as the hub's "EFC live" tab. Cached 10 minutes.
- *  holdByMobile: families on hold now (last 9 digits of the mobile -> text), from AMA OS's hold records. */
-export async function membersLive(holdByMobile: Record<string, string>) {
-  const r = await cachedBg("efc_members_v1", 600, async () => {
-    const today = ymdNow(), t0 = new Date(today + "T12:00:00Z").getTime(), at = new Date().toISOString(), out: Record<string, unknown>[] = [], errors: string[] = [];
-    await Promise.all(SCHOOLS.map(async (s) => {
-      if (!(await key(s))) return;
-      let rows: M[]; try { rows = await enrolled(s); } catch (e) { errors.push(String((e as Error).message)); return; }
-      for (const m of rows) {
-        const la = m.lastAttended ? String(m.lastAttended).slice(0, 10) : "", days = la ? Math.round((t0 - new Date(la + "T12:00:00Z").getTime()) / 864e5) : "";
-        const bill = !!m.nextInvoiceDate, hold = holdByMobile[last9(m.telephoneMobile)] ?? "", flags: string[] = [];
-        if (!bill && (days === "" || (days as number) > 60) && !hold) flags.push("Possible ghost");
-        if (bill && days !== "" && (days as number) > 30 && !hold) flags.push("Billing, not training");
-        if (Number(m.overdueBalance) > 0) flags.push("Overdue");
-        out.push({ "School": s, "Member ID": m.id, "Reference": m.reference ?? "", "Student": [m.firstName, m.lastName].filter(Boolean).join(" ").trim(), "Age": m.age ?? "",
-          "Parent": [m.contactFirstName, m.contactLastName].filter(Boolean).join(" ").trim(), "Mobile": m.telephoneMobile ?? "", "Email": m.email ?? "",
-          "Groups": (m.groups ?? []).map((g) => g.name).join(", "), "Last attended": la, "Days since": days, "Classes this month": m.monthlyAttended ?? "", "Total classes": m.totalAttended ?? "",
-          "Next invoice": m.nextInvoiceDate ? String(m.nextInvoiceDate).slice(0, 10) : "", "Next amount": m.nextInvoiceAmount ?? "", "Overdue": Number(m.overdueBalance) || 0,
-          "Enrolled on": m.enrolledOn ? String(m.enrolledOn).slice(0, 10) : "", "Hub hold": hold, "Flags": flags.join(", "), "Pulled at": at });
-      }
-    }));
-    if (!out.length && errors.length) throw new Error(errors.join("; "));
-    return { at, rows: out, errors };
+/** Every saved school, with days since, hold labels (from AMA OS's hold records) and the hub's three flags. null if nothing saved yet. */
+export async function membersSaved(holdByMobile: Record<string, string>) {
+  const hit = await sql`select key, data from ama_os.cache where key like 'efc_school_%'`;
+  if (!hit.length) return null;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date()), t0 = new Date(today + "T12:00:00Z").getTime();
+  let oldest = "", rows: Record<string, unknown>[] = [];
+  for (const h of hit) { const d = h.data as { at: string; rows: Record<string, unknown>[] }; if (!oldest || d.at < oldest) oldest = d.at; rows = rows.concat(d.rows); }
+  rows.forEach((m) => {
+    const la = String(m["Last attended"] ?? ""), days = la ? Math.round((t0 - new Date(la + "T12:00:00Z").getTime()) / 864e5) : "";
+    const bill = !!m["Next invoice"], hold = holdByMobile[last9(m["Mobile"])] ?? "", flags: string[] = [];
+    if (!bill && (days === "" || (days as number) > 60) && !hold) flags.push("Possible ghost");
+    if (bill && days !== "" && (days as number) > 30 && !hold) flags.push("Billing, not training");
+    if (Number(m["Overdue"]) > 0) flags.push("Overdue");
+    m["Days since"] = days; m["Hub hold"] = hold; m["Flags"] = flags.join(", ");
   });
-  if (!r.data) throw new Error("first EFC pull still running");
-  // Hold labels come from AMA OS's records, so refresh them on every read (they change more often than EFC).
-  const last9h = (v: unknown) => String(v ?? "").replace(/\D/g, "").slice(-9);
-  r.data.rows.forEach((m) => { m["Hub hold"] = holdByMobile[last9h(m["Mobile"])] ?? ""; });
-  return r.data;
+  return { at: oldest, rows };
 }
