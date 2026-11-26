@@ -27,8 +27,8 @@ jobs:
             psql -c "select key, at, data from ama_os.cache where key = 'timer_beat'"
           fi
           echo "== AMA OS vs hub trials (same event id, different number or status) =="
-          psql -c "with a as (select x->>'id' id, x->>'num' num, x->>'status' st, x->>'who' who, x->>'day' dy from ama_os.cache c, jsonb_array_elements(c.data->'trials') x where c.key='trials_live'),
-            h as (select coalesce(m.data->>'id', m.data->>'Event ID') id, m.data->>'num' num, m.data->>'status' st from ama_os.mirror m where m.source='GHL trials')
+          psql -c "with a as (select case when x->>'id' like 'W%' then 'W:'||(x->>'who')||(x->>'day') else x->>'id' end id, x->>'num' num, x->>'status' st, x->>'who' who, x->>'day' dy from ama_os.cache c, jsonb_array_elements(c.data->'trials') x where c.key='trials_live'),
+            h as (select coalesce(m.data->>'id', 'W:'||(m.data->>'who')||(m.data->>'day')) id, m.data->>'num' num, m.data->>'status' st from ama_os.mirror m where m.source='GHL trials')
             select a.dy, a.who, a.id, a.num os_num, h.num hub_num, a.st os_status, h.st hub_status from a full join h using (id)
             where a.num is distinct from h.num or a.st is distinct from h.st order by 1" || true
           psql -c "select (select count(*) from ama_os.mirror where source='GHL trials') hub_trials, (select jsonb_array_length(data->'trials') from ama_os.cache where key='trials_live') os_trials, (select max(at) from ama_os.mirror_runs where source='GHL trials') hub_sent" || true
