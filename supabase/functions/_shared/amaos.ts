@@ -2,7 +2,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import postgres from "npm:postgres@3.4.4";
 
-export const sql = postgres(Deno.env.get("AMA_OS_DB_URL") ?? "", { max: 1, prepare: false });
+export const sql = postgres(Deno.env.get("AMA_OS_DB_URL") ?? "", { max: 3, prepare: false, idle_timeout: 20, connect_timeout: 10 });
 const ALLOWED = [/^https:\/\/ama-os\.train-ama\.com$/, /^https:\/\/([a-z0-9-]+\.)?ama-os\.pages\.dev$/];
 
 export function cors(origin: string | null) {
