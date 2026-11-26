@@ -45,8 +45,8 @@ async function src(name: string): Promise<Row[]> {
 
 async function dash(money: boolean) {
   const today = sydToday(), d30 = addDays(today, -30), d7 = addDays(today, 7);
-  const [efc, holds, cx, nm, tb, tf, ab, runs] = await Promise.all([
-    src("EFC live"), src("Holds"), src("Cancellations"), src("New members"), src("Hub trial bookings"), src("Trial follow-up"), src("Absentees"),
+  const [gt, efc, holds, cx, nm, tb, tf, ab, runs] = await Promise.all([
+    src("GHL trials"), src("EFC live"), src("Holds"), src("Cancellations"), src("New members"), src("Hub trial bookings"), src("Trial follow-up"), src("Absentees"),
     sql`select source, max(at) as at from ama_os.mirror_runs group by source`,
   ]);
   const by = () => Object.fromEntries(SCHOOLS.map((s) => [s, 0])) as Record<string, number>;
@@ -66,6 +66,14 @@ async function dash(money: boolean) {
     const d = ymd(r["Trial"], today); const s = school(r["School"]);
     if (s && d >= today && d <= d7) { S.trialsNext7[s]++; upcoming.push({ date: d, when: r["Trial"], school: s, child: r["Child"], cls: r["Class"] }); }
   }
+  // GHL trials (sent by the hub every 10 minutes, the same list as the hub's Trials card). When present, they set the 7-day count.
+  const trials = gt.filter((t) => typeof t.t === "number").sort((a, b) => (a.t as number) - (b.t as number));
+  if (trials.length) {
+    const off = (new Intl.DateTimeFormat("en-US", { timeZone: "Australia/Sydney", timeZoneName: "shortOffset" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value ?? "GMT+11").replace("GMT", "") || "+11";
+    const sod = new Date(today + "T00:00:00" + (off.includes(":") ? off : off.replace(/^([+-])(\d+)$/, (_m, g, h) => g + h.padStart(2, "0") + ":00"))).getTime(), end = sod + 8 * 864e5;
+    S.trialsNext7 = by();
+    trials.forEach((t) => { const s = school(t.loc); if (s && !t.walkin && (t.t as number) >= sod && (t.t as number) < end) S.trialsNext7[s]++; });
+  }
   for (const r of tf) {
     const d = ymd(r["Trial date"], today); const s = school(r["Location"]);
     if (s && d >= d30 && d < today) { S.trialsLast30[s]++; if (/^(y|yes|true|attended|came)/i.test(String(r["Attended"] ?? ""))) S.attendedLast30[s]++; }
@@ -81,11 +89,13 @@ async function dash(money: boolean) {
   const wkOf = (d: string) => { for (let i = weeks.length - 1; i >= 0; i--) if (d >= weeks[i].wk) return i; return -1; };
   nm.forEach((r) => { const d = ymd(r["Start date"], today); const i = d && d <= today ? wkOf(d) : -1; if (i > -1) weeks[i].joined++; });
   cx.forEach((r) => { const d = ymd(r["Logged at"], today); const i = d ? wkOf(d) : -1; if (i > -1) weeks[i].left++; });
-  const at = runs.reduce((m: string, r) => { const t = r.at ? new Date(r.at as string).toISOString() : ""; return t > m ? t : m; }, "");
+  const iso = (v: unknown) => (v ? new Date(v as string).toISOString() : "");
+  const at = runs.filter((r) => r.source !== "GHL trials").reduce((m: string, r) => { const t = iso(r.at); return t > m ? t : m; }, "");
+  const trialsAt = iso((runs.find((r) => r.source === "GHL trials") || {}).at);
   return {
     today, syncedAt: at, schools: SCHOOLS, by: { ...S, holdsNow: hBy },
     totals: Object.fromEntries(Object.entries({ ...S, holdsNow: hBy }).map(([k, v]) => [k, Object.values(v).reduce((a, b) => a + b, 0)])),
-    absenteesOpen: absOpen, weeks,
+    absenteesOpen: absOpen, weeks, trials, trialsAt,
     upcoming: upcoming.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 60),
     money: money ? { overdueFamilies: overdue, overdueTotal: Math.round(overdueAmt), nextInvoicesTotal: Math.round(nextAmt) } : null,
   };

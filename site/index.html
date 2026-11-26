@@ -58,7 +58,21 @@
     .pill { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: #3a2f10; color: var(--accent); }
     .pill.bad { background: #3b1d19; color: var(--err); }
     .hist { font-size: 13px; color: var(--ink-2); margin-top: 6px; } .hist b { color: var(--ink); font-weight: 600; }
-    @media (max-width: 560px) { .tile .n { font-size: 24px; } }
+    /* Trials card: same layout as the hub's Trials card */
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+    .chip[aria-pressed="true"] { background: var(--accent); color: #1a120d; border-color: var(--accent); }
+    .trials { margin: 6px -14px -14px; } .tsum { color: var(--ink-2); font-size: 13px; margin: 2px 0 8px; }
+    .tday { padding: 10px 14px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; color: var(--accent); background: rgba(245,197,24,.05); border-bottom: 1px solid var(--line); }
+    .trial { display: grid; grid-template-columns: 74px 1fr auto; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+    .trial .t { color: var(--ink-3); font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-weight: 700; } .trial .w > span { display: block; color: var(--ink-3); font-size: 12px; margin-top: 1px; }
+    .st { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 4px 10px; white-space: nowrap; border: 1px solid var(--line); color: var(--ink-3); }
+    .st.en { background: #1B7A3D; border-color: #1B7A3D; color: #fff; } .st.rec { border-color: var(--accent); color: var(--accent); } .st.att { color: var(--ink); } .st.abs { border-color: var(--err); color: var(--err); }
+    .tnum { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 800; color: var(--accent); border: 1px solid rgba(245,197,24,.45); border-radius: 999px; padding: 1px 7px; vertical-align: 2px; white-space: nowrap; }
+    .tnum.first { color: var(--ink-3); border-color: var(--line); }
+    .tpill { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; border: 1px solid var(--line); color: var(--ink-2); vertical-align: 2px; }
+    .tempty { padding: 14px; color: var(--ink-3); }
+    @media (max-width: 560px) { .tile .n { font-size: 24px; } .trial { grid-template-columns: 62px 1fr; } .trial > :last-child { grid-column: 2; justify-self: start; } }
   </style>
 </head>
 <body>
@@ -191,16 +205,42 @@
         if (j.money) tiles.push(['Next EFC invoices', '$' + fmtN(j.money.nextInvoicesTotal)], ['Families overdue', fmtN(j.money.overdueFamilies) + ' · $' + fmtN(j.money.overdueTotal)]);
         var h = '<p class="note">From the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '. Read-only; the hub is still the master.</p><div class="tiles">' +
           tiles.map(function (t) { return '<div class="tile"><div class="n">' + (typeof t[1] === 'number' ? fmtN(t[1]) : esc(t[1])) + '</div><div class="l">' + esc(t[0]) + '</div></div>'; }).join('') + '</div>';
+        h += '<div class="box" id="osTrialsBox"></div>';
         var cols = [['members', 'Members'], ['newMembers', 'New (30d)'], ['cancels', 'Cancel req. (30d)'], ['holdsNow', 'On hold'], ['trialsNext7', 'Trials next 7d'], ['trialsLast30', 'Trials (30d)'], ['attendedLast30', 'Attended'], ['quiet14', '14+ days away']];
         h += '<div class="box"><h3>By school</h3><table class="t"><tr><th>School</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' +
           j.schools.map(function (s) { return '<tr><td>' + esc(s) + '</td>' + cols.map(function (c) { return '<td>' + fmtN(B[c[0]][s]) + '</td>'; }).join('') + '</tr>'; }).join('') +
           '<tr class="tot"><td>All schools</td>' + cols.map(function (c) { return '<td>' + fmtN(T[c[0]]) + '</td>'; }).join('') + '</tr></table></div>';
         h += '<div class="box"><h3>Joined vs cancellation requests, last 12 weeks</h3><div class="legend"><span><i style="background:var(--ok)"></i>Joined</span><span><i style="background:var(--err)"></i>Cancellation requests</span></div>' + bars(j.weeks) + '</div>';
-        var up = j.upcoming || [];
-        h += '<div class="box"><h3>Trials in the next 7 days (' + up.length + ')</h3>' + (up.length ? '<table class="t"><tr><th>Day</th><th style="text-align:left">Child</th><th style="text-align:left">School</th><th style="text-align:left">Class</th></tr>' +
-          up.map(function (u) { return '<tr><td>' + esc(nice(u.date)) + '</td><td style="text-align:left">' + esc(u.child) + '</td><td style="text-align:left">' + esc(u.school) + '</td><td style="text-align:left">' + esc(u.cls) + '</td></tr>'; }).join('') + '</table>' : '<p class="note">None booked in the copy.</p>') + '</div>';
-        el.innerHTML = h;
+        el.innerHTML = h; DJ = j; renderTrials();
       }).catch(function () { el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    var DJ = null, trialMode = 'today', trialLoc = 'All', ST = { 'Rebooked': 'rec', 'Enrolled': 'en', 'Rec sent': 'rec', 'Attended': 'att', 'Absent': 'abs', 'No update': '' };
+    function renderTrials() {
+      var box = $('osTrialsBox'); if (!box || !DJ) return;
+      var all = DJ.trials || [];
+      if (!all.length) { box.innerHTML = '<h3>Trials</h3><p class="note">Trials from GHL start arriving from the hub within 10 minutes (7am to 9pm).</p>'; return; }
+      var sod = new Date(); sod.setHours(0, 0, 0, 0); sod = sod.getTime(); var eod = sod + 864e5, now = Date.now();
+      var modes = [['today', 'Today'], ['recent', 'Last 7 days'], ['up', 'Coming up']], locs = ['All'].concat(DJ.schools);
+      var list = all.filter(function (t) { if (trialLoc !== 'All' && t.loc !== trialLoc) return false;
+        if (trialMode === 'today') return t.t >= sod && t.t < eod; if (trialMode === 'recent') return t.t < now; return t.t >= eod; });
+      if (trialMode === 'recent') list = list.slice().reverse();
+      var c = {}; list.forEach(function (t) { if (t.status) c[t.status] = (c[t.status] || 0) + 1; });
+      var h = '<h3>Trials</h3><div class="chips">' + modes.map(function (m) { return '<button type="button" class="chip" data-m="' + m[0] + '" aria-pressed="' + (m[0] === trialMode) + '">' + m[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="chips">' + locs.map(function (l) { return '<button type="button" class="chip" data-l="' + esc(l) + '" aria-pressed="' + (l === trialLoc) + '">' + esc(l) + '</button>'; }).join('') + '</div>' +
+        '<div class="tsum">' + (trialMode === 'up' ? list.length + ' coming up' : list.length + ' trials' + (c['Enrolled'] ? ' · ' + c['Enrolled'] + ' enrolled' : '') + (c['Rec sent'] ? ' · ' + c['Rec sent'] + ' rec sent' : '') + (c['Absent'] ? ' · ' + c['Absent'] + ' absent' : '') + (c['No update'] ? ' · ' + c['No update'] + ' no update' : '')) + '</div><div class="trials">';
+      if (!list.length) h += '<div class="tempty">No trials' + (trialLoc === 'All' ? '' : ' at ' + esc(trialLoc)) + (trialMode === 'today' ? ' today' : trialMode === 'recent' ? ' in the last 7 days' : ' coming up') + '.</div>';
+      var day = '';
+      list.forEach(function (t) {
+        if (t.day !== day) { day = t.day; h += '<div class="tday">' + esc(day) + '</div>'; }
+        var past = t.t < now, num = t.num ? '<span class="tnum' + (/^1st|^Trial 1/.test(t.num) ? ' first' : '') + '">' + esc(t.num) + '</span>' : '';
+        var pill = t.src === 'online' && !past ? '<span class="tpill">Online, to confirm</span>' : t.src === 'confirmed' ? '<span class="tpill">Confirmed</span>' : '';
+        h += '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.who) + num + pill + '</b><span>' + esc(t.cls) + ' · ' + esc(t.loc) + '</span></div>' +
+          (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') + '</div>';
+      });
+      h += '</div><p class="note" style="margin:26px 0 0">From GHL via the hub' + (DJ.trialsAt ? ', updated ' + esc(when(DJ.trialsAt)) : '') + '. Enrolled and Rec sent come from GHL and the Enrolments tab; Attended or Absent from the after-trial check.</p>';
+      box.innerHTML = h;
+      Array.prototype.forEach.call(box.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { trialMode = b.dataset.m; renderTrials(); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-l]'), function (b) { b.onclick = function () { trialLoc = b.dataset.l; renderTrials(); }; });
     }
     function bars(W) {
       var max = 1; W.forEach(function (w) { max = Math.max(max, w.joined, w.left); });
