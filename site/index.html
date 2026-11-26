@@ -3,33 +3,653 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f1713">
+  <meta name="theme-color" content="#1B7A3D">
+  <meta name="robots" content="noindex">
   <title>AMA OS</title>
+  <link rel="icon" type="image/png" href="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>try { if (localStorage.getItem('amaosTheme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
   <style>
-    :root { --bg:#0f1713; --panel:#16201b; --line:#273530; --ink:#eef4f0; --ink-2:#aebcb4; --ink-3:#6f8178; --accent:#f5c518; --ok:#7fd6a2;
-      color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { margin: 0; background: var(--bg); color: var(--ink);
-      font: 16px/1.5 "Barlow", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      display: flex; align-items: center; justify-content: center;
-      padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
-    .card { width: 100%; max-width: 460px; text-align: center; }
-    .badge { display: inline-block; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 12px;
-      color: #1a120d; background: var(--accent); border-radius: 999px; padding: 6px 14px; }
-    h1 { font-size: clamp(34px, 9vw, 52px); font-weight: 800; margin: 22px 0 10px; letter-spacing: -.01em; }
-    p { color: var(--ink-2); margin: 0 auto; max-width: 36ch; }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--ok); margin-right: 7px; vertical-align: middle; }
-    .status { margin-top: 24px; display: inline-flex; align-items: center; font-size: 14px; color: var(--ink-3);
-      background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; }
+    /* Same look as the AMA Hub (25 Nov 2026 light layout): white menu, green header, gold accents. */
+    :root { --bg:#f3f5f4; --panel:#fff; --panel-2:#f7f9f8; --line:#e1e7e3; --line-2:#d3dcd6; --ink:#15241b; --ink-2:#4d5f54; --ink-3:#77897e;
+      --green:#1B7A3D; --green-2:#14592d; --gold:#ffd200; --gold-ink:#8a6a00; --err:#c0392b; --ok:#1B7A3D;
+      --hot-bg:#fdf3f1; --hot-line:#efc2bb; --warn-bg:#fffbea; --warn-line:#f1dc8a; --chip-on:#ffd200; --icon:#eef3ef; color-scheme: light; }
+    :root[data-theme="dark"] { --bg:#0d1511; --panel:#131d17; --panel-2:#16211a; --line:#24332a; --line-2:#2f4236; --ink:#e8efe9; --ink-2:#b6c4bb; --ink-3:#8a9c91;
+      --gold-ink:#ffd200; --err:#ff8f7a; --ok:#7fd6a2; --hot-bg:#2a1714; --hot-line:#5b2a22; --warn-bg:#251f0c; --warn-line:#5a4a12; --icon:#1d2b23; color-scheme: dark; }
+    * { box-sizing: border-box; } [hidden] { display: none !important; }
+    html, body { min-height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 Inter, -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    button { font: inherit; cursor: pointer; } input { font: inherit; }
+
+    /* Sign-in */
+    .gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+    .card { width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 26px 22px; box-shadow: 0 6px 18px rgba(20,60,35,.08); text-align: center; }
+    .card .logo { width: 72px; height: 72px; } .card h1 { font-size: 28px; font-weight: 800; margin: 8px 0 6px; } .card h1 span, .brand span { color: var(--gold-ink); }
+    :root:not([data-theme="dark"]) .card h1 span { color: #c9a100; }
+    .card p { color: var(--ink-2); margin: 0 auto 16px; max-width: 34ch; }
+    .card form { display: grid; gap: 10px; text-align: left; } .card label { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+    .card input { width: 100%; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 14px; }
+    .card input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .btn { border: 0; border-radius: 12px; padding: 12px 16px; background: var(--gold); color: #111; font-weight: 700; } .btn:disabled { opacity: .6; cursor: default; }
+    .link { background: none; border: 0; color: var(--ink-2); padding: 6px; text-decoration: underline; }
+    .msg { min-height: 22px; font-size: 14px; margin-top: 8px; } .msg.err { color: var(--err); } .msg.ok { color: var(--ok); }
+
+    /* App shell */
+    .side { position: fixed; inset: 0 auto 0 0; width: 232px; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; z-index: 20; }
+    .side .top { display: flex; align-items: center; gap: 10px; padding: 14px 14px 10px; } .side .top img { width: 46px; height: 46px; }
+    .brand { font-size: 20px; font-weight: 800; } .brand span { color: #c9a100; } :root[data-theme="dark"] .brand span { color: var(--gold); }
+    .side .scroll { flex: 1; overflow: auto; padding: 4px 8px 10px; }
+    .sd-h { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding: 12px 8px 4px; }
+    .sd-i { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; color: var(--ink); text-align: left; padding: 6px 8px; border-radius: 8px; font-size: 14px; }
+    .sd-i:hover { background: var(--panel-2); } .sd-i.on { background: var(--green); color: #fff; }
+    .sd-i i { font-style: normal; flex: 0 0 26px; height: 26px; border-radius: 7px; background: var(--icon); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+    :root[data-theme="dark"] .sd-i i { color: #7fd6a2; } .sd-i.on i { background: rgba(255,255,255,.2); color: #fff; }
+    .sd-i span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sd-i em { font-style: normal; background: var(--gold); color: #111; border-radius: 999px; font-size: 11px; font-weight: 800; padding: 1px 7px; }
+    .sd-i.hub span { color: var(--ink-3); } .sd-i.hub em { background: transparent; color: var(--ink-3); border: 1px solid var(--line-2); font-weight: 600; }
+    .side .foot { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 12px; color: var(--ink-3); }
+    .main { margin-left: 232px; padding: 18px 22px 60px; max-width: 1400px; }
+    .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: linear-gradient(135deg, #1B7A3D 0%, #14592d 100%); border-radius: 16px; padding: 12px 14px; color: #fff; box-shadow: 0 6px 18px rgba(20,60,35,.15); margin-bottom: 18px; }
+    .bar img { width: 52px; height: 52px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); } .bar .brand { color: #fff; font-size: 24px; font-weight: 500; } .bar .brand span { color: var(--gold); }
+    .bar form { flex: 1; min-width: 220px; position: relative; } .bar form input { width: 100%; border: 0; border-radius: 12px; padding: 12px 14px 12px 40px; background: #fff; color: #15241b; }
+    .bar form::before { content: "⌕"; position: absolute; left: 14px; top: 50%; transform: translateY(-52%); color: #77897e; font-size: 20px; }
+    .bar .me { font-weight: 700; } .hbtn { border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+    .hbtn.gold { border-color: var(--gold); color: var(--gold); font-weight: 700; } .menuBtn { display: none; }
+    h2.sec { font-size: 22px; font-weight: 800; margin: 6px 0 12px; } h2.sec small { font-size: 15px; font-weight: 600; color: var(--ink-3); margin-left: 8px; }
+    .note { color: var(--ink-3); font-size: 13px; margin: 0 0 12px; }
+    .now { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 22px; }
+    .nc { text-align: left; border-radius: 12px; padding: 12px 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); }
+    .nc b { display: block; font-size: 30px; font-weight: 700; line-height: 1.15; color: var(--ink-3); } .nc span { color: var(--ink-2); }
+    .nc.warn { background: var(--warn-bg); border-color: var(--warn-line); } .nc.warn b { color: var(--gold-ink); }
+    .nc.hot { background: var(--hot-bg); border-color: var(--hot-line); } .nc.hot b { color: var(--err); }
+    .nc:hover { border-color: var(--gold); }
+    .wk { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 22px; }
+    .wc { border-radius: 12px; padding: 12px 14px; border: 1px solid var(--line); background: var(--panel); } .wc b { display: block; font-size: 28px; font-weight: 700; line-height: 1.15; } .wc span { color: var(--ink-2); }
+    .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+    .box h3 { margin: 0 0 10px; font-size: 16px; } .box.tcard { border: 3px solid var(--gold); } .box.tcard h3 { font-size: 26px; font-weight: 800; margin-bottom: 2px; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; } .tile .n { font-size: 26px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; } .tile .l { color: var(--ink-2); font-size: 13px; }
+    table.t { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+    table.t th, table.t td { padding: 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; } table.t th:first-child, table.t td:first-child { text-align: left; }
+    table.t th { color: var(--ink-3); font-weight: 600; font-size: 12px; } table.t tr.tot td { font-weight: 800; border-bottom: 0; }
+    .legend { display: flex; gap: 14px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; } .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .chip { font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: var(--panel); color: var(--ink); border: 1px solid var(--line-2); }
+    .chip[aria-pressed="true"] { background: var(--chip-on); color: #111; border-color: var(--chip-on); }
+    .tsum { color: var(--ink-2); font-size: 14px; margin: 2px 0 10px; }
+    .trials { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .tday { padding: 9px 14px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; color: var(--gold-ink); background: var(--warn-bg); border-bottom: 1px solid var(--line); }
+    .trial { display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .trial .t { font-weight: 700; font-variant-numeric: tabular-nums; } .trial .w b { display: block; font-size: 16px; } .trial .w > span { display: block; color: var(--ink-2); font-size: 13px; margin-top: 1px; }
+    .st { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 5px 11px; white-space: nowrap; border: 1px solid var(--line-2); color: var(--ink-2); }
+    .st.en { background: var(--green); border-color: var(--green); color: #fff; } .st.rec { border-color: #c9a100; color: var(--gold-ink); } .st.abs { border-color: var(--err); color: var(--err); }
+    .tnum { display: inline-block; margin-left: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+    .tpill { font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; border: 1px solid var(--line-2); color: var(--ink-2); vertical-align: 2px; }
+    .tempty { padding: 14px; color: var(--ink-3); }
+    .srch { display: flex; gap: 8px; margin-bottom: 14px; } .srch input { flex: 1; border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 14px; background: var(--panel); color: var(--ink); }
+    .fam, .row { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+    .fam .h { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-bottom: 8px; } .fam .h b { font-size: 17px; } .fam .h span { color: var(--ink-2); font-size: 14px; }
+    .kid { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; } .kid b { font-size: 15px; } .kid .m { color: var(--ink-2); }
+    .pill { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 8px; margin-left: 6px; background: var(--warn-bg); color: var(--gold-ink); border: 1px solid var(--warn-line); }
+    .pill.bad { background: var(--hot-bg); color: var(--err); border-color: var(--hot-line); }
+    .hist { font-size: 13px; color: var(--ink-2); margin-top: 6px; } .hist b { color: var(--ink); font-weight: 600; }
+    .row summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; } .row summary::-webkit-details-marker { display: none; }
+    .row .a { font-weight: 700; } .row .b { color: var(--ink-3); font-size: 13px; grid-column: 1; } .row .c { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+    .row dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0 2px; font-size: 13.5px; } .row dt { color: var(--ink-3); } .row dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    .hubcard { max-width: 560px; } .hubcard .btn { display: inline-block; text-decoration: none; margin-top: 6px; }
+    .scrim { display: none; }
+    @media (max-width: 900px) {
+      .side { transform: translateX(-100%); transition: transform .2s; box-shadow: 0 0 30px rgba(0,0,0,.2); } body.menu .side { transform: none; }
+      body.menu .scrim { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 15; }
+      .main { margin-left: 0; padding: 12px 14px 60px; } .menuBtn { display: inline-block; }
+      .bar img { width: 40px; height: 40px; } .bar .brand { font-size: 20px; } .bar form { order: 9; flex-basis: 100%; } .bar .me { display: none; }
+      .trial { grid-template-columns: 70px 1fr; } .trial > :last-child { grid-column: 2; justify-self: start; }
+      .nc b, .wc b { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
-  <main class="card">
-    <span class="badge">AMA</span>
-    <h1>AMA OS</h1>
-    <p>The staff hub is being set up here. Nothing to see yet — this page just confirms the site is live.</p>
-    <div class="status"><span class="dot"></span>Deployed and connected</div>
-  </main>
+  <div class="gate" id="gate">
+    <main class="card">
+      <img class="logo" src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="AMA">
+      <h1>AMA <span>OS</span></h1>
+      <section id="stepEmail">
+        <div id="pkSignWrap" hidden style="margin-bottom:16px">
+          <button class="btn" type="button" id="pkSignBtn" style="width:100%">Sign in with a passkey</button>
+          <p class="note" style="margin:8px auto 0">Sign in with your face, fingerprint or phone instead of your mobile and PIN. One passkey works on the AMA Toolkit and AMA OS.</p>
+          <p class="note" style="margin:10px auto 0">or</p>
+        </div>
+        <p>Staff sign-in, with the same mobile and PIN as the hub and the Toolkit.</p>
+        <form id="emailForm">
+          <label for="email">Your mobile number</label>
+          <input id="email" type="tel" inputmode="tel" autocomplete="tel webauthn" required placeholder="04xx xxx xxx">
+          <label for="pin">Your hub PIN</label>
+          <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required placeholder="PIN">
+          <button class="btn" id="sendBtn" type="submit">Sign in</button>
+        </form>
+      </section>
+      <section id="stepCode" hidden>
+        <p>We've texted you a sign-in code. It can take a minute to arrive.</p>
+        <form id="codeForm">
+          <label for="code">Sign-in code</label>
+          <input id="code" inputmode="numeric" autocomplete="one-time-code" required placeholder="6-digit code">
+          <button class="btn" id="codeBtn" type="submit">Sign in</button>
+          <button class="link" type="button" id="backBtn">Use a different number</button>
+        </form>
+      </section>
+      <section id="stepMfa" hidden>
+        <p id="mfaIntro">Owners and admins confirm it's them with a second step.</p>
+        <div style="display:grid;gap:10px;margin-bottom:14px">
+          <button class="btn" type="button" id="pkUseBtn" hidden>Use Face ID / fingerprint (passkey)</button>
+          <button type="button" class="link" id="totpShowBtn" hidden>Use my authenticator app instead</button>
+        </div>
+        <div id="mfaQr" style="background:#fff;border-radius:12px;padding:12px;margin:0 auto 12px;width:fit-content" hidden></div>
+        <p id="mfaSecret" style="font-size:13px;word-break:break-all" hidden></p>
+        <form id="mfaForm" hidden>
+          <label for="mfaCode">6-digit code from your authenticator app</label>
+          <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" required placeholder="123456">
+          <button class="btn" id="mfaBtn" type="submit">Confirm</button>
+        </form>
+      </section>
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <div id="stepIn" hidden>
+    <aside class="side" id="side">
+      <div class="top"><img src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="AMA"><span class="brand">AMA <span>OS</span></span></div>
+      <nav class="scroll" id="nav"></nav>
+      <div class="foot">Signed in as <b id="whoName"></b> · <span id="whoRole"></span><br><button class="link" type="button" id="pkSettingsBtn" style="padding:4px 0">Passkeys</button> · <button class="link" type="button" id="outBtn" style="padding:4px 0">Sign out</button></div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+    <div class="main">
+      <header class="bar">
+        <button type="button" class="hbtn menuBtn" id="menuBtn" aria-label="Menu">☰</button>
+        <img src="https://assets.cdn.filesafe.space/mJHWOMMUzCTf7U6UVESA/media/6abcae596c64b8e488a7587f.png" alt="">
+        <span class="brand">AMA <span>OS</span></span>
+        <form id="findForm"><input id="findQ" placeholder="Find a family or student" autocomplete="off" aria-label="Find a family or student"></form>
+        <span class="me" id="barName"></span>
+        <button type="button" class="hbtn" id="themeBtn">Dark</button>
+      </header>
+      <button class="btn" type="button" id="pkAddBtn" hidden style="margin-bottom:12px">Add a passkey on this device (Face ID / fingerprint)</button>
+      <section id="tabDash"><p class="note">Loading…</p></section>
+      <section id="tabMgmt" hidden></section>
+      <section id="tabList" hidden></section>
+      <section id="tabFind" hidden><h2 class="sec">Find a family</h2><div id="findOut"><p class="note">Search by student, parent, mobile, email or EFC reference in the bar above. Read-only; each search is logged.</p></div></section>
+      <section id="tabHub" hidden></section>
+      <section id="tabConn" hidden></section>
+      <section id="tabAuto" hidden></section>
+      <section id="tabPk" hidden></section>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+  <script>
+  (function () {
+    var C = window.AMAOS_CONFIG || {}, $ = function (id) { return document.getElementById(id); };
+    var ROLE = { owner: 'Owner', full: 'Full-access admin', marketing: 'Marketing', admin: 'Admin', junior: 'Junior admin', instructor: 'Instructor' };
+    function msg(t, kind) { var m = $('msg'); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); }
+    function show(id) { ['stepEmail', 'stepCode', 'stepMfa', 'stepIn'].forEach(function (s) { $(s).hidden = s !== id; }); $('gate').hidden = id === 'stepIn'; document.body.classList.toggle('app', id === 'stepIn'); }
+    if (!C.supabaseAnonKey || /PASTE/.test(C.supabaseAnonKey)) { msg('Sign-in is being connected. Check back shortly.', 'err'); $('sendBtn').disabled = true; return; }
+    var sb = supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, detectSessionInUrl: true } });
+    var email = '', justSignedIn = false, mfaFactor = null, mfaChallenge = null, idleTimer = null;
+    var IDLE_MIN = 30; // shared front-desk computers: sign out after 30 minutes with no activity
+    function idle() { clearTimeout(idleTimer); idleTimer = setTimeout(function () { setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out after ' + IDLE_MIN + ' minutes of no activity.'); }); }, IDLE_MIN * 60000); }
+    ['click', 'keydown', 'touchstart', 'scroll'].forEach(function (ev) { document.addEventListener(ev, function () { if (!$('stepIn').hidden) idle(); }, { passive: true }); });
+    function getStep() { try { return sessionStorage.getItem('amaosStepup') || ''; } catch (e) { return ''; } }
+    function setStep(t) { try { if (t) sessionStorage.setItem('amaosStepup', t); else { sessionStorage.removeItem('amaosStepup'); sessionStorage.removeItem('amaosDash'); } } catch (e) {} }
+    function pk(act, extra) {
+      return sb.auth.getSession().then(function (r) {
+        var s = r.data && r.data.session; var hdr = { Authorization: 'Bearer ' + (s ? s.access_token : ''), apikey: C.supabaseAnonKey, 'content-type': 'application/json' };
+        var su = getStep(); if (su) hdr['x-amaos-stepup'] = su;
+        return fetch(C.supabaseUrl + '/functions/v1/amaos-passkey', { method: 'POST', headers: hdr, body: JSON.stringify(Object.assign({ act: act }, extra || {})) }).then(function (x) { return x.json(); });
+      });
+    }
+    var canPk = !!(window.SimpleWebAuthnBrowser && SimpleWebAuthnBrowser.browserSupportsWebAuthn());
+    function startMfa(passkeys) {
+      show('stepMfa');
+      $('pkUseBtn').hidden = !(canPk && passkeys > 0);
+      if (canPk && passkeys > 0) { $('mfaIntro').textContent = "Confirm it's you with Face ID, fingerprint or your device PIN."; $('mfaForm').hidden = true; $('totpShowBtn').hidden = false; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; return Promise.resolve(); }
+      if (canPk) { // first time: offer Face ID / fingerprint set-up, or the authenticator app
+        $('mfaIntro').textContent = "One-time set-up: choose how you'll confirm it's you each time you sign in.";
+        $('pkUseBtn').textContent = 'Set up Face ID / fingerprint (passkey)'; $('pkUseBtn').hidden = false; $('pkUseBtn').dataset.mode = 'setup';
+        $('totpShowBtn').textContent = 'Use an authenticator app instead'; $('totpShowBtn').hidden = false; $('mfaForm').hidden = true; $('mfaQr').hidden = true; $('mfaSecret').hidden = true;
+        return Promise.resolve();
+      }
+      $('totpShowBtn').hidden = true; return startTotp();
+    }
+    function startTotp() {
+      $('mfaForm').hidden = false; $('pkUseBtn').hidden = true; $('totpShowBtn').hidden = true;
+      return sb.auth.mfa.listFactors().then(function (r) {
+        var f = (r.data && r.data.totp || []).filter(function (x) { return x.status === 'verified'; })[0];
+        show('stepMfa'); $('mfaCode').value = '';
+        if (f) { mfaFactor = f.id; $('mfaIntro').textContent = 'Enter the 6-digit code from your authenticator app.'; $('mfaQr').hidden = true; $('mfaSecret').hidden = true; return; }
+        return sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'AMA OS ' + new Date().toISOString().slice(0, 10) }).then(function (e) {
+          if (e.error) { msg('Could not set up the authenticator. Please try again.', 'err'); return; }
+          mfaFactor = e.data.id;
+          $('mfaIntro').textContent = 'One-time set-up: scan this with Google Authenticator or Microsoft Authenticator, then enter the 6-digit code it shows.';
+          $('mfaQr').innerHTML = e.data.totp.qr_code.indexOf('<svg') === 0 ? e.data.totp.qr_code : '<img alt="Authenticator QR code" width="180" height="180" src="' + e.data.totp.qr_code + '">'; $('mfaQr').hidden = false;
+          $('mfaSecret').textContent = 'Can\'t scan? Enter this key: ' + e.data.totp.secret; $('mfaSecret').hidden = false;
+        });
+      });
+    }
+    function api(fn, body) {
+      return sb.auth.getSession().then(function (r) {
+        var s = r.data && r.data.session; var hdr = { Authorization: 'Bearer ' + (s ? s.access_token : ''), apikey: C.supabaseAnonKey, 'content-type': 'application/json' };
+        var su = getStep(); if (su) hdr['x-amaos-stepup'] = su;
+        return fetch(C.supabaseUrl + '/functions/v1/' + fn, { method: 'POST', headers: hdr, body: JSON.stringify(body || {}) }).then(function (x) { return x.json(); });
+      });
+    }
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function fmtN(n) { return Number(n || 0).toLocaleString('en-AU'); }
+    function nice(d) { if (!d) return ''; var t = new Date(String(d).length === 10 ? d + 'T12:00:00' : d); return isNaN(t) ? String(d) : t.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }); }
+    function when(d) { var t = new Date(d); return isNaN(t) ? '' : t.toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); }
+    /* ---------- Menu: the hub's menu, item for item. Items AMA OS has now open here; the rest open the same page in the hub. ---------- */
+    var HUB_URL = 'https://train.australianmartialarts.com.au/admin';
+    var ME = { name: '', role: '', first: '' };
+    function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
+    var I = {
+      myday: { l: 'My Day', h: '#myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check' }, appr: { l: 'Approvals', h: '' },
+      book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', h: '#close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
+      absent: { l: 'Absent follow-up', h: '#absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
+      attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', h: '#promos' }, grading: { l: 'Gradings', h: '#grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
+      ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on', h: '' }, shifts: { l: 'Extra shifts', h: '#shifts' }, efc: { l: 'Log into EFC', h: '' }, ghl: { l: 'Log into GHL', h: '' },
+      pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', h: '' },
+      mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff management', h: '', can: isMgmt }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
+      marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', h: '', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
+      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
+    };
+    var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
+      ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
+      ['Business', ['mgmtd', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns', 'autos']]];
+    var CUR = 'home';
+    function ini(l) { var w = l.replace(/[^A-Za-z ]/g, '').split(/\s+/).filter(Boolean); return (((w[0] || '')[0] || '') + ((w[1] || '')[0] || '')).toUpperCase(); }
+    function navBuild() {
+      var N = (DJ && DJ.needs) || {}, h = '<button type="button" class="sd-i' + (CUR === 'home' ? ' on' : '') + '" data-go="home"><i>&#8962;</i><span>Home</span></button>';
+      GROUPS.forEach(function (g) {
+        var ids = g[1].filter(function (id) { var x = I[id]; return x && (!x.can || x.can()); }); if (!ids.length) return;
+        h += '<div class="sd-h">' + esc(g[0]) + '</div>' + ids.map(function (id) {
+          var x = I[id], n = x.n && N[x.n] ? N[x.n] : 0, on = x.os && (CUR === x.os || (x.os === 'today' && CUR === 'home' && false));
+          return '<button type="button" class="sd-i' + (on ? ' on' : '') + (x.os ? '' : ' hub') + '" data-id="' + id + '" title="' + esc(x.os ? x.l : x.l + ' (still in the hub)') + '"><i>' + esc(ini(x.l)) + '</i><span>' + esc(x.l) + '</span>' + (x.os ? (n ? '<em>' + n + '</em>' : '') : '<em>Hub</em>') + '</button>';
+        }).join('');
+      });
+      $('nav').innerHTML = h;
+    }
+    function go(view) {
+      CUR = view; document.body.classList.remove('menu');
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk'].forEach(function (t) { $(t).hidden = true; });
+      if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
+      else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
+      else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'passkeys') { $('tabPk').hidden = false; loadPasskeys(); window.scrollTo(0, 0); }
+      else if (view === 'autos') { $('tabAuto').hidden = false; loadAutos(); window.scrollTo(0, 0); }
+      else if (view === 'conns') { $('tabConn').hidden = false; loadConns(); window.scrollTo(0, 0); }
+      else if (view.indexOf('list:') === 0) { $('tabList').hidden = false; loadList(view.slice(5)); window.scrollTo(0, 0); }
+      navBuild();
+    }
+    function hubCard(id) {
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
+      navBuild(); window.scrollTo(0, 0);
+    }
+    $('nav').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.go) return go(b.dataset.go);
+      var x = I[b.dataset.id]; if (!x) return; if (x.os) go(x.os); else hubCard(b.dataset.id);
+    });
+    $('menuBtn').onclick = function () { document.body.classList.toggle('menu'); };
+    $('scrim').onclick = function () { document.body.classList.remove('menu'); };
+    function themeLabel() { $('themeBtn').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Light' : 'Dark'; }
+    $('themeBtn').onclick = function () { var d = document.documentElement.getAttribute('data-theme') === 'dark'; if (d) document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', 'dark');
+      try { localStorage.setItem('amaosTheme', d ? 'light' : 'dark'); } catch (e) {} themeLabel(); };
+    /* Connections (owners): AMA OS's own EFC and GHL keys. Saved privately, never shown again. */
+    function loadConns() {
+      var el = $('tabConn'); el.innerHTML = '<h2 class="sec">Connections</h2><p class="note">Loading…</p>';
+      api('amaos-conn', { act: 'list' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Connections</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        el.innerHTML = '<h2 class="sec">Connections</h2><p class="note">AMA OS\'s own keys for EFC and GHL, so it reads straight from them, not through the hub. A saved key is never shown again, here or anywhere. The quickest way: in the hub, open Business → Connections and tap <b>Send EFC and GHL keys to AMA OS</b>.</p>' +
+          j.list.map(function (c) { return '<div class="box" data-n="' + esc(c.name) + '"><h3>' + esc(c.label) + '</h3><p class="note" style="margin-bottom:8px">' + (c.set ? 'Saved by ' + esc(c.by) + ', ' + esc(when(c.at)) : 'Not set yet') + '</p>' +
+            '<form class="srch" style="margin:0"><input type="password" autocomplete="off" placeholder="' + (c.set ? 'Paste a new key to replace it' : 'Paste the key') + '"><button class="btn" type="submit">Save</button><button class="chip" type="button" data-t="1">Test</button></form><p class="tsum" data-r="1" style="margin-top:8px"></p></div>'; }).join('');
+        Array.prototype.forEach.call(el.querySelectorAll('[data-n]'), function (box) {
+          var n = box.dataset.n, out = box.querySelector('[data-r]'), inp = box.querySelector('input');
+          var show = function (r) { out.textContent = r.result || r.error || ''; out.style.color = r.ok ? 'var(--ok)' : 'var(--err)'; };
+          box.querySelector('form').onsubmit = function (e) { e.preventDefault(); var v = inp.value.trim(); if (!v) return; out.textContent = 'Saving…'; out.style.color = '';
+            api('amaos-conn', { act: 'set', name: n, value: v }).then(function (r) { inp.value = ''; show(r); if (r.ok !== undefined) setTimeout(loadConns, 1500); }); };
+          box.querySelector('[data-t]').onclick = function () { out.textContent = 'Testing…'; out.style.color = ''; api('amaos-conn', { act: 'test', name: n }).then(show); };
+        });
+      }).catch(function () { el.innerHTML = '<h2 class="sec">Connections</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    /* Automations: who sends what (the hub or AMA OS). One owner each, so nothing is ever sent twice. */
+    function loadAutos() {
+      var el = $('tabAuto'); el.innerHTML = '<h2 class="sec">Automations</h2><p class="note">Loading…</p>';
+      api('amaos-dash', { act: 'autos' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Automations</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        el.innerHTML = '<h2 class="sec">Automations</h2><p class="note">Every automatic text, email or change in GHL/EFC has one owner: the hub or AMA OS, never both, so nothing is sent twice. AMA OS sending is <b>' + (j.sending === 'on' ? 'ON' : 'OFF') + '</b>' + (j.sending === 'on' ? '' : ': AMA OS sends nothing at all') + '. Each one moves across only when you approve it: it is switched off in the hub and on here in the same step.</p>' +
+          '<div class="box"><table class="t"><tr><th>Automation</th><th style="text-align:left">Sends</th><th style="text-align:left">Run by</th></tr>' + j.list.map(function (a) {
+            return '<tr><td style="white-space:normal">' + esc(a.name) + '</td><td style="text-align:left">' + esc(a.what) + '</td><td style="text-align:left"><span class="st' + (a.owner === 'amaos' ? ' en' : '') + '">' + (a.owner === 'amaos' ? 'AMA OS' : 'Hub') + '</span></td></tr>'; }).join('') + '</table></div>';
+      }).catch(function () { el.innerHTML = '<h2 class="sec">Automations</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    /* ---------- Passkeys (Supabase Auth, shared with the AMA Toolkit: same login, Relying Party train-ama.com) ----------
+       They only work on the addresses Tate listed (app.train-ama.com, ama-os.train-ama.com), so the buttons only show there. */
+    var PK_OK = !!window.PublicKeyCredential && /(^|\.)train-ama\.com$/.test(location.hostname);
+    function pkCancelled(e) { var t = [e && e.name, e && e.code, e && e.message, e && e.cause && e.cause.name].join(' '); return /NotAllowed|ABORT|cancel/i.test(t); }
+    function pkGone(e) { return /credential_not_found/i.test([e && e.code, e && e.message].join(' ')); }
+    function deviceName() {
+      var u = navigator.userAgent, dev = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1) ? 'iPad' : /Android/.test(u) ? 'Android' : /Macintosh|Mac OS X/.test(u) ? 'Mac' : /Windows/.test(u) ? 'Windows' : /CrOS/.test(u) ? 'Chromebook' : /Linux/.test(u) ? 'Linux' : 'This device';
+      var br = /Edg\//.test(u) ? 'Edge' : /SamsungBrowser/.test(u) ? 'Samsung Internet' : /Firefox|FxiOS/.test(u) ? 'Firefox' : /Chrome|CriOS/.test(u) ? 'Chrome' : /Safari/.test(u) ? 'Safari' : 'Browser';
+      return dev + ' · ' + br;
+    }
+    if (PK_OK) $('pkSignWrap').hidden = false;
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+    function ssSet(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) {} }
+    var PK_LABEL = 'Sign in with a passkey', pkCtl = null, pkBusy = false;
+    // Passkey worked: remember this device, start the session, carry on as a normal sign-in.
+    function pkFinish(r) {
+      var ses = r && r.data && r.data.session; if (!ses) return Promise.reject(new Error('no session'));
+      lsSet('ama_passkey_here', '1'); stopCond();
+      return sb.auth.setSession({ access_token: ses.access_token, refresh_token: ses.refresh_token }).then(function () { justSignedIn = true; whoAmI(); });
+    }
+    function pkFail(e) { if (pkGone(e)) msg('That passkey has been removed. Sign in the normal way with your mobile and PIN.', 'err'); else if (!pkCancelled(e)) msg('Passkey sign-in did not work. Try again, or use your mobile and PIN.', 'err'); }
+    function pkBtn(waiting) { var b = $('pkSignBtn'); b.disabled = !!waiting; b.textContent = waiting ? 'Waiting for your passkey…' : PK_LABEL; }
+    // 3. Autofill: the passkey appears in the mobile box's autofill list.
+    function stopCond() { if (pkCtl) { try { pkCtl.abort(); } catch (e) {} pkCtl = null; } }
+    function startCond() {
+      if (!PK_OK || pkCtl || pkBusy || !PublicKeyCredential.isConditionalMediationAvailable) return;
+      PublicKeyCredential.isConditionalMediationAvailable().then(function (ok) {
+        if (!ok || pkCtl || pkBusy || $('stepEmail').hidden) return;
+        var c = pkCtl = new AbortController();
+        sb.auth.signInWithPasskey({ options: { mediation: 'conditional', signal: c.signal } }).then(function (r) {
+          if (pkCtl === c) pkCtl = null;
+          if (r && !r.error && r.data && r.data.session) return pkFinish(r);
+        }).catch(function () { if (pkCtl === c) pkCtl = null; });
+      }).catch(function () {});
+    }
+    // 2. On a device that has used a passkey, ask for it straight away (once per tab).
+    var pkGateDone = false;
+    function pkGate() {
+      if (!PK_OK) return;
+      if (pkGateDone) { startCond(); return; }
+      pkGateDone = true;
+      if (lsGet('ama_passkey_here') !== '1' || ssGet('ama_pk_asked')) { startCond(); return; }
+      ssSet('ama_pk_asked', '1'); pkBusy = true; pkBtn(true);
+      var t0 = Date.now();
+      var done = function (e) {
+        pkBusy = false; pkBtn(false);
+        if (Date.now() - t0 < 600) ssSet('ama_pk_asked', null); // browser wouldn't ask without a tap (Safari): fall back quietly
+        else if (e && pkGone(e)) pkFail(e);                       // otherwise cancelled: say nothing
+        startCond();
+      };
+      sb.auth.signInWithPasskey().then(function (r) {
+        if (r && !r.error && r.data && r.data.session) { pkBusy = false; pkBtn(false); return pkFinish(r); }
+        done(r && r.error);
+      }).catch(done);
+    }
+    // 4. The button: drop the autofill request first (one passkey request at a time), then ask.
+    $('pkSignBtn').onclick = function () {
+      stopCond(); pkBusy = true; pkBtn(true); msg('');
+      sb.auth.signInWithPasskey().then(function (r) {
+        pkBusy = false; pkBtn(false);
+        if (r.error) { pkFail(r.error); startCond(); return; }
+        if (!(r.data && r.data.session)) { msg('Passkey sign-in did not work. Try again, or use your mobile and PIN.', 'err'); startCond(); return; }
+        return pkFinish(r);
+      }).catch(function (e) { pkBusy = false; pkBtn(false); pkFail(e); startCond(); });
+    };
+    $('pkSettingsBtn').onclick = function () { go('passkeys'); };
+    function loadPasskeys() {
+      var el = $('tabPk'), head = '<h2 class="sec">Passkeys</h2><p class="note">Sign in with your face, fingerprint or phone instead of your mobile and PIN. One passkey works on the AMA Toolkit and AMA OS.</p>';
+      if (!PK_OK) { el.innerHTML = head + '<div class="box"><p>' + (window.PublicKeyCredential ? 'Passkeys work on <b>ama-os.train-ama.com</b> (and the AMA Toolkit). Open AMA OS there to add or use one.' : 'This browser does not support passkeys.') + '</p></div>'; return; }
+      el.innerHTML = head + '<div class="box"><button class="btn" type="button" id="pkAddNative">Add a passkey on this device</button><p class="tsum" id="pkMsg" style="margin-top:10px"></p><div id="pkList"><p class="note">Loading…</p></div></div>';
+      var say = function (t, ok) { var m = $('pkMsg'); m.textContent = t || ''; m.style.color = ok ? 'var(--ok)' : 'var(--err)'; };
+      var list = function () {
+        sb.auth.passkey.list().then(function (r) {
+          var L = (r && r.data) || [];
+          if (r && r.error) { $('pkList').innerHTML = '<p class="msg err">Could not load your passkeys.</p>'; return; }
+          $('pkList').innerHTML = L.length ? '<table class="t"><tr><th>Passkey</th><th style="text-align:left">Added</th><th style="text-align:left">Last used</th><th></th></tr>' + L.map(function (k) {
+            return '<tr><td style="white-space:normal">' + esc(k.friendly_name || 'Passkey') + '</td><td style="text-align:left">' + esc(k.created_at ? when(k.created_at) : '') + '</td><td style="text-align:left">' + esc(k.last_used_at ? when(k.last_used_at) : 'Not yet') + '</td><td><button class="chip" type="button" data-del="' + esc(k.id) + '">Remove</button></td></tr>'; }).join('') + '</table>'
+            : '<p class="note">No passkeys yet.</p>';
+          Array.prototype.forEach.call($('pkList').querySelectorAll('[data-del]'), function (x) { x.onclick = function () {
+            if (!confirm('Remove this passkey? You will not be able to sign in with it on any device or site.')) return;
+            x.disabled = true; sb.auth.passkey.delete({ passkeyId: x.dataset.del }).then(function (d) { if (d && d.error) { x.disabled = false; say('Could not remove it. Please try again.'); return; } say('Passkey removed.', true); list(); }); }; });
+        }).catch(function () { $('pkList').innerHTML = '<p class="msg err">Could not load your passkeys.</p>'; });
+      };
+      $('pkAddNative').onclick = function () {
+        var b = $('pkAddNative'); b.disabled = true; say('Follow the prompt on your device…', true);
+        sb.auth.registerPasskey().then(function (r) {
+          b.disabled = false;
+          if (r.error) { if (pkCancelled(r.error)) say(''); else say('Could not add a passkey. Please try again.'); return; }
+          var id = r.data && r.data.id, nm = deviceName();
+          lsSet('ama_passkey_here', '1');
+          return (id ? sb.auth.passkey.update({ passkeyId: id, friendlyName: nm }) : Promise.resolve()).then(function () { say('Passkey added (' + nm + '). Next time, tap Sign in with a passkey.', true); list(); });
+        }).catch(function (e) { b.disabled = false; if (pkCancelled(e)) say(''); else say('Could not add a passkey. Please try again.'); });
+      };
+      list();
+    }
+    function appStart(j) {
+      ME = { name: j.name, role: j.role, first: String(j.name || '').trim().split(/\s+/)[0].toLowerCase() };
+      $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); $('barName').textContent = String(j.name || '').split(' ')[0];
+      themeLabel(); show('stepIn'); msg(''); go('home'); loadDash();
+    }
+
+    /* ---------- Home (Needs you now, This week, Today's trials) and the management dashboard ---------- */
+    /* Instant open: show the last copy straight away (kept for this browser session only), then update when the new one arrives. */
+    function loadDash() {
+      var el = $('tabDash'), last = null; try { last = JSON.parse(sessionStorage.getItem('amaosDash') || 'null'); } catch (e) {}
+      if (last && last.ok) paintDash(last); else el.innerHTML = '<p class="note">Loading…</p>';
+      api('amaos-dash', { act: 'dash' }).then(function (j) {
+        if (j && j.ok) { try { sessionStorage.setItem('amaosDash', JSON.stringify(j)); } catch (e) {} }
+        if (!(j && !j.ok && last)) paintDash(j);
+      }).catch(function () { if (!last) el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function paintDash(j) {
+        var el = $('tabDash');
+        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
+        DJ = j; var N = j.needs || {}, W = j.week || {}, T = j.totals, B = j.by;
+        var sod = new Date(); sod.setHours(0, 0, 0, 0); var now = Date.now(), tr = j.trials || [];
+        var toFinish = tr.filter(function (t) { return t.t >= sod.getTime() && t.t < now && !t.walkin && (!t.status || t.status === 'No update'); }).length;
+        var wkTrials = tr.filter(function (t) { return t.t >= sod.getTime() - 6 * 864e5 && t.t < sod.getTime() + 864e5 && !t.walkin; }).length;
+        var nc = function (n, l, go2, hot) { return '<button type="button" class="nc' + (n > 0 ? (hot ? ' hot' : ' warn') : '') + '" data-go2="' + go2 + '"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></button>'; };
+        var h = '<h2 class="sec">Needs you now</h2><div class="now">' + nc(toFinish, 'Trials to finish', 'today', true) + nc(N.holds || 0, 'Holds to action', 'list:holds') + nc(N.cancels || 0, 'Cancels to action', 'list:cancels') +
+          nc(N.newmem || 0, 'New members (first 90 days)', 'list:newmembers') + (N.absreply == null ? '' : nc(N.absreply, 'Absent replies', 'hub:absent')) + '</div>';
+        var wc = function (n, l) { return '<div class="wc"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></div>'; };
+        h += '<h2 class="sec">This week <small>' + esc(nice(W.from)) + ' – ' + esc(nice(W.to)) + '</small></h2><div class="wk">' + wc(wkTrials, 'Trials') + wc(W.joined || 0, 'Joined') + wc(W.holds || 0, 'Hold requests') + wc(W.cancelled || 0, 'Cancellation requests') + wc(W.members || 0, 'Active students') + '</div>';
+        h += '<div class="box tcard" id="osTrialsBox"></div><p class="note">' + (j.membersLive ? 'Members straight from EFC (' + esc(when(j.membersAt)) + '); holds, cancels and follow-ups from the hub copy taken ' : 'Counts come from the hub copy taken ') + esc(when(j.syncedAt) || 'overnight') + '; trials ' + (j.trialsLive ? 'straight from GHL' : 'from GHL via the hub every 10 minutes') + '. Read-only: the hub is still the master.</p>';
+        el.innerHTML = h; renderTrials(); navBuild();
+        Array.prototype.forEach.call(el.querySelectorAll('[data-go2]'), function (b) { b.onclick = function () { var g = b.dataset.go2; if (g.indexOf('hub:') === 0) hubCard(g.slice(4)); else go(g); }; });
+        // Management dashboard (Business menu)
+        var att = T.trialsLast30 ? Math.round(T.attendedLast30 * 100 / T.trialsLast30) : 0;
+        var tiles = [['Active members', T.members], ['New members, last 30 days', T.newMembers], ['Cancellation requests, last 30 days', T.cancels], ['On hold today', T.holdsNow],
+          ['Trials, next 7 days', T.trialsNext7], ['Trials attended, last 30 days', T.trialsLast30 ? att + '%' : '–'], ['Not trained in 14+ days', T.quiet14], ['Absentee follow-ups open', j.absenteesOpen]];
+        if (j.money) tiles.push(['Next EFC invoices', '$' + fmtN(j.money.nextInvoicesTotal)], ['Families overdue', fmtN(j.money.overdueFamilies) + ' · $' + fmtN(j.money.overdueTotal)]);
+        var m = '<h2 class="sec">Management dashboard</h2><p class="note">From the hub copy taken ' + esc(when(j.syncedAt) || 'overnight') + '.</p><div class="tiles">' +
+          tiles.map(function (t) { return '<div class="tile"><div class="n">' + (typeof t[1] === 'number' ? fmtN(t[1]) : esc(t[1])) + '</div><div class="l">' + esc(t[0]) + '</div></div>'; }).join('') + '</div>';
+        var cols = [['members', 'Members'], ['newMembers', 'New (30d)'], ['cancels', 'Cancel req. (30d)'], ['holdsNow', 'On hold'], ['trialsNext7', 'Trials next 7d'], ['trialsLast30', 'Trials (30d)'], ['attendedLast30', 'Attended'], ['quiet14', '14+ days away']];
+        m += '<div class="box"><h3>By school</h3><table class="t"><tr><th>School</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>' +
+          j.schools.map(function (s) { return '<tr><td>' + esc(s) + '</td>' + cols.map(function (c) { return '<td>' + fmtN(B[c[0]][s]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+          '<tr class="tot"><td>All schools</td>' + cols.map(function (c) { return '<td>' + fmtN(T[c[0]]) + '</td>'; }).join('') + '</tr></table></div>';
+        m += '<div class="box"><h3>Joined vs cancellation requests, last 12 weeks</h3><div class="legend"><span><i style="background:#1B7A3D"></i>Joined</span><span><i style="background:#d9604c"></i>Cancellation requests</span></div>' + bars(j.weeks) + '</div>';
+        $('tabMgmt').innerHTML = m;
+    }
+    var DJ = null, trialMode = 'today', trialLoc = 'All', ST = { 'Rebooked': 'rec', 'Enrolled': 'en', 'Rec sent': 'rec', 'Attended': 'att', 'Absent': 'abs', 'No update': '' };
+    function renderTrials() {
+      var box = $('osTrialsBox'); if (!box || !DJ) return;
+      var all = DJ.trials || [];
+      if (!all.length) { box.innerHTML = '<h3>Today\'s trials</h3><p class="note">Trials from GHL start arriving from the hub within 10 minutes (7am to 9pm).</p>'; return; }
+      var sod = new Date(); sod.setHours(0, 0, 0, 0); sod = sod.getTime(); var eod = sod + 864e5, now = Date.now();
+      var modes = [['today', 'Today'], ['recent', 'Last 7 days'], ['up', 'Coming up']], locs = ['All'].concat(DJ.schools);
+      var list = all.filter(function (t) { if (trialLoc !== 'All' && t.loc !== trialLoc) return false;
+        if (trialMode === 'today') return t.t >= sod && t.t < eod; if (trialMode === 'recent') return t.t < now; return t.t >= eod; });
+      if (trialMode === 'recent') list = list.slice().reverse();
+      var c = {}; list.forEach(function (t) { if (t.status) c[t.status] = (c[t.status] || 0) + 1; });
+      var h = '<h3>' + (trialMode === 'today' ? 'Today\'s trials' : trialMode === 'recent' ? 'Trials, last 7 days' : 'Upcoming trials') + '</h3><div class="chips">' + modes.map(function (m) { return '<button type="button" class="chip" data-m="' + m[0] + '" aria-pressed="' + (m[0] === trialMode) + '">' + m[1] + '</button>'; }).join('') + '</div>' +
+        '<div class="chips">' + locs.map(function (l) { return '<button type="button" class="chip" data-l="' + esc(l) + '" aria-pressed="' + (l === trialLoc) + '">' + esc(l) + '</button>'; }).join('') + '</div>' +
+        '<div class="tsum">' + (trialMode === 'up' ? list.length + ' coming up' : list.length + ' trials' + (c['Enrolled'] ? ' · ' + c['Enrolled'] + ' enrolled' : '') + (c['Rec sent'] ? ' · ' + c['Rec sent'] + ' rec sent' : '') + (c['Absent'] ? ' · ' + c['Absent'] + ' absent' : '') + (c['No update'] ? ' · ' + c['No update'] + ' no update' : '')) + '</div><div class="trials">';
+      if (!list.length) h += '<div class="tempty">No trials' + (trialLoc === 'All' ? '' : ' at ' + esc(trialLoc)) + (trialMode === 'today' ? ' today' : trialMode === 'recent' ? ' in the last 7 days' : ' coming up') + '.</div>';
+      var day = '';
+      list.forEach(function (t) {
+        if (t.day !== day) { day = t.day; h += '<div class="tday">' + esc(day) + '</div>'; }
+        var past = t.t < now, num = t.num ? '<span class="tnum' + (/^1st|^Trial 1/.test(t.num) ? ' first' : '') + '">' + esc(t.num) + '</span>' : '';
+        var pill = t.src === 'online' && !past ? '<span class="tpill">Online, to confirm</span>' : t.src === 'confirmed' ? '<span class="tpill">Confirmed</span>' : '';
+        h += '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.who) + num + pill + '</b><span>' + esc(t.cls) + ' · ' + esc(t.loc) + '</span></div>' +
+          (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') + '</div>';
+      });
+      h += '</div><p class="note" style="margin:26px 0 0">' + (DJ.trialsLive ? 'Straight from GHL' : 'From GHL via the hub') + (DJ.trialsAt ? ', updated ' + esc(when(DJ.trialsAt)) : '') + '. Enrolled and Rec sent come from GHL and the Enrolments tab; Attended or Absent from the after-trial check.</p>';
+      box.innerHTML = h;
+      Array.prototype.forEach.call(box.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { trialMode = b.dataset.m; renderTrials(); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-l]'), function (b) { b.onclick = function () { trialLoc = b.dataset.l; renderTrials(); }; });
+    }
+    function bars(W) {
+      var max = 1; W.forEach(function (w) { max = Math.max(max, w.joined, w.left); });
+      var bw = 14, gap = 10, grp = bw * 2 + 4 + gap, H = 140, w = W.length * grp + 30;
+      var g = W.map(function (x, i) { var X = 30 + i * grp, hj = Math.round(x.joined / max * (H - 20)), hl = Math.round(x.left / max * (H - 20));
+        return '<rect x="' + X + '" y="' + (H - hj) + '" width="' + bw + '" height="' + hj + '" rx="2" fill="#1B7A3D"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.joined + ' joined</title></rect>' +
+          '<rect x="' + (X + bw + 4) + '" y="' + (H - hl) + '" width="' + bw + '" height="' + hl + '" rx="2" fill="#d9604c"><title>Week of ' + esc(nice(x.wk)) + ': ' + x.left + ' cancellation requests</title></rect>' +
+          (i % 2 === 0 ? '<text x="' + (X + bw) + '" y="' + (H + 16) + '" text-anchor="middle" font-size="8" fill="var(--ink-3)">' + esc(new Date(x.wk + 'T12:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })) + '</text>' : ''); }).join('');
+      return '<svg viewBox="0 0 ' + w + ' ' + (H + 22) + '" style="width:100%;max-width:' + (w * 1.6) + 'px;height:auto" role="img" aria-label="Weekly joined and cancellation requests">' +
+        '<text x="0" y="12" font-size="8" fill="var(--ink-3)">' + max + '</text><line x1="26" x2="' + w + '" y1="' + H + '" y2="' + H + '" stroke="var(--line)"/>' + g + '</svg>';
+    }
+    function famHtml(f) {
+      var k = f.kids.map(function (x) {
+        var tags = (x['Hub hold'] ? '<span class="pill">On hold</span>' : '') + (x['Flags'] ? '<span class="pill bad">' + esc(x['Flags']) + '</span>' : '') + (Number(x['Overdue']) > 0 ? '<span class="pill bad">Overdue $' + esc(x['Overdue']) + '</span>' : '');
+        return '<div class="kid"><b>' + esc(x['Student']) + '</b>' + (x['Age'] ? ' <span class="m">· ' + esc(x['Age']) + '</span>' : '') + tags +
+          '<div class="m">' + esc([x['School'], x['Groups']].filter(Boolean).join(' · ')) + '</div>' +
+          '<div class="m">Last trained ' + esc(nice(x['Last attended']) || '—') + (x['Days since'] !== undefined ? ' (' + esc(x['Days since']) + ' days ago)' : '') + ' · ' + esc(x['Classes this month'] || 0) + ' this month · ' + esc(x['Total classes'] || 0) + ' total' + (x['Enrolled on'] ? ' · joined ' + esc(nice(x['Enrolled on'])) : '') + '</div>' +
+          (x['Next amount'] !== undefined ? '<div class="m">Next EFC invoice ' + esc(nice(x['Next invoice'])) + ' · $' + esc(x['Next amount']) + '</div>' : '') + '</div>';
+      }).join('');
+      var hist = function (label, rows, fn) { return rows && rows.length ? '<div class="hist"><b>' + label + ':</b> ' + rows.map(fn).join(' · ') + '</div>' : ''; };
+      return '<div class="fam"><div class="h"><b>' + esc(f.parent || 'Family') + '</b><span>' + esc(f.mobile) + '</span><span>' + esc(f.email) + '</span></div>' + k +
+        hist('Holds', f.holds, function (h) { return esc((h['Status'] || '') + ' ' + nice(h['Freeze starts']) + ' to ' + nice(h['Freeze ends'])); }) +
+        hist('Cancellations', f.cancellations, function (c) { return esc((c['Status'] || '') + ', logged ' + nice(c['Logged at']) + (c['Last class'] ? ', last class ' + nice(c['Last class']) : '')); }) +
+        hist('Trials', f.trials, function (t) { return esc((t['Child'] || '') + ' ' + (t['Trial'] || '') + ' ' + (t['School'] || '')); }) +
+        hist('Joined', f.joined, function (n) { return esc((n['Students'] || '') + ' from ' + nice(n['Start date'])); }) +
+        (f.docs && f.docs.length ? '<div class="hist"><b>Documents:</b> ' + f.docs.length + '</div>' : '') +
+        (f.absent ? '<div class="hist"><b>Absentee follow-ups:</b> ' + f.absent + '</div>' : '') + '</div>';
+    }
+    $('findForm').onsubmit = function (e) {
+      e.preventDefault(); go('find'); var q = $('findQ').value.trim(), out = $('findOut'); out.innerHTML = '<p class="note">Searching…</p>';
+      api('amaos-dash', { act: 'find', q: q }).then(function (j) {
+        if (!j || !j.ok) { out.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Search failed.') + '</p>'; return; }
+        out.innerHTML = j.families.length ? j.families.map(famHtml).join('') + (j.more ? '<p class="note">More matches. Add more of the name or mobile to narrow it down.</p>' : '') : '<p class="note">No current EFC members match. (Families who have left are not in the nightly copy.)</p>';
+      }).catch(function () { out.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    };
+    var LT = { followup: { title: 'Trial follow-up', who: ['Child', 'Parent'], sub: ['Class', 'Location', 'Trial time'] }, newmembers: { title: 'New members', who: ['Family'], sub: ['Students', 'School'] },
+      holds: { title: 'Holds', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] }, cancels: { title: 'Cancellations', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] } };
+    var LS = { kind: '', data: null, q: '', st: 'All', sc: 'All' };
+    function loadList(kind) {
+      var el = $('tabList'); LS.kind = kind; LS.q = ''; LS.st = 'All'; LS.sc = 'All'; el.innerHTML = '<p class="note">Loading…</p>';
+      api('amaos-dash', { act: 'list', kind: kind }).then(function (j) { if (LS.kind !== kind) return;
+        if (!j || !j.ok) { el.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + (j && j.detail ? '<br><small>' + esc(j.detail) + '</small>' : '') + '</p>'; return; }
+        LS.data = j; drawList(); }).catch(function () { el.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function drawList() {
+      var j = LS.data, T = LT[j.kind], el = $('tabList'), stat = {}, q = LS.q.toLowerCase();
+      j.rows.forEach(function (r) { var s = String(r['Status'] || r['Attended'] || '').trim() || '—'; stat[s] = (stat[s] || 0) + 1; });
+      var sts = Object.keys(stat).sort(function (a, b) { return stat[b] - stat[a]; }).slice(0, 8);
+      var rows = j.rows.filter(function (r) { var s = String(r['Status'] || r['Attended'] || '').trim() || '—';
+        return (LS.st === 'All' || s === LS.st) && (LS.sc === 'All' || r._s === LS.sc) && (!q || JSON.stringify(r).toLowerCase().indexOf(q) > -1); });
+      var h = '<p class="note">' + esc(T.title) + ': ' + fmtN(j.total) + ' in the hub copy, newest first. Read-only; changes are still made in the hub.</p>' +
+        '<form class="srch" onsubmit="return false"><input id="lsQ" placeholder="Search names, mobile, notes" value="' + esc(LS.q) + '" autocomplete="off"></form>' +
+        '<div class="chips">' + ['All'].concat(sts).map(function (s) { return '<button type="button" class="chip" data-st="' + esc(s) + '" aria-pressed="' + (s === LS.st) + '">' + esc(s) + (s === 'All' ? '' : ' · ' + stat[s]) + '</button>'; }).join('') + '</div>' +
+        '<div class="chips">' + ['All', 'Marrickville', 'Concord', 'Sydenham', 'Auburn', 'Sylvania'].map(function (s) { return '<button type="button" class="chip" data-sc="' + s + '" aria-pressed="' + (s === LS.sc) + '">' + s + '</button>'; }).join('') + '</div>' +
+        '<p class="tsum">' + rows.length + ' shown</p>';
+      h += rows.slice(0, 200).map(function (r) {
+        var who = T.who.map(function (k) { return r[k]; }).filter(Boolean).join(' · ') || '—', sub = [nice(r._d)].concat(T.sub.map(function (k) { return r[k]; })).filter(Boolean).join(' · ');
+        var st = String(r['Status'] || r['Attended'] || '').trim();
+        return '<details class="row"><summary><span class="a">' + esc(who) + '</span><span class="b">' + esc(sub) + '</span>' + (st ? '<span class="c st">' + esc(st) + '</span>' : '') + '</summary><dl>' +
+          j.cols.filter(function (c) { return r[c] !== undefined && r[c] !== ''; }).map(function (c) { var v = r[c]; if (/^\d{4}-\d{2}-\d{2}T/.test(String(v))) v = /T00:00/.test(String(v)) ? nice(String(v).slice(0, 10)) : when(v); else if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) v = nice(v); return '<dt>' + esc(c) + '</dt><dd>' + esc(v === true ? 'Yes' : v === false ? 'No' : v) + '</dd>'; }).join('') + '</dl></details>';
+      }).join('') + (rows.length > 200 ? '<p class="note">Showing the newest 200. Search to narrow it down.</p>' : '');
+      el.innerHTML = h;
+      var qi = $('lsQ'); qi.oninput = function () { LS.q = qi.value; var pos = qi.selectionStart; drawList(); var n = $('lsQ'); n.focus(); n.setSelectionRange(pos, pos); };
+      Array.prototype.forEach.call(el.querySelectorAll('[data-st]'), function (b) { b.onclick = function () { LS.st = b.dataset.st; drawList(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-sc]'), function (b) { b.onclick = function () { LS.sc = b.dataset.sc; drawList(); }; });
+    }
+
+    function toPhone(v) { var d = String(v).replace(/\D/g, ''); if (/^04\d{8}$/.test(d)) return '+61' + d.slice(1); if (/^614\d{8}$/.test(d)) return '+' + d; return ''; }
+
+    function whoAmI() {
+      return sb.auth.getSession().then(function (r) {
+        var s = r.data && r.data.session; if (!s) { show('stepEmail'); pkGate(); return; }
+        var hdr = { Authorization: 'Bearer ' + s.access_token, apikey: C.supabaseAnonKey }; var su = getStep(); if (su) hdr['x-amaos-stepup'] = su; if (justSignedIn) { hdr['x-amaos-event'] = 'signin'; justSignedIn = false; }
+        return fetch(C.supabaseUrl + '/functions/v1/amaos-me', { method: 'POST', headers: hdr })
+          .then(function (res) { return res.json(); })
+          .then(function (j) {
+            if (!j.ok && j.mfa) { msg(''); return startMfa(j.passkeys || 0); }
+            if (!j.ok) { msg(j.error || 'Not allowed.', 'err'); sb.auth.signOut(); show('stepEmail'); return; }
+            idle(); $('pkAddBtn').hidden = true;
+            appStart(j);
+          });
+      }).catch(function () { msg('Could not reach AMA OS. Please try again.', 'err'); });
+    }
+
+    $('emailForm').onsubmit = function (e) {
+      e.preventDefault(); email = toPhone($('email').value);
+      if (!email) { msg('Enter your Australian mobile, e.g. 0412 345 678.', 'err'); return; }
+      var pin = $('pin').value.trim(); if (!pin) { msg('Enter your PIN.', 'err'); return; }
+      stopCond(); $('sendBtn').disabled = true; msg('Signing in…');
+      // One login for AMA OS and the Toolkit: the Toolkit's "hub" function checks the mobile + PIN
+      // against the hub (lockouts and Active status included) and returns a Supabase session.
+      fetch(C.supabaseUrl + '/functions/v1/hub', { method: 'POST', headers: { 'content-type': 'application/json', apikey: C.supabaseAnonKey },
+        body: JSON.stringify({ mobile: $('email').value.replace(/\D/g, ''), pin: pin }) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          $('pin').value = '';
+          if (!j || !j.ok || !j.session) { $('sendBtn').disabled = false; msg((j && j.error) || "That mobile and PIN didn't match.", 'err'); return; }
+          return sb.auth.setSession({ access_token: j.session.access_token, refresh_token: j.session.refresh_token }).then(function (r) {
+            $('sendBtn').disabled = false;
+            if (r.error) { msg('Signed in, but the session could not start. Please try again.', 'err'); return; }
+            justSignedIn = true; whoAmI();
+          });
+        })
+        .catch(function () { $('sendBtn').disabled = false; $('pin').value = ''; msg('Could not reach the sign-in service. Please try again.', 'err'); });
+    };
+    $('codeForm').onsubmit = function (e) {
+      e.preventDefault(); $('codeBtn').disabled = true; msg('Checking…');
+      sb.auth.verifyOtp({ phone: email, token: $('code').value.trim(), type: 'sms' }).then(function (r) {
+        $('codeBtn').disabled = false;
+        if (r.error) { msg("That code didn't work. Check it, or request a new one.", 'err'); return; }
+        whoAmI();
+      });
+    };
+    $('mfaForm').onsubmit = function (e) {
+      e.preventDefault(); $('mfaBtn').disabled = true; msg('Checking…');
+      sb.auth.mfa.challengeAndVerify({ factorId: mfaFactor, code: $('mfaCode').value.trim() }).then(function (r) {
+        $('mfaBtn').disabled = false;
+        if (r.error) { msg("That code didn't work. Check the time on your phone is set automatically, then try again.", 'err'); return; }
+        justSignedIn = true; whoAmI();
+      });
+    };
+    $('totpShowBtn').onclick = function () { startTotp(); };
+    $('pkUseBtn').onclick = function () {
+      $('pkUseBtn').disabled = true; msg('Waiting for your passkey…');
+      var setup = $('pkUseBtn').dataset.mode === 'setup';
+      (setup ? pk('reg-options').then(function (o) { if (!o.ok) throw new Error(o.error); return SimpleWebAuthnBrowser.startRegistration(o.options); })
+        .then(function (resp) { return pk('reg-verify', { response: resp, label: navigator.platform || 'device' }); })
+        .then(function (v) { if (!v.ok) throw new Error(v.error); $('pkUseBtn').dataset.mode = ''; msg('Passkey saved. Now confirm with it once.', 'ok'); }) : Promise.resolve())
+      .then(function () { return pk('login-options'); }).then(function (o) {
+        if (!o.ok) throw new Error(o.error);
+        return SimpleWebAuthnBrowser.startAuthentication(o.options);
+      }).then(function (resp) { return pk('login-verify', { response: resp }); })
+        .then(function (v) { $('pkUseBtn').disabled = false; if (!v.ok) throw new Error(v.error); setStep(v.stepup); justSignedIn = true; whoAmI(); })
+        .catch(function (e) { $('pkUseBtn').disabled = false; msg((e && e.message && !/NotAllowed|abort/i.test(e.name || '')) ? e.message : 'Passkey cancelled. Try again, or use your authenticator app.', 'err'); });
+    };
+    $('pkAddBtn').onclick = function () {
+      $('pkAddBtn').disabled = true; msg('Follow the prompt on your device…');
+      pk('reg-options').then(function (o) {
+        if (!o.ok) throw new Error(o.error);
+        return SimpleWebAuthnBrowser.startRegistration(o.options);
+      }).then(function (resp) { return pk('reg-verify', { response: resp, label: navigator.platform || 'device' }); })
+        .then(function (v) { $('pkAddBtn').disabled = false; if (!v.ok) throw new Error(v.error); $('pkAddBtn').hidden = true; msg('Passkey added. Next time, confirm with Face ID or your fingerprint.', 'ok'); })
+        .catch(function (e) { $('pkAddBtn').disabled = false; msg((e && e.message && !/NotAllowed|abort/i.test(e.name || '')) ? e.message : 'Passkey set-up cancelled.', 'err'); });
+    };
+    $('backBtn').onclick = function () { show('stepEmail'); msg(''); };
+    $('outBtn').onclick = function () { try { sessionStorage.removeItem('amaosDash'); } catch (e) {} setStep(''); sb.auth.signOut().then(function () { show('stepEmail'); msg('Signed out.'); pkGate(); }); };
+
+    whoAmI();
+  })();
+  </script>
 </body>
 </html>
