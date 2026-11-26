@@ -1,0 +1,21 @@
+# Read-only check of what the AMA OS database login can use (extensions, timers). Prints no secrets.
+name: AMA OS db check
+on: { workflow_dispatch: {} }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      PGHOST: ${{ vars.SUPABASE_DB_HOST || 'aws-0-ap-southeast-2.pooler.supabase.com' }}
+      PGPORT: '5432'
+      PGDATABASE: postgres
+      PGUSER: ama_os_app.ptdrcxngaptcgswfbjhg
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGSSLMODE: require
+    steps:
+      - run: sudo apt-get install -y -qq postgresql-client >/dev/null
+      - run: |
+          psql -c "select name, installed_version, default_version from pg_available_extensions where name in ('pg_cron','pg_net','http','supabase_vault')"
+          psql -c "select current_user, rolsuper, rolcreaterole from pg_roles where rolname = current_user"
+          psql -c "select has_schema_privilege('cron','usage') cron_usage" || true
+          psql -c "select has_schema_privilege('net','usage') net_usage, has_function_privilege('net.http_post(text,jsonb,jsonb,jsonb,integer)','execute') net_post" || true
+          psql -c "select jobid, schedule, jobname, username, active from cron.job" || true
