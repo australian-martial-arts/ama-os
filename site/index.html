@@ -187,6 +187,8 @@
       <section id="tabPk" hidden></section>
       <section id="tabAppr" hidden></section>
       <section id="tabDay" hidden></section>
+      <section id="tabChk" hidden></section>
+      <section id="tabReq" hidden></section>
     </div>
   </div>
 
@@ -267,9 +269,9 @@
     var ME = { name: '', role: '', first: '' };
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
-      myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
+      myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
       book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
-      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
+      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
       ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
@@ -295,10 +297,12 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'checkday') { $('tabChk').hidden = false; loadChk(); window.scrollTo(0, 0); }
+      else if (view === 'requests') { $('tabReq').hidden = false; loadReq(); window.scrollTo(0, 0); }
       else if (view === 'myday') { $('tabDay').hidden = false; loadDay(false); window.scrollTo(0, 0); }
       else if (view === 'approvals') { $('tabAppr').hidden = false; loadAppr(); window.scrollTo(0, 0); }
       else if (view === 'passkeys') { $('tabPk').hidden = false; loadPasskeys(); window.scrollTo(0, 0); }
@@ -308,7 +312,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -525,8 +529,77 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
       var f = box.querySelector('.tform'); if (f) wireChk(f);
     }
+    /* After-trial check (preview on Mark's login): the hub's own check list per school and day; saved by the hub
+       (a No-show sends the hub's usual text, once). Instructors only see the schools they're rostered at, as in the hub. */
+    var CK = { loc: 'Marrickville', date: '', open: '', pick: {} };
+    function ymdAdd(d, n) { var x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); }
+    function loadChk() {
+      var el = $('tabChk'); if (!CK.date) CK.date = new Date(Date.now() + 11 * 36e5).toISOString().slice(0, 10);
+      el.innerHTML = '<h2 class="sec">After-trial check</h2><div class="chips">' + ['Marrickville', 'Concord', 'Sydenham', 'Auburn', 'Sylvania'].map(function (l) { return '<button type="button" class="chip" data-cl="' + l + '" aria-pressed="' + (l === CK.loc) + '">' + l + '</button>'; }).join('') + '</div>' +
+        '<div class="chips"><button type="button" class="chip" data-cd="-1">&#8592; Day before</button><span class="tsum" style="margin:8px 6px">' + esc(nice(CK.date)) + '</span><button type="button" class="chip" data-cd="1">Next day &#8594;</button></div><div id="ckBody"><p class="note">Loading…</p></div>';
+      Array.prototype.forEach.call(el.querySelectorAll('[data-cl]'), function (b) { b.onclick = function () { CK.loc = b.dataset.cl; CK.open = ''; loadChk(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-cd]'), function (b) { b.onclick = function () { CK.date = ymdAdd(CK.date, +b.dataset.cd); CK.open = ''; loadChk(); }; });
+      hubAct({ kind: 'check', loc: CK.loc, date: CK.date }).then(function (j) { CK.data = j; drawChk(); }).catch(function () { $('ckBody').innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
+    function drawChk() {
+      var j = CK.data, box = $('ckBody'); if (!box) return;
+      if (!j || !j.ok) { box.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var T = j.trials || [];
+      if (!T.length) { box.innerHTML = '<div class="box"><p>No trials at ' + esc(CK.loc) + ' on this day.</p></div>'; return; }
+      box.innerHTML = '<div class="trials">' + T.map(function (t) {
+        var st = t.auto || (t.attended === 'Absent' ? 'No-show' : t.attended) || '', recd = t.rec === 'Yes' ? ' · Rec sent' : '';
+        var h = '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.child || t.parent) + (t.num ? '<span class="tnum">' + esc(t.num) + '</span>' : '') + (t.promo ? '<span class="tpill">' + esc(t.promo) + '</span>' : '') + '</b><span>' + esc(t.cls || '') + (t.parent ? ' · ' + esc(t.parent) : '') + (t.by ? ' · checked by ' + esc(t.by) : '') + '</span></div>' +
+          '<div class="tright">' + (st ? '<div class="st">' + esc(st + recd) + '</div>' : '') + (t.promo ? '' : '<button type="button" class="chip" data-ck="' + esc(t.id) + '">' + (t.attended ? 'Edit' : 'Check') + '</button>') + '</div></div>';
+        if (CK.open === t.id) {
+          var a = CK.pick.att || t.attended || '', r = CK.pick.rec != null ? CK.pick.rec : (t.rec || '');
+          var opt = function (k, v, lab, cur) { return '<button type="button" class="chip" data-' + k + '="' + v + '" aria-pressed="' + (cur === v) + '">' + lab + '</button>'; };
+          h += '<div class="tform"><div class="chips">' + opt('a', 'Attended', 'Attended', a) + opt('a', 'Absent', 'No-show', a) + opt('a', 'Rebooked', 'Rebooked', a) + '</div>' +
+            (a === 'Absent' && t.attended !== 'Absent' ? '<p class="note" style="margin:4px 0 8px">The hub sends the family its usual no-show text (once).</p>' : '') +
+            (a === 'Attended' ? '<div class="tsum">Recommendation sent?</div><div class="chips">' + opt('r', 'Yes', 'Yes', r) + opt('r', 'No', 'Not yet', r) + opt('r', 'Later', 'Later', r) + '</div>' : '') +
+            '<textarea class="tnote" rows="2" maxlength="1000" placeholder="Notes">' + esc(t.notes || '') + '</textarea>' +
+            '<div class="chips"><button type="button" class="btn ck-save"' + (a ? '' : ' disabled') + ' style="width:auto;padding:10px 18px">Save</button><button type="button" class="link ck-x">Cancel</button></div><p class="tmsg note"></p></div>';
+        }
+        return h; }).join('') + '</div>';
+      Array.prototype.forEach.call(box.querySelectorAll('[data-ck]'), function (b) { b.onclick = function () { CK.open = CK.open === b.dataset.ck ? '' : b.dataset.ck; CK.pick = {}; drawChk(); }; });
+      var f = box.querySelector('.tform'); if (!f) return;
+      var t = T.filter(function (x) { return x.id === CK.open; })[0];
+      Array.prototype.forEach.call(f.querySelectorAll('[data-a]'), function (b) { b.onclick = function () { CK.pick.att = b.dataset.a; CK.pick.notes = f.querySelector('.tnote').value; drawChk(); }; });
+      Array.prototype.forEach.call(f.querySelectorAll('[data-r]'), function (b) { b.onclick = function () { CK.pick.rec = b.dataset.r; CK.pick.notes = f.querySelector('.tnote').value; drawChk(); }; });
+      if (CK.pick.notes != null) f.querySelector('.tnote').value = CK.pick.notes;
+      f.querySelector('.ck-x').onclick = function () { CK.open = ''; CK.pick = {}; drawChk(); };
+      f.querySelector('.ck-save').onclick = function () {
+        var att = CK.pick.att || t.attended, rec = att === 'Attended' ? (CK.pick.rec != null ? CK.pick.rec : (t.rec || '')) : '', notes = f.querySelector('.tnote').value, m = f.querySelector('.tmsg'), sb2 = f.querySelector('.ck-save');
+        sb2.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'checksave', loc: CK.loc, date: CK.date, id: t.id, attended: att, rec: rec, notes: notes }).then(function (r) {
+          if (!r || !r.ok) { sb2.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; return; }
+          t.attended = att; t.rec = rec; t.notes = notes; t.by = ME.name; CK.open = ''; CK.pick = {}; drawChk();
+          try { sessionStorage.removeItem('amaosDash'); } catch (e) {}
+        }).catch(function () { sb2.disabled = false; m.textContent = 'Could not reach AMA OS. Please try again.'; });
+      };
+    }
+    /* Requests to log (preview on Mark's login): hold and cancellation requests that came in by email or text, from the hub. */
+    function loadReq() {
+      var el = $('tabReq'); el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="note">Loading…</p>';
+      hubAct({ kind: 'reqlist' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var O = j.open || [], R = j.recent || [];
+        var card = function (r, open) {
+          return '<div class="box rq" data-id="' + esc(r.id) + '" style="margin:8px 0"><div class="chips" style="margin:0 0 4px"><span class="chip" aria-pressed="true">' + esc(r.type === 'hold' ? 'Hold' : r.type === 'cancel' ? 'Cancellation' : (r.type || 'Request')) + '</span><span class="tsum" style="margin:6px 0 0 4px">' + esc(r.at || '') + (r.source ? ' · ' + esc(r.source) : '') + '</span></div>' +
+            '<b>' + esc(r.from || '') + '</b>' + (r.students || r.school ? '<p class="tsum" style="margin:2px 0">' + esc([r.students, r.school].filter(Boolean).join(' · ')) + '</p>' : '') + (r.summary ? '<p style="margin:6px 0;white-space:pre-wrap">' + esc(String(r.summary).slice(0, 600)) + '</p>' : '') +
+            (open ? '<div class="chips"><button type="button" class="chip" data-ra="logged">Logged in the hub</button><button type="button" class="chip" data-ra="agreed">Agreed by email</button><button type="button" class="chip" data-ra="stayed">Staying</button><button type="button" class="chip" data-ra="notreq">Not a request</button><a class="chip" href="' + HUB_URL + '#cxlist" target="_blank" rel="noopener">Log it in the hub &#8599;</a></div><p class="tmsg note" style="margin:6px 0 0"></p>'
+              : '<p class="tsum">' + esc(r.status || '') + (r.by ? ' by ' + esc(r.by) : '') + (r.done ? ', ' + esc(r.done) : '') + '</p>') + '</div>';
+        };
+        el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="note">Hold and cancellation requests that arrived by email or text. Log the hold or cancellation in the hub, then mark it here. Saved by the hub.</p>' +
+          (O.length ? O.map(function (r) { return card(r, true); }).join('') : '<div class="box"><p>No requests waiting.</p></div>') +
+          (R.length ? '<div class="tday" style="margin-top:16px">Done in the last 14 days</div>' + R.map(function (r) { return card(r, false); }).join('') : '');
+        Array.prototype.forEach.call(el.querySelectorAll('.rq [data-ra]'), function (b) { b.onclick = function () {
+          var c = b.closest('.rq'), m = c.querySelector('.tmsg'); Array.prototype.forEach.call(c.querySelectorAll('button'), function (x) { x.disabled = true; }); m.textContent = 'Saving…';
+          hubAct({ kind: 'reqact', id: c.dataset.id, act: b.dataset.ra }).then(function (r) { if (r && r.ok) { m.textContent = 'Done.'; c.style.opacity = '.5'; } else { m.textContent = (r && r.error) || 'Not saved.'; Array.prototype.forEach.call(c.querySelectorAll('button'), function (x) { x.disabled = false; }); } });
+        }; });
+      }).catch(function () { el.innerHTML = '<h2 class="sec">Requests to log</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
     /* My Day (preview on Mark's login): the hub's own "Your work today" list, ticks saved by the hub. */
-    var HUBMAP = { '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'today', '#grading': 'list:grading', '#promos': 'list:promos' };
+    var HUBMAP = { '#cxlist': 'requests', '#holds': 'list:holds', '#cancels': 'list:cancels', '#close': 'list:close', '#absent': 'list:absent', '#newmembers': 'list:newmembers', '#trials': 'list:followup', '#check': 'checkday', '#grading': 'list:grading', '#promos': 'list:promos' };
     function openHref(u) { u = String(u || ''); if (!u) return; if (/^https?:/.test(u)) { window.open(u, '_blank', 'noopener'); return; } var k = u.split('?')[0]; if (HUBMAP[k]) return go(HUBMAP[k]); window.open(HUB_URL + u, '_blank', 'noopener'); }
     function loadDay(fresh) {
       var el = $('tabDay'); if (!el.innerHTML || fresh) el.innerHTML = '<h2 class="sec">My Day</h2><p class="note">Loading your work…</p>';
