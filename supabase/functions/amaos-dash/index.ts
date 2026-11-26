@@ -10,6 +10,7 @@ import { sha256 } from "../_shared/amaos.ts";
 import { absentFamilies, cancelsToAction, holdsToAction, needsReplyCheck, newMemberCalls, replyOpen } from "../_shared/flows.ts";
 
 let refreshKeyHash = "", refreshKeyAt = 0, bgQueue: Promise<unknown> = Promise.resolve();
+const HUB_PREVIEW = ["mark"], HUB_KINDS = ["approvals", "apprhold", "cxapprove", "traindecide", "mywork"];
 const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
 const MGMT = ["mark", "sarah", "hakan", "ridvan"];
 const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
@@ -291,6 +292,18 @@ Deno.serve(async (req) => {
       const rows = await sql`select key, name, what, hub_trigger, owner, moved_at, moved_by from ama_os.automations order by owner desc, name`;
       return json({ ok: true, sending: sw[0]?.value ?? "off", list: rows });
     }
+    if (b.act === "hub") {
+      // 27 Nov 2026: hub actions run AS this staff member through the hub (its permissions, texts and logs apply). Preview on Mark's login first.
+      if (!HUB_PREVIEW.includes(me.first)) return json({ ok: false, error: "Not switched on for you yet." }, 403);
+      const body = (b as { body?: Record<string, unknown> }).body ?? {}, kind = String(body.kind ?? "");
+      if (!HUB_KINDS.includes(kind)) return json({ ok: false, error: "Not available in AMA OS yet." });
+      const key = Deno.env.get("AMAOS_SYNC_KEY") ?? ""; if (!key) return json({ ok: false, error: "AMA OS can't reach the hub yet (no sync key)." });
+      const r = await fetch(HUB_EXEC, { method: "POST", headers: { "content-type": "application/json" }, redirect: "follow",
+        body: JSON.stringify({ kind: "amaoswrite", key, who: me.name, act: "route", mobile: String(me.login ?? ""), body }) });
+      const out = await r.json().catch(() => ({ ok: false, error: "The hub didn't answer properly (" + r.status + ")." })) as Record<string, unknown>;
+      if (kind !== "approvals" && kind !== "mywork") await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body, ok: !!out.ok, error: out.error ?? null } as never)})`;
+      return json(out);
+    }
     if (b.act === "checksave") {
       // Preview on Mark's login only (26 Nov 2026). Saved by the hub, exactly as if done in the hub.
       if (me.first !== "mark") return json({ ok: false, error: "Not switched on for you yet." }, 403);
@@ -322,7 +335,7 @@ Deno.serve(async (req) => {
       await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, 'lookup', ${sql.json({ q })})`;
       return json({ ok: true, ...(await find(q, money)) });
     }
-    return json({ ok: true, me: { name: me.name, role: me.role, check: me.first === "mark" }, ...(await dashFast(money)) });
+    return json({ ok: true, me: { name: me.name, role: me.role, check: me.first === "mark", hub: HUB_PREVIEW.includes(me.first) }, ...(await dashFast(money)) });
   } catch (e) {
     return json({ ok: false, error: "Something went wrong. Please try again.", detail: String((e as Error).message ?? e).slice(0, 200) }, 500);
   }

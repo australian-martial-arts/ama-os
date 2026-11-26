@@ -185,6 +185,7 @@
       <section id="tabConn" hidden></section>
       <section id="tabAuto" hidden></section>
       <section id="tabPk" hidden></section>
+      <section id="tabAppr" hidden></section>
     </div>
   </div>
 
@@ -265,7 +266,7 @@
     var ME = { name: '', role: '', first: '' };
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
-      myday: { l: 'My Day', h: '#myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check' }, appr: { l: 'Approvals', h: '' },
+      myday: { l: 'My Day', h: '#myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
       book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
@@ -285,7 +286,7 @@
       GROUPS.forEach(function (g) {
         var ids = g[1].filter(function (id) { var x = I[id]; return x && (!x.can || x.can()); }); if (!ids.length) return;
         h += '<div class="sd-h">' + esc(g[0]) + '</div>' + ids.map(function (id) {
-          var x = I[id], n = x.n && N[x.n] ? N[x.n] : 0, on = x.os && (CUR === x.os || (x.os === 'today' && CUR === 'home' && false));
+          var x = Object.assign({}, I[id]); if (x.os2 && DJ && DJ.me && DJ.me.hub) x.os = x.os2; var n = x.n && N[x.n] ? N[x.n] : 0, on = x.os && (CUR === x.os || (x.os === 'today' && CUR === 'home' && false));
           return '<button type="button" class="sd-i' + (on ? ' on' : '') + (x.os || x.x ? '' : ' hub') + '" data-id="' + id + '" title="' + esc(x.os ? x.l : x.x ? x.l + ' (opens in a new tab)' : x.l + ' (still in the hub)') + '"><i>' + esc(ini(x.l)) + '</i><span>' + esc(x.l) + '</span>' + (x.os ? (n ? '<em>' + n + '</em>' : '') : x.x ? '<em class="ext">&#8599;</em>' : '<em>Hub</em>') + '</button>';
         }).join('');
       });
@@ -293,10 +294,11 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'approvals') { $('tabAppr').hidden = false; loadAppr(); window.scrollTo(0, 0); }
       else if (view === 'passkeys') { $('tabPk').hidden = false; loadPasskeys(); window.scrollTo(0, 0); }
       else if (view === 'autos') { $('tabAuto').hidden = false; loadAutos(); window.scrollTo(0, 0); }
       else if (view === 'conns') { $('tabConn').hidden = false; loadConns(); window.scrollTo(0, 0); }
@@ -304,14 +306,14 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
     $('nav').addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
       if (b.dataset.go) return go(b.dataset.go);
-      var x = I[b.dataset.id]; if (!x) return; if (x.x) { window.open(x.x, '_blank', 'noopener'); return; } if (x.os) go(x.os); else hubCard(b.dataset.id);
+      var x = I[b.dataset.id]; if (!x) return; if (x.os2 && DJ && DJ.me && DJ.me.hub) return go(x.os2); if (x.x) { window.open(x.x, '_blank', 'noopener'); return; } if (x.os) go(x.os); else hubCard(b.dataset.id);
     });
     $('menuBtn').onclick = function () { document.body.classList.toggle('menu'); };
     $('scrim').onclick = function () { document.body.classList.remove('menu'); };
@@ -520,6 +522,35 @@
       Array.prototype.forEach.call(box.querySelectorAll('[data-l]'), function (b) { b.onclick = function () { trialLoc = b.dataset.l; renderTrials(); }; });
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
       var f = box.querySelector('.tform'); if (f) wireChk(f);
+    }
+    /* Approvals (preview on Mark's login): the hub's own approvals list and buttons, run as you through the hub. */
+    function hubAct(body) { return api('amaos-dash', { act: 'hub', body: body }); }
+    function loadAppr() {
+      var el = $('tabAppr'); el.innerHTML = '<h2 class="sec">Approvals</h2><p class="note">Loading what is waiting on you…</p>';
+      hubAct({ kind: 'approvals' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Approvals</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        var items = j.items || [];
+        el.innerHTML = '<h2 class="sec">Approvals</h2><p class="note">Saved by the hub exactly as if you tapped it there: the same texts go to families, once.</p>' +
+          (items.length ? items.map(function (a, i) {
+            return '<div class="box apc" data-i="' + i + '"><div class="chips" style="margin:0 0 6px"><span class="chip" aria-pressed="true">' + esc(a.area || '') + '</span>' + (a.complaint ? '<span class="chip" style="color:var(--err)">Complaint</span>' : '') + (a.age != null ? '<span class="tsum" style="margin:6px 0 0 4px">' + esc(a.age === 0 ? 'today' : a.age === 1 ? '1 day' : a.age + ' days') + '</span>' : '') + '</div>' +
+              '<b style="font-size:16px">' + esc(a.title || '') + '</b><p style="margin:6px 0">' + esc(a.detail || '') + '</p>' + (a.words ? '<p class="note" style="margin:0 0 8px;font-style:italic">' + esc(a.words) + '</p>' : '') +
+              (a.open ? '<a class="btn" href="' + HUB_URL + '" target="_blank" rel="noopener" style="width:auto;display:inline-block">' + esc(a.open) + ' (in the hub)</a>'
+                : '<div class="chips"><button type="button" class="btn ay" style="width:auto;padding:10px 18px">' + esc(a.yes || 'Approve') + '</button><button type="button" class="chip an">' + esc(a.no || 'Decline') + '</button></div>') +
+              '<p class="tmsg note" style="margin:8px 0 0"></p></div>'; }).join('') : '<div class="box"><p>Nothing is waiting on you.</p></div>');
+        Array.prototype.forEach.call(el.querySelectorAll('.apc'), function (c) {
+          var a = items[+c.dataset.i], m = c.querySelector('.tmsg');
+          var act = function (yes) {
+            if (!yes && !confirm('Decline this? The hub will act on it straight away.')) return;
+            Array.prototype.forEach.call(c.querySelectorAll('button'), function (x) { x.disabled = true; }); m.textContent = 'Saving through the hub…';
+            var body = a.kind === 'train' ? { kind: 'traindecide', id: a.id, yes: yes } : a.kind === 'cancel' ? { kind: 'cxapprove', id: a.id, yes: yes } : { kind: 'apprhold', id: a.id, yes: yes };
+            hubAct(body).then(function (r) {
+              if (r && r.ok) { m.textContent = 'Done.'; c.style.opacity = '.5'; }
+              else { m.textContent = (r && r.error) || 'Not saved.'; Array.prototype.forEach.call(c.querySelectorAll('button'), function (x) { x.disabled = false; }); }
+            }).catch(function () { m.textContent = 'Could not reach AMA OS. Please try again.'; Array.prototype.forEach.call(c.querySelectorAll('button'), function (x) { x.disabled = false; }); });
+          };
+          var y = c.querySelector('.ay'), n = c.querySelector('.an'); if (y) y.onclick = function () { act(true); }; if (n) n.onclick = function () { act(false); };
+        });
+      }).catch(function () { el.innerHTML = '<h2 class="sec">Approvals</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     }
     /* After-trial check (preview on Mark's login): saved by the hub, exactly as in the hub's after-trial check. */
     var chkOpen = '', chkPick = {};
