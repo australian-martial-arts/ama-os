@@ -173,6 +173,7 @@
       <section id="tabList" hidden></section>
       <section id="tabFind" hidden><h2 class="sec">Find a family</h2><div id="findOut"><p class="note">Search by student, parent, mobile, email or EFC reference in the bar above. Read-only; each search is logged.</p></div></section>
       <section id="tabHub" hidden></section>
+      <section id="tabConn" hidden></section>
     </div>
   </div>
 
@@ -252,7 +253,7 @@
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', h: '' },
       mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff management', h: '', can: isMgmt }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
       marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', h: '', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
-      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', h: '', can: isMgmt }
+      stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }
     };
     var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
       ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
@@ -272,15 +273,16 @@
     }
     function go(view) {
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
+      else if (view === 'conns') { $('tabConn').hidden = false; loadConns(); window.scrollTo(0, 0); }
       else if (view.indexOf('list:') === 0) { $('tabList').hidden = false; loadList(view.slice(5)); window.scrollTo(0, 0); }
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -294,6 +296,23 @@
     function themeLabel() { $('themeBtn').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Light' : 'Dark'; }
     $('themeBtn').onclick = function () { var d = document.documentElement.getAttribute('data-theme') === 'dark'; if (d) document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', 'dark');
       try { localStorage.setItem('amaosTheme', d ? 'light' : 'dark'); } catch (e) {} themeLabel(); };
+    /* Connections (owners): AMA OS's own EFC and GHL keys. Saved privately, never shown again. */
+    function loadConns() {
+      var el = $('tabConn'); el.innerHTML = '<h2 class="sec">Connections</h2><p class="note">Loading…</p>';
+      api('amaos-conn', { act: 'list' }).then(function (j) {
+        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Connections</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+        el.innerHTML = '<h2 class="sec">Connections</h2><p class="note">AMA OS\'s own keys for EFC and GHL, so it reads straight from them, not through the hub. A saved key is never shown again, here or anywhere. The quickest way: in the hub, open Business → Connections and tap <b>Send EFC and GHL keys to AMA OS</b>.</p>' +
+          j.list.map(function (c) { return '<div class="box" data-n="' + esc(c.name) + '"><h3>' + esc(c.label) + '</h3><p class="note" style="margin-bottom:8px">' + (c.set ? 'Saved by ' + esc(c.by) + ', ' + esc(when(c.at)) : 'Not set yet') + '</p>' +
+            '<form class="srch" style="margin:0"><input type="password" autocomplete="off" placeholder="' + (c.set ? 'Paste a new key to replace it' : 'Paste the key') + '"><button class="btn" type="submit">Save</button><button class="chip" type="button" data-t="1">Test</button></form><p class="tsum" data-r="1" style="margin-top:8px"></p></div>'; }).join('');
+        Array.prototype.forEach.call(el.querySelectorAll('[data-n]'), function (box) {
+          var n = box.dataset.n, out = box.querySelector('[data-r]'), inp = box.querySelector('input');
+          var show = function (r) { out.textContent = r.result || r.error || ''; out.style.color = r.ok ? 'var(--ok)' : 'var(--err)'; };
+          box.querySelector('form').onsubmit = function (e) { e.preventDefault(); var v = inp.value.trim(); if (!v) return; out.textContent = 'Saving…'; out.style.color = '';
+            api('amaos-conn', { act: 'set', name: n, value: v }).then(function (r) { inp.value = ''; show(r); if (r.ok !== undefined) setTimeout(loadConns, 1500); }); };
+          box.querySelector('[data-t]').onclick = function () { out.textContent = 'Testing…'; out.style.color = ''; api('amaos-conn', { act: 'test', name: n }).then(show); };
+        });
+      }).catch(function () { el.innerHTML = '<h2 class="sec">Connections</h2><p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
+    }
     function appStart(j) {
       ME = { name: j.name, role: j.role, first: String(j.name || '').trim().split(/\s+/)[0].toLowerCase() };
       $('whoName').textContent = j.name; $('whoRole').textContent = (ROLE[j.role] || j.role); $('barName').textContent = String(j.name || '').split(' ')[0];
