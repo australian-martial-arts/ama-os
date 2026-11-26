@@ -266,18 +266,18 @@
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
       myday: { l: 'My Day', h: '#myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check' }, appr: { l: 'Approvals', h: '' },
-      book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', h: '#close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
-      absent: { l: 'Absent follow-up', h: '#absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
-      attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', h: '#promos' }, grading: { l: 'Gradings', h: '#grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
+      book: { l: 'Book a trial', h: '#book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals' },
+      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo' },
+      attendance: { l: 'Live attendance', h: '#attendance' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties' }, camp: { l: 'Holiday camp', h: '#camp' }, privates: { l: 'Private lessons', h: '' }, shop: { l: 'Shop and stock', h: '#stock' },
       ihub: { l: 'Instructor Hub', h: '' }, revcal: { l: 'My review calendar', h: '' }, playbook: { l: 'AMA Playbook', h: '' }, clock: { l: 'Clock on', h: '' }, shifts: { l: 'Extra shifts', h: '#shifts' }, efc: { l: 'Log into EFC', h: '' }, ghl: { l: 'Log into GHL', h: '' },
       pay: { l: 'Roster, leave and pay', h: '', can: isMgmt }, epb: { l: 'Employment packs', h: '' }, hubreq: { l: 'Hub change requests', h: '#hubreq' }, toolkit: { l: 'AMA Toolkit', h: '' },
-      mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff management', h: '', can: isMgmt }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
-      marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', h: '', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
+      mgmtd: { l: 'Management dashboard', os: 'mgmt', can: isMgmt }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', can: isMgmt }, sales: { l: 'Sales', h: '#sales', can: isMgmt },
+      marketing: { l: 'Marketing', h: '#marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', can: isMgmt },
       stars: { l: 'AMA Stars', h: '', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
     };
     var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
       ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
-      ['Business', ['mgmtd', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns', 'autos']]];
+      ['Business', ['mgmtd', 'students', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns', 'autos']]];
     var CUR = 'home';
     function ini(l) { var w = l.replace(/[^A-Za-z ]/g, '').split(/\s+/).filter(Boolean); return (((w[0] || '')[0] || '') + ((w[1] || '')[0] || '')).toUpperCase(); }
     function navBuild() {
@@ -467,7 +467,7 @@
         var wkTrials = tr.filter(function (t) { return t.t >= sod.getTime() - 6 * 864e5 && t.t < sod.getTime() + 864e5 && !t.walkin; }).length;
         var nc = function (n, l, go2, hot) { return '<button type="button" class="nc' + (n > 0 ? (hot ? ' hot' : ' warn') : '') + '" data-go2="' + go2 + '"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></button>'; };
         var h = '<h2 class="sec">Needs you now</h2><div class="now">' + nc(toFinish, 'Trials to finish', 'today', true) + nc(N.holds || 0, 'Holds to action', 'list:holds') + nc(N.cancels || 0, 'Cancels to action', 'list:cancels') +
-          nc(N.newmem || 0, 'New members (first 90 days)', 'list:newmembers') + (N.absreply == null ? '' : nc(N.absreply, 'Absent replies', 'hub:absent')) + '</div>';
+          nc(N.newmem || 0, 'New members (first 90 days)', 'list:newmembers') + (N.absreply == null ? '' : nc(N.absreply, 'Absent replies', 'list:absent')) + '</div>';
         var wc = function (n, l) { return '<div class="wc"><b>' + fmtN(n) + '</b><span>' + esc(l) + '</span></div>'; };
         h += '<h2 class="sec">This week <small>' + esc(nice(W.from)) + ' – ' + esc(nice(W.to)) + '</small></h2><div class="wk">' + wc(wkTrials, 'Trials') + wc(W.joined || 0, 'Joined') + wc(W.holds || 0, 'Hold requests') + wc(W.cancelled || 0, 'Cancellation requests') + wc(W.members || 0, 'Active students') + '</div>';
         h += '<div class="box tcard" id="osTrialsBox"></div><p class="note">' + (j.membersLive ? 'Members straight from EFC (' + esc(when(j.membersAt)) + '); holds, cancels and follow-ups from the hub copy taken ' : 'Counts come from the hub copy taken ') + esc(when(j.syncedAt) || 'overnight') + '; trials ' + (j.trialsLive ? 'straight from GHL' : 'from GHL via the hub every 10 minutes') + '. Read-only: the hub is still the master.</p>';
@@ -586,7 +586,11 @@
       }).catch(function () { out.innerHTML = '<p class="msg err">Could not reach AMA OS. Please try again.</p>'; });
     };
     var LT = { followup: { title: 'Trial follow-up', who: ['Child', 'Parent'], sub: ['Class', 'Location', 'Trial time'] }, newmembers: { title: 'New members', who: ['Family'], sub: ['Students', 'School'] },
-      holds: { title: 'Holds', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] }, cancels: { title: 'Cancellations', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] } };
+      holds: { title: 'Holds', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] }, cancels: { title: 'Cancellations', who: ['Account holder'], sub: ['Students', 'Trains at', 'Reason'] },
+      close: { title: 'Close the sale', who: ['Family'], sub: ['Students', 'School', 'Recommended by'], st: 'Outcome' }, absent: { title: 'Absent follow-up', who: ['First name', 'Last name'], sub: ['School', 'Days absent'], join: ' ' },
+      grading: { title: 'Little Dragons gradings', who: ['Student'], sub: ['School', 'Current belt', 'Going for'] }, promos: { title: 'Promotions', who: ['Name'], sub: ['Length', 'Schools'] },
+      mediaopt: { title: 'Media opt-outs', who: ['Student'], sub: ['School', 'Photo', 'Form'] }, staff: { title: 'Staff', who: ['Name'], sub: ['Position', 'Role', 'Areas'], st: 'Active' },
+      students: { title: 'Students (EFC)', who: ['Student'], sub: ['School', 'Groups', 'Days since'], st: 'Flags', from: 'EFC, refreshed every 10 minutes' } };
     var LS = { kind: '', data: null, q: '', st: 'All', sc: 'All' };
     function loadList(kind) {
       var el = $('tabList'); LS.kind = kind; LS.q = ''; LS.st = 'All'; LS.sc = 'All'; el.innerHTML = '<p class="note">Loading…</p>';
@@ -596,18 +600,19 @@
     }
     function drawList() {
       var j = LS.data, T = LT[j.kind], el = $('tabList'), stat = {}, q = LS.q.toLowerCase();
-      j.rows.forEach(function (r) { var s = String(r['Status'] || r['Attended'] || '').trim() || '—'; stat[s] = (stat[s] || 0) + 1; });
+      var SK = function (r) { return String((T.st ? r[T.st] : (r['Status'] || r['Attended'])) || '').trim(); };
+      j.rows.forEach(function (r) { var s = SK(r) || '—'; stat[s] = (stat[s] || 0) + 1; });
       var sts = Object.keys(stat).sort(function (a, b) { return stat[b] - stat[a]; }).slice(0, 8);
-      var rows = j.rows.filter(function (r) { var s = String(r['Status'] || r['Attended'] || '').trim() || '—';
+      var rows = j.rows.filter(function (r) { var s = SK(r) || '—';
         return (LS.st === 'All' || s === LS.st) && (LS.sc === 'All' || r._s === LS.sc) && (!q || JSON.stringify(r).toLowerCase().indexOf(q) > -1); });
-      var h = '<p class="note">' + esc(T.title) + ': ' + fmtN(j.total) + ' in the hub copy, newest first. Read-only; changes are still made in the hub.</p>' +
+      var h = '<p class="note">' + esc(T.title) + ': ' + fmtN(j.total) + (T.from ? ' from ' + esc(T.from) : ' in the hub copy') + ', newest first. Read-only; changes are still made in the hub.</p>' +
         '<form class="srch" onsubmit="return false"><input id="lsQ" placeholder="Search names, mobile, notes" value="' + esc(LS.q) + '" autocomplete="off"></form>' +
         '<div class="chips">' + ['All'].concat(sts).map(function (s) { return '<button type="button" class="chip" data-st="' + esc(s) + '" aria-pressed="' + (s === LS.st) + '">' + esc(s) + (s === 'All' ? '' : ' · ' + stat[s]) + '</button>'; }).join('') + '</div>' +
         '<div class="chips">' + ['All', 'Marrickville', 'Concord', 'Sydenham', 'Auburn', 'Sylvania'].map(function (s) { return '<button type="button" class="chip" data-sc="' + s + '" aria-pressed="' + (s === LS.sc) + '">' + s + '</button>'; }).join('') + '</div>' +
         '<p class="tsum">' + rows.length + ' shown</p>';
       h += rows.slice(0, 200).map(function (r) {
-        var who = T.who.map(function (k) { return r[k]; }).filter(Boolean).join(' · ') || '—', sub = [nice(r._d)].concat(T.sub.map(function (k) { return r[k]; })).filter(Boolean).join(' · ');
-        var st = String(r['Status'] || r['Attended'] || '').trim();
+        var who = T.who.map(function (k) { return r[k]; }).filter(Boolean).join(T.join || ' · ') || '—', sub = [nice(r._d)].concat(T.sub.map(function (k) { return r[k]; })).filter(Boolean).join(' · ');
+        var st = SK(r);
         return '<details class="row"><summary><span class="a">' + esc(who) + '</span><span class="b">' + esc(sub) + '</span>' + (st ? '<span class="c st">' + esc(st) + '</span>' : '') + '</summary><dl>' +
           j.cols.filter(function (c) { return r[c] !== undefined && r[c] !== ''; }).map(function (c) { var v = r[c]; if (/^\d{4}-\d{2}-\d{2}T/.test(String(v))) v = /T00:00/.test(String(v)) ? nice(String(v).slice(0, 10)) : when(v); else if (/^\d{4}-\d{2}-\d{2}$/.test(String(v))) v = nice(v); return '<dt>' + esc(c) + '</dt><dd>' + esc(v === true ? 'Yes' : v === false ? 'No' : v) + '</dd>'; }).join('') + '</dl></details>';
       }).join('') + (rows.length > 200 ? '<p class="note">Showing the newest 200. Search to narrow it down.</p>' : '');
