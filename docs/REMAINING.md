@@ -7,6 +7,13 @@ How AMA OS works until cut-over: every change made in AMA OS is saved by the hub
 (`amaos-dash` act `hub` -> hub `amaosWrite_` act `route`, allow-list `AMAOS_ROUTE`). So the hub's own permissions,
 texts, notes and logs apply, and the hub stays up to date. Reads show the last saved copy, then refresh.
 
+## To build later today (noted 28 Nov 2026, Mark) - DON'T BUILD UNTIL MARK SAYS
+- [ ] **Values and life skills in the Member Hub.** Everything that makes AMA unique on that front, used for:
+  - parent messaging
+  - Little Dragons (LD) content messages
+  - other programs' content messages
+  - matched to each family by their enrolments (which program or class their kids are in)
+
 ## 1. Hub screens not in AMA OS at all
 - [ ] Little Dragons grading (nominations, approvals, master belts) - hub kind `ldg`
 - [ ] Prep sessions and Prep check-in - `prepadd`, `preplink`, `preppaid`, `prepsess`, `prepview`
