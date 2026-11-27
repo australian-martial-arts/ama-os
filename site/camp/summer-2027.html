@@ -184,6 +184,10 @@ footer b{color:#fff}
 .mbar{display:none}
 .done{text-align:center;padding:30px}
 .done h3{font-size:28px}
+.share{margin:18px auto 0;max-width:520px;text-align:left;background:#fff8e1;border:2px dashed var(--y);border-radius:18px;padding:16px 18px}
+.share b{color:var(--g);font-size:17px}.share .msg{background:#fff;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14.5px;color:#334;line-height:1.45;overflow-wrap:anywhere}
+.share .btns{display:flex;flex-wrap:wrap;gap:8px}.share .btns a,.share .btns button{flex:1 1 140px;text-align:center;border:0;border-radius:999px;padding:12px 14px;font:700 15px Poppins,sans-serif;cursor:pointer;text-decoration:none}
+.share .sms{background:var(--g);color:#fff}.share .wa{background:#25d366;color:#fff}.share .cp{background:#fff;color:var(--g);border:2px solid var(--g)!important}
 .preview{background:var(--coral);color:#fff;text-align:center;font-weight:700;font-size:13.5px;padding:8px 14px}
 @media (max-width:980px){
   .ribbon .cards{grid-template-columns:repeat(2,1fr)}
@@ -240,13 +244,13 @@ footer b{color:#fff}
   <div class="card hot"><div class="k">Price</div><div class="v">$80 a day</div><div class="s"><b>$70 a day</b> when you book 5 or more days</div></div>
   <div class="card"><div class="k">When</div><div class="v">9am to 3pm</div><div class="s">Show for parents at 3pm</div></div>
   <div class="card"><div class="k">Who</div><div class="v">Ages 5 to 13</div><div class="s">Beginners, advanced and non-members</div></div>
-  <div class="card"><div class="k">Places</div><div class="v" id="capV">50 a day</div><div class="s">1 instructor for every 8 kids</div></div>
+  <div class="card"><div class="k">Places</div><div class="v">Limited each day</div><div class="s">1 instructor for every 8 kids</div></div>
 </div></div></div>
 
 <section id="themes" class="skyband"><div class="wrap">
   <div class="sh"><div class="tag">Every day is different</div><h2>A new theme every day</h2><p>Each day brings new techniques and challenges, plus our camp favourites: mini Olympics, tricking, self defence and dodgeball.</p></div>
   <div class="week" id="week"></div>
-  <div class="staples"><span>🏅 Mini Olympics</span><span>🤸 Gymnastics and tricking</span><span>🛡 Self defence</span><span>🔴 Dodgeball</span><span>🎯 Nerf wars on Fridays</span></div>
+  <div class="staples"><span>🏅 Mini Olympics</span><span>🤸 Gymnastics and tricking</span><span>🛡 Self defence</span><span>🔴 Dodgeball</span><span>🎯 Nerf wars on Wednesdays and Fridays</span></div>
 </div></section>
 
 <section class="sand" id="days"><div class="wrap">
@@ -361,8 +365,8 @@ footer b{color:#fff}
   function per(n) { var p = (S.info && S.info.price) || { day: 80, threePlus: 80, fivePlus: 70 }; return n >= 5 ? p.fivePlus : n >= 3 ? p.threePlus : p.day; }
   function kidTotal(k) { return k.days.length * per(k.days.length); }
   function total() { return S.kids.reduce(function (a, k) { return a + kidTotal(k); }, 0); }
-  function uClass(d) { return d.full ? 'full' : d.taken >= 15 ? 'few' : d.taken >= 9 ? 'fill' : 'ok'; }
-  function uText(d) { return d.full ? 'Full' : d.urgency || (d.taken >= 15 ? 'Only a few spots left' : d.taken >= 9 ? 'Filling up' : 'Book now'); }
+  function uClass(d) { return d.full ? 'full' : d.urgency === 'Only a few spots left' ? 'few' : d.urgency === 'Filling up' ? 'fill' : 'ok'; }
+  function uText(d) { return d.full ? 'Full' : d.urgency || 'Book now'; }
 
   function drawWeek() {
     var seen = {}, list = [];
@@ -397,6 +401,30 @@ footer b{color:#fff}
   }
   function toggle(ymd) { var k = S.kids[S.cur], i = k.days.indexOf(ymd); if (i > -1) k.days.splice(i, 1); else k.days.push(ymd); k.days.sort(); drawAll(); }
   function nm(k, i) { return k.name.trim() || 'Child ' + (i + 1); }
+  /* 27 Nov 2026 (Mark): bring-a-friend. One tap opens their messages with the invite ready to send */
+  function andList(a) { return a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
+  function shareData(share) {
+    var lab = {}; ((S.info && S.info.days) || []).forEach(function (d) { lab[d.date] = d.label; });
+    var names = S.kids.map(function (k) { return k.name.trim().split(/\s+/)[0]; }).filter(Boolean);
+    var days = []; S.kids.forEach(function (k) { k.days.forEach(function (d) { if (days.indexOf(d) < 0) days.push(d); }); }); days.sort();
+    var L = days.map(function (d) { return lab[d] || d; });
+    var when = L.length <= 3 ? andList(L) : L.length + ' days from ' + L[0] + ' to ' + L[L.length - 1];
+    return { link: share, text: 'I\'ve just booked ' + (andList(names) || 'my kids') + ' into AMA\'s holiday camp on ' + when + ', and thought you might like to come too! Click ' + share + ' to save your spot.' };
+  }
+  function shareBox(d) {
+    if (!d || !d.text) return '';
+    var ios = /iP(hone|ad|od)/.test(navigator.userAgent), body = encodeURIComponent(d.text);
+    return '<div class="share"><b>🎉 Bring a friend!</b><div style="font-size:14px;margin-top:4px">Camp is more fun with a mate. Tap to send this to a friend:</div><div class="msg">' + esc(d.text) + '</div><div class="btns">' +
+      '<a class="sms" href="sms:' + (ios ? '&' : '?') + 'body=' + body + '">💬 Text a friend</a>' +
+      '<a class="wa" href="https://wa.me/?text=' + body + '" target="_blank" rel="noopener">WhatsApp</a>' +
+      '<button type="button" class="cp" data-share="1">' + (navigator.share ? 'More ways to share' : 'Copy message') + '</button></div></div>';
+  }
+  D.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-share]'); if (!b) return;
+    var d = S.shareMsg || {}; if (!d.text) return;
+    if (navigator.share) { navigator.share({ text: d.text }).catch(function () { }); return; }
+    try { navigator.clipboard.writeText(d.text).then(function () { b.textContent = 'Copied!'; }); } catch (x) { }
+  });
   function drawTabs() {
     $('kidTabs').innerHTML = S.kids.length > 1 ? S.kids.map(function (k, i) { return '<button type="button" class="' + (i === S.cur ? 'on' : '') + '" data-k="' + i + '">' + esc(nm(k, i)) + ' · ' + k.days.length + '</button>'; }).join('') + '<span class="small" style="align-self:center">Picking days for <b>' + esc(nm(S.kids[S.cur], S.cur)) + '</b></span>' : '';
     Array.prototype.forEach.call($('kidTabs').querySelectorAll('button'), function (b) { b.onclick = function () { S.cur = +b.dataset.k; drawAll(); }; });
@@ -447,17 +475,20 @@ footer b{color:#fff}
       kids: S.kids.map(function (k) { return { name: k.name, age: k.age, member: k.member, days: k.days, medical: k.medical, allergies: k.allergies, medication: k.medication, stay: k.stay, trial: !!k.trial }; }) })
       .then(function (r) {
         if (!r || !r.ok) { go.disabled = false; go.innerHTML = 'Book and pay <span id="goAmt">($' + total() + ')</span>'; err.textContent = (r && r.error) || 'Something went wrong. Please try again or call (02) 9569 1943.'; return; }
+        S.shareMsg = r.share ? shareData(r.share) : null;
+        try { if (S.shareMsg) sessionStorage.setItem('amaCampShare', JSON.stringify(S.shareMsg)); } catch (x) { }
         if (r.pay) { location.href = r.pay; return; }
         f.innerHTML = '<div class="done"><div style="font-size:54px">🎉</div><h3 style="color:var(--g)">You\'re booked in!</h3><p>' + esc(r.message || '') + '</p><p>Booking <b>' + esc(r.id) + '</b> · Total $' + esc(r.total) + '</p>' +
-          (r.share ? '<div class="terms" style="text-align:left"><b>Bring a friend!</b> Camp is more fun with a mate. Share your link: <a href="' + esc(r.share) + '">' + esc(r.share) + '</a></div>' : '') + '</div>';
+          shareBox(S.shareMsg) + '</div>';
       }).catch(function () { go.disabled = false; go.textContent = 'Book and pay'; err.textContent = 'We couldn\'t reach our booking system. Please try again or call (02) 9569 1943.'; });
   };
-  if (Q.get('paid')) { $('book').scrollIntoView(); $('form').innerHTML = '<div class="done"><div style="font-size:54px">☀️</div><h3 style="color:var(--g)">Payment received. See you at camp!</h3><p>We\'ve texted you a confirmation. Questions? Call (02) 9569 1943.</p></div>'; }
+  if (Q.get('paid')) try { S.shareMsg = JSON.parse(sessionStorage.getItem('amaCampShare') || 'null'); } catch (x) { }
+  if (Q.get('paid')) { $('book').scrollIntoView(); $('form').innerHTML = '<div class="done"><div style="font-size:54px">☀️</div><h3 style="color:var(--g)">Payment received. See you at camp!</h3><p>We\'ve texted you a confirmation. Questions? Call (02) 9569 1943.</p>' + shareBox(S.shareMsg) + '</div>'; }
 
   drawSum(); drawKids();
   post({ kind: 'campinfo' }).then(function (j) {
     if (!j || !j.ok) throw new Error('no');
-    S.info = j; $('previewBar').hidden = !!j.live; $('capV').textContent = (j.cap || 50) + ' a day'; $('refH').textContent = j.refundHours || 48;
+    S.info = j; $('previewBar').hidden = !!j.live; $('refH').textContent = j.refundHours || 48;
     drawWeek(); drawRun(); drawAll();
   }).catch(function () { $('months').innerHTML = '<div class="month"><p>Camp days could not load. Please refresh, or call (02) 9569 1943 to book.</p></div>'; });
 })();

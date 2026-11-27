@@ -18433,15 +18433,15 @@ const CAMP = {
   school: 'Marrickville', where: 'AMA Marrickville, 35/142 Addison Rd, Marrickville',
   hours: '9:00am to 3:00pm', cap: 50, ratio: 8, minAge: 5, maxAge: 13,
   first: '2026-12-21', last: '2027-01-27', // 27 Nov 2026 (Laurie): Fri 18 Dec removed
-  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp', refundHours: 48, parentTextsOn: false, staffAlertOn: false, remindOn: false, // 27 Nov 2026: camp texts, OFF until Mark approves the wording linkTextOn: true, // linkTextOn: the admin 'send the booking link' text; wording approved by Mark 27 Nov 2026
+  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp/summer-2027', refundHours: 48, parentTextsOn: true, staffAlertOn: true, remindOn: true, // 27 Nov 2026: camp texts, wording approved by Mark (staff alert to Hakan) linkTextOn: true, // linkTextOn: the admin 'send the booking link' text; wording approved by Mark 27 Nov 2026
   closed: ['2026-12-24', '2026-12-25', '2026-12-28', '2026-12-31', '2027-01-01', '2027-01-26'],
   price: { day: 80, threePlus: 80, fivePlus: 70, earlyBirdOff: 0, earlyBirdUntil: '2026-11-30', memberOff: 0 }, // 27 Nov 2026 (Laurie): $80 a day, $70 a day for 5+ days; no early bird, no referral discount
   themes: { // matches the activities on australianmartialarts.com.au/school-holiday-camps
     1: { name: 'Bo Staff Day', heroes: ['Bo staff', 'Dodgeball', 'Floor is lava and indoor ball games'] },
     2: { name: 'Nunchuck Day', heroes: ['Single and double nunchucks', 'Flying side kick challenges', 'Trampolines and dodgeball'] },
-    3: { name: 'Kama Day', heroes: ['Kamas', 'Tumble track flips and tricks', 'Handstands and handstand walking'] }, // 27 Nov 2026 (Laurie/Mark): Nerf moved to Fridays
+    3: { name: 'Kama and Nerf Wars Day', heroes: ['Kamas', 'Nerf wars', 'Tumble track flips and tricks', 'Handstands and handstand walking'] }, // 27 Nov 2026 (Mark): Nerf wars on Wednesdays and Fridays
     4: { name: 'Sword and Board Breaking Day', heroes: ['Swords', 'Board breaking', 'Dodgeball'] },
-    5: { name: 'Superhero and Nerf Wars Day', heroes: ['Superhero outfit day', 'Nerf wars', 'All weapons'] } // 27 Nov 2026 (Laurie/Mark): Nerf is on Fridays
+    5: { name: 'Superhero and Nerf Wars Day', heroes: ['Superhero outfit day', 'Nerf wars', 'All weapons'] } // 27 Nov 2026 (Mark): Nerf wars on Wednesdays and Fridays
   },
   runSheet: [['8:30', 'Staff set up'], ['9:00', 'Arrival, free play, make friends'], ['9:15', 'Welcome and rules'], ['9:30', 'Obstacle course / Olympics'],
     ['10:00', 'Hero activity 1'], ['10:30', 'Morning tea and movie'], ['11:15', 'Game'], ['12:00', 'Hero activity 2'], ['1:00', 'Lunch and movie'],
@@ -18485,9 +18485,10 @@ function campPrice_(nDays, bookedOn) {
 /* public: everything the booking page needs */
 function campInfo_() {
   try { campCheckPaid_(); } catch (e) { }
-  const taken = campTaken_(), days = campDays_().map(function (d) { const t = taken[d.date] || 0; return Object.assign(d, { taken: t, left: Math.max(0, CAMP.cap - t), full: t >= CAMP.cap, urgency: campUrgency_(t) }); });
+  // 27 Nov 2026 (Mark): Ticketek style. The public page only sees how busy a day is, never the number of places or bookings
+  const taken = campTaken_(), days = campDays_().map(function (d) { const t = taken[d.date] || 0; return Object.assign(d, { full: t >= CAMP.cap, urgency: t >= CAMP.cap ? 'Full' : campUrgency_(t) }); });
   const P = CAMP.price, eb = campYmd_(new Date()) <= P.earlyBirdUntil;
-  return { ok: true, live: CAMP.live, days: days, cap: CAMP.cap, hours: CAMP.hours, where: CAMP.where, ages: CAMP.minAge + ' to ' + CAMP.maxAge,
+  return { ok: true, live: CAMP.live, days: days, hours: CAMP.hours, where: CAMP.where, ages: CAMP.minAge + ' to ' + CAMP.maxAge,
     price: { day: P.day, threePlus: P.threePlus, fivePlus: P.fivePlus, earlyBird: eb ? P.earlyBirdOff : 0, earlyBirdUntil: P.earlyBirdUntil },
     runSheet: CAMP.runSheet, refundHours: CAMP.refundHours };
 }
