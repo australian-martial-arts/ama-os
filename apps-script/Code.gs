@@ -3756,6 +3756,8 @@ function hubRouteIn_(body, who) {
     if (body.kind === 'campapprove') return campApprove_(who, body);
     if (body.kind === 'campswap') return campSwap_(who, body);
     if (body.kind === 'camprefund') return campRefund_(who, body);
+    if (body.kind === 'camplink') return campLink_(who, body); // 27 Nov 2026: send the booking link by text
+    if (body.kind === 'campcash') return campCash_(who, body); // 27 Nov 2026: cash for walk-ins
     if (body.kind === 'stucard') return stuCard_(who, body);
     if (body.kind === 'execnote') return execNote_(who, body);
     if (body.kind === 'reqhistory') return reqHistory_(who, body);
@@ -3768,6 +3770,7 @@ function hubRouteIn_(body, who) {
   if (body.kind === 'payclosed') return payClosed_(who, body);
   if (body.kind === 'promo') return promo_(who, body); // 17 Nov 2026: Promotions
   if (body.kind === 'hubreq') return hubReq_(who, body); // 17 Nov 2026: Request a hub change
+  if (body.kind === 'printreq') return printReq_(who, body); // 27 Nov 2026: print requests
   if (body.kind === 'prepview') return prepView_(who);
   if (body.kind === 'prepsess') return prepSess_(who, body); // 22 Nov 2026: prep session check-in and feedback
   if (body.kind === 'prepadd') return prepAdd_(who, body); // 17 Nov 2026: Bianca adds a booking, pays later
@@ -10235,7 +10238,9 @@ function absAutoSend() {
   const r = absFamilies_(), hold = absHoldCheck_();
   // 16 Nov 2026 (Mark): a family who replied to our text is waiting for staff, so no more automatic texts until someone picks an outcome
   try { absReplies_(r.items); } catch (e) { Logger.log('absAutoSend replies: ' + e); }
+  const xpNow = new Date(), xpOn = xpNow >= XMAS_PAUSE.from && xpNow < XMAS_PAUSE.to; // 27 Nov 2026 (Mark): no absentee texts over Christmas / New Year
   r.items.forEach(function (x) {
+    if (xpOn) return;
     if (x.replyOpen) { Logger.log('Held ' + x.stage + ' for ' + x.members.map(function (m) { return m.name; }).join(', ') + ': replied, waiting for staff'); return; }
     if (x.group !== 'auto' || (x.stage !== 'auto7' && x.stage !== 'auto30')) return;
     const why = hold(x.rows);
@@ -10702,6 +10707,7 @@ function absReplies_(items) {
     x.replyOpen = true; // replied and nobody has actioned it yet
     // 16 Nov 2026: note the reply once on the Absentees tab (for the retention report and the family's history)
     if (!String(x.log || '').split(' | ').some(function (p) { const d = absParseLogDate_(p); return /System: Reply received/.test(p) && d && d >= atDay; })) { try { absLogRows_(x.rows, 'Reply received'); x.log = (x.log || '') + ' | ' + Utilities.formatDate(new Date(), CONFIG.timezone, 'd MMM') + ' System: Reply received'; } catch (e) { Logger.log('abs reply log: ' + e); } }
+    if (x.group === 'hold' || x.group === 'cancel' || x.group === 'inactive') { x.replyOpen = false; return; } // 27 Nov 2026 (Bianca): on hold or cancelling: the reply shows on their card in On hold / cancelling, not as a reply to action (or on My Day)
     if (x.group === 'later' || x.group === 'auto') { x.group = 'office'; x.note = 'Replied to our text: read it, then pick an outcome'; }
   });
 }
@@ -13023,7 +13029,7 @@ function previewWinbackText() {
 }
 function winbackTick_() {
   if (!WINBACK.sendOn) return;
-  { const xd = Utilities.formatDate(new Date(), CONFIG.timezone, 'yyyy-MM-dd'); if (xd >= '2026-12-21' && xd <= '2027-01-03') return; } // 17 Nov 2026 (Mark): no win-back texts over Christmas; they go from 4 Jan
+  { const xd = Utilities.formatDate(new Date(), CONFIG.timezone, 'yyyy-MM-dd'); if (xd >= '2026-12-21' && xd <= '2027-01-10') return; } // 17 Nov 2026 (Mark): no win-back texts over Christmas; 27 Nov: paused to 10 Jan with the other 'we miss you' texts, they go from 11 Jan
   const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H'));
   if (h < 10 || h >= 18) return;
   const sh = wbSheet_(), col = WINBACK.headers.indexOf('Reminder sent at') + 1, now = Date.now();
@@ -18412,9 +18418,10 @@ const CAMP = {
   tab: 'Camp bookings', staffTab: 'Camp staff',
   school: 'Marrickville', where: 'AMA Marrickville, 35/142 Addison Rd, Marrickville',
   hours: '9:00am to 3:00pm', cap: 50, ratio: 8, minAge: 5, maxAge: 13,
-  first: '2026-12-18', last: '2027-01-27',
+  first: '2026-12-21', last: '2027-01-27', // 27 Nov 2026 (Laurie): Fri 18 Dec removed
+  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp', refundHours: 48, linkTextOn: false, // linkTextOn: the admin 'send the booking link' text, OFF until Mark approves the wording
   closed: ['2026-12-24', '2026-12-25', '2026-12-28', '2026-12-31', '2027-01-01', '2027-01-26'],
-  price: { day: 80, threePlus: 75, fivePlus: 70, earlyBirdOff: 5, earlyBirdUntil: '2026-11-30', memberOff: 0 }, // DRAFT deals for Mark to confirm
+  price: { day: 80, threePlus: 80, fivePlus: 70, earlyBirdOff: 0, earlyBirdUntil: '2026-11-30', memberOff: 0 }, // 27 Nov 2026 (Laurie): $80 a day, $70 a day for 5+ days; no early bird, no referral discount
   themes: { // matches the activities on australianmartialarts.com.au/school-holiday-camps
     1: { name: 'Bo Staff Day', heroes: ['Bo staff', 'Dodgeball', 'Floor is lava and indoor ball games'] },
     2: { name: 'Nunchuck Day', heroes: ['Single and double nunchucks', 'Flying side kick challenges', 'Trampolines and dodgeball'] },
@@ -18464,11 +18471,19 @@ function campPrice_(nDays, bookedOn) {
 /* public: everything the booking page needs */
 function campInfo_() {
   try { campCheckPaid_(); } catch (e) { }
-  const taken = campTaken_(), days = campDays_().map(function (d) { const t = taken[d.date] || 0; return Object.assign(d, { taken: t, left: Math.max(0, CAMP.cap - t), full: t >= CAMP.cap }); });
+  const taken = campTaken_(), days = campDays_().map(function (d) { const t = taken[d.date] || 0; return Object.assign(d, { taken: t, left: Math.max(0, CAMP.cap - t), full: t >= CAMP.cap, urgency: campUrgency_(t) }); });
   const P = CAMP.price, eb = campYmd_(new Date()) <= P.earlyBirdUntil;
   return { ok: true, live: CAMP.live, days: days, cap: CAMP.cap, hours: CAMP.hours, where: CAMP.where, ages: CAMP.minAge + ' to ' + CAMP.maxAge,
     price: { day: P.day, threePlus: P.threePlus, fivePlus: P.fivePlus, earlyBird: eb ? P.earlyBirdOff : 0, earlyBirdUntil: P.earlyBirdUntil },
-    runSheet: CAMP.runSheet };
+    runSheet: CAMP.runSheet, refundHours: CAMP.refundHours };
+}
+/* 27 Nov 2026 (Laurie): message on each calendar day, from places booked that day */
+function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? 'Filling up' : 'Book now'; }
+/* 27 Nov 2026 (Laurie): where the booking came from: UTM tags on the page link, or the admin text link */
+function campSrc_(b) {
+  const u = (b && b.utm) || {}, keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'gclid', 'fbclid'];
+  const parts = keys.filter(function (k) { return u[k]; }).map(function (k) { return k + '=' + String(u[k]).replace(/[<>|]/g, '').slice(0, 60); });
+  return 'Camp page' + (parts.length ? ' | ' + parts.join(', ') : '');
 }
 /* public: a booking request. One row per child. Test mode until payment is connected. */
 function campBook_(b) {
@@ -18500,7 +18515,7 @@ function campBook_(b) {
       const o = { 'Booking ID': id, 'At': now, 'Status': CAMP.live ? 'held - waiting for payment' : 'TEST (payment not connected)', 'Parent first': first, 'Parent last': last,
         'Mobile': mobile, 'Email': email, 'Child': k.name, 'Age': k.age, 'Member': k.member, 'Days': k.days.join(', '), 'Day count': k.days.length,
         'Price per day': p.per, 'Total': p.total, 'Medical': k.medical, 'Allergies': k.allergies, 'Medication': k.medication, 'Pickup people': s(b.pickup, 300),
-        'Emergency contact': s(b.emergency, 200), 'Photo OK': b.photos ? 'Yes' : 'No', 'Heard about': refBy ? 'Referred by ' + refBy : s(b.heard, 120), 'Notes': (b.marketing === false ? '[No marketing] ' : '') + (k.stay ? '[Staying for class: ' + k.stay + '] ' : '') + s(b.notes, 400), 'Trial offered': k.trial ? 'Asked for a free trial before camp' : '', 'Source': 'Camp page' };
+        'Emergency contact': s(b.emergency, 200), 'Photo OK': b.photos ? 'Yes' : 'No', 'Heard about': refBy ? 'Referred by ' + refBy : s(b.heard, 120), 'Notes': (b.marketing === false ? '[No marketing] ' : '') + (k.stay ? '[Staying for class: ' + k.stay + '] ' : '') + s(b.notes, 400), 'Trial offered': k.trial ? 'Asked for a free trial before camp' : '', 'Source': campSrc_(b) };
       sh.appendRow(H.map(function (h) { return o[h] == null ? '' : o[h]; }));
     });
     return { ok: true, id: id, total: total, live: CAMP.live, share: campShareUrl_(id), pay: CAMP.live ? campPaySafe_(id, total, email, mobile) : '',
@@ -18548,7 +18563,7 @@ function campPayUrl_(id, total, email, mobile) {
   const m9 = String(mobile || '').replace(/\D/g, '').slice(-9);
   const body = { idempotency_key: 'camp-' + id, description: 'AMA Holiday Camp ' + id, payment_note: 'Holiday camp booking ' + id,
     quick_pay: { name: 'AMA Holiday Ninja Camp (booking ' + id + ')', price_money: { amount: Math.round(total * 100), currency: 'AUD' }, location_id: sqLocation_() },
-    checkout_options: { redirect_url: 'https://train.australianmartialarts.com.au/holiday-camp?paid=' + encodeURIComponent(id), ask_for_shipping_address: false },
+    checkout_options: { redirect_url: CAMP.pageUrl + '?paid=' + encodeURIComponent(id), ask_for_shipping_address: false },
     pre_populated_data: {} };
   if (email) body.pre_populated_data.buyer_email = email;
   if (m9.length === 9 && m9[0] === '4') body.pre_populated_data.buyer_phone_number = '+61' + m9;
@@ -18681,7 +18696,7 @@ function campMobPeek9Nov() { const m = campDeputyMobiles_(); Logger.log(Object.k
 
 /* ===== CAMP extras (9 Nov, Mark): Hakan is coordinator; reschedule first, refund only if no day works;
    friend referral links (no discounts); staff roster grid with gaps. ===== */
-function campShareUrl_(id) { return 'https://train.australianmartialarts.com.au/holiday-camp?ref=' + encodeURIComponent(id); }
+function campShareUrl_(id) { return CAMP.pageUrl + '?ref=' + encodeURIComponent(id); }
 /* every Marrickville instructor x every camp day: who ticked what, and who has not replied */
 function campStaffGrid_(days, staffRows) {
   const ticks = {}, replied = {}, appr = {};
@@ -18722,6 +18737,37 @@ function campMove_(who, b) {
   return { ok: true };
 }
 /* refund steps (only after a reschedule was offered). Money is refunded by Hakan in Square; the hub just tracks it. */
+/* 27 Nov 2026 (Laurie/Hakan): admin sends a family the booking link by text. Staff type the mobile; the wording is fixed
+   and OFF (CAMP.linkTextOn) until Mark approves it. preview: true returns the text and link without sending. */
+function campLinkText_(first) { return 'Hi' + (first ? ' ' + first : '') + ', here is the link to book AMA Holiday Ninja Camp in Marrickville (9am to 3pm, ages 5 to 13): ' + CAMP.pageUrl + '?utm_source=admin-text' + '\n$80 a day, or $70 a day when you book 5 or more days. Any questions, call us on (02) 9569 1943. AMA'; }
+function campLink_(who, b) {
+  const first = String((b && b.first) || '').replace(/[^A-Za-z' -]/g, '').trim().slice(0, 30), link = CAMP.pageUrl + '?utm_source=admin-text', text = campLinkText_(first);
+  if (b && b.preview) return { ok: true, text: text, link: CAMP.pageUrl, on: CAMP.linkTextOn };
+  if (!CAMP.linkTextOn) return { ok: false, error: 'The booking link text is waiting for Mark to approve the wording. Copy the link and send it yourself for now.', text: text, link: CAMP.pageUrl };
+  const e164 = normalisePhone_(String((b && b.mobile) || '')); if (!e164) return { ok: false, error: 'Type a mobile number.' };
+  let cid = ghlContactIdByPhone_(e164);
+  if (!cid) { try { const up = ghlPost_('/contacts/upsert', { locationId: CONFIG.locationId, firstName: first || undefined, phone: e164, tags: ['holiday camp link'], source: 'Hub - holiday camp link' }); cid = ((JSON.parse(up.body) || {}).contact || {}).id || ''; } catch (e) { } }
+  if (!cid) return { ok: false, error: 'Could not add that mobile in GHL. Copy the link and send it yourself.' };
+  const ok = sendSms_(e164, text);
+  try { actRow_(who.name, 'Holiday camp', 'Sent the booking link', e164, ok ? 'sent' : 'not sent'); } catch (e) { }
+  return ok ? { ok: true, sent: true } : { ok: false, error: 'The text did not send. Copy the link and send it yourself.' };
+}
+/* 27 Nov 2026 (Hakan): cash is accepted for walk-ins only. Marks a booking paid in cash (management). */
+function campCash_(who, b) {
+  if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' };
+  const id = String((b && b.id) || ''); if (!id) return { ok: false, error: 'No booking.' };
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const sh = campSheet_(), v = sh.getDataRange().getValues(), H = v[0].map(String), c = function (h) { return H.indexOf(h); };
+    let n = 0, bad = '';
+    v.forEach(function (r, i) { if (!i || String(r[c('Booking ID')]) !== id) return; const st = String(r[c('Status')]);
+      if (/^(paid|refunded|cancelled)/i.test(st)) { bad = st; return; }
+      sh.getRange(i + 1, c('Status') + 1).setValue('paid'); sh.getRange(i + 1, c('Paid at') + 1).setValue(new Date()); sh.getRange(i + 1, c('Payment ref') + 1).setValue('Cash, taken by ' + who.name); n++; });
+    if (!n) return { ok: false, error: bad ? 'That booking is already ' + bad + '.' : 'Booking not found.' };
+    try { actRow_(who.name, 'Holiday camp', 'Cash payment', id, n + ' child' + (n > 1 ? 'ren' : '')); } catch (e) { }
+    return { ok: true, children: n };
+  } finally { lock.releaseLock(); }
+}
 function campRefund_(who, b) {
   if (!mgmtCanSee_(who) || mgmtNoMoney_(who)) return { ok: false, error: 'Only management with money access can do refunds.' };
   const step = String(b.step || ''), id = String(b.id || ''); if (!id) return { ok: false, error: 'No booking.' };
@@ -20856,6 +20902,7 @@ const MISSYOU = {
 };
 function liveAttMiss_(who, b, ymd, today) {
   if (ymd !== today) return { ok: false, error: 'This can only be sent on the day of the class.' };
+  { const xn = new Date(); if (xn >= XMAS_PAUSE.from && xn < XMAS_PAUSE.to) return { ok: false, error: 'Not sent: "We missed you" texts are paused over Christmas and New Year (back on Mon 11 Jan).' }; } // 27 Nov 2026 (Mark)
   const school = efcSchoolOf_(String(b.school || '')), mid = String(b.memberId || '');
   if (!school || !mid) return { ok: false, error: 'Choose the student.' };
   const ss = SpreadsheetApp.openById(HOLD.sheetId), t = hubRows_(ss, EFC_LIVE.tab), H = {};
@@ -21639,6 +21686,36 @@ function promoPreview(day) {
    Requests go to the 'Hub change requests' tab and Mark gets a text. Mark approves / says not now / marks done in
    Team > Hub change requests. Approved ones are built one at a time, so nobody's changes overwrite anyone else's. ===== */
 const HUBREQ = { tab: 'Hub change requests', approver: 'mark', cols: ['Id', 'Date', 'From', 'Where in the hub', 'Request', 'How soon', 'Status', 'Mark\'s note', 'Updated'] };
+/* 27 Nov 2026 (Mark, from Laurie): PRINT REQUESTS (A1 posters, flyers...). Staff ask; Mark gets a text and sets the status. */
+const PRINTREQ = { tab: 'Print requests', approver: 'mark', sizes: ['A1 poster', 'A2 poster', 'A3 poster', 'A4', 'A5 flyer', 'DL flyer', 'Banner', 'Other'], statuses: ['New', 'Approved', 'Ordered', 'Done', 'Not now'],
+  cols: ['Id', 'Date', 'From', 'What', 'Size', 'Quantity', 'Sides', 'Artwork link', 'Needed by', 'School', 'Notes', 'Status', 'Mark\'s note', 'Updated'] };
+function printReq_(who, b) {
+  const act = String(b.act || 'list'), me = String((who && who.name) || '').trim(), key = me.split(/\s+/)[0].toLowerCase(), boss = key === PRINTREQ.approver, tz = CONFIG.timezone;
+  const ss = SpreadsheetApp.openById(HOLD.sheetId); let sh = ss.getSheetByName(PRINTREQ.tab);
+  if (!sh) { sh = ss.insertSheet(PRINTREQ.tab); sh.appendRow(PRINTREQ.cols); sh.setFrozenRows(1); sh.getRange(1, 1, 1, PRINTREQ.cols.length).setFontWeight('bold'); }
+  const s = function (x, n) { return String(x == null ? '' : x).replace(/[<>]/g, '').trim().slice(0, n); };
+  if (act === 'add') {
+    const what = s(b.what, 300); if (what.length < 3) return { ok: false, error: 'Say what needs printing.' };
+    const size = PRINTREQ.sizes.indexOf(String(b.size)) > -1 ? String(b.size) : 'Other', qty = Math.max(1, Math.min(100000, Math.round(Number(b.qty) || 1)));
+    const sides = /^double/i.test(String(b.sides)) ? 'Double-sided' : 'Single-sided', link = s(b.link, 400), by = /^\d{4}-\d{2}-\d{2}$/.test(String(b.by || '')) ? String(b.by) : '';
+    const id = 'P' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss');
+    sh.appendRow([id, new Date(), me, what, size, qty, sides, link, by, s(b.school, 60), s(b.notes, 600), 'New', '', new Date()]);
+    if (!boss) { try { sendSms_(payPersonMobile_('mark'), 'Print request from ' + payFirst_(key) + ': ' + qty + ' x ' + size + ' - ' + what.slice(0, 160) + (by ? ', needed by ' + Utilities.formatDate(new Date(by + 'T12:00:00'), tz, 'EEE d MMM') : '') + '. See it in the hub: Team > Print requests.'); } catch (e) { } }
+    try { actRow_(me, 'Print requests', 'New print request', id, qty + ' x ' + size + ': ' + what.slice(0, 120)); } catch (e) { }
+    return { ok: true, id: id };
+  }
+  if (act === 'set') {
+    if (!boss) return { ok: false, error: 'Only Mark can change the status.' };
+    const st = PRINTREQ.statuses.indexOf(String(b.status)) > -1 ? String(b.status) : 'New';
+    const v = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
+    for (let i = 0; i < v.length; i++) if (String(v[i][0]) === String(b.id)) { sh.getRange(i + 2, 12, 1, 3).setValues([[st, s(b.note, 300), new Date()]]); return { ok: true }; }
+    return { ok: false, error: 'Not found.' };
+  }
+  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, PRINTREQ.cols.length).getValues() : [];
+  const fd = function (d) { return d instanceof Date ? Utilities.formatDate(d, tz, 'EEE d MMM') : String(d || ''); };
+  return { ok: true, boss: boss, sizes: PRINTREQ.sizes, statuses: PRINTREQ.statuses, list: rows.reverse().map(function (r) { return { id: String(r[0]), at: r[1] instanceof Date ? Utilities.formatDate(r[1], tz, 'EEE d MMM h:mma') : String(r[1]), from: String(r[2]),
+    what: String(r[3]), size: String(r[4]), qty: r[5], sides: String(r[6]), link: String(r[7]), by: r[8] ? fd(r[8] instanceof Date ? r[8] : new Date(String(r[8]) + 'T12:00:00')) : '', school: String(r[9]), notes: String(r[10]), status: String(r[11] || 'New'), note: String(r[12] || '') }; }) };
+}
 function hubReqSheet_() {
   const ss = SpreadsheetApp.openById(HOLD.sheetId); let sh = ss.getSheetByName(HUBREQ.tab);
   if (!sh) { sh = ss.insertSheet(HUBREQ.tab); sh.appendRow(HUBREQ.cols); sh.setFrozenRows(1); sh.getRange(1, 1, 1, HUBREQ.cols.length).setFontWeight('bold'); sh.setColumnWidth(5, 420); }
@@ -23818,7 +23895,7 @@ function amaosWrite_(b) {
   }
   return { ok: false, error: 'Not available from AMA OS yet.' };
 }
-const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext']; // 27 Nov 2026: grows one feature at a time
+const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq']; // 27 Nov 2026: grows one feature at a time
 function amaosLiveNow() { Logger.log(JSON.stringify(amaosLiveTick_())); }
 function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
 function amaosSyncTab_(tab) {

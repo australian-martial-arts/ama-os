@@ -436,6 +436,7 @@ font-family:Inter,-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;co
     pay:{l:'Roster, leave and pay',s:'Cover, leave, timesheets and pay rates',fn:'AMA_PAY_OPEN',k:'roster leave pay payroll timesheet cover',can:mgmt},
     epb:{l:'Employment packs',s:'New staff, packs and staff files',fn:'AMA_EPB_OPEN',k:'employment pack new staff contract',can:epb},
     hubreq:{l:'Hub change requests',s:'Ask for a change and see what is planned',fn:'AMA_HUBREQ_OPEN',h:'#hubreq',k:'hub change request idea bug'},
+    printreq:{l:'Print requests',s:'Ask for printing: A1 posters, flyers, banners',fn:'AMA_PRINTREQ_OPEN',h:'#printreq',k:'print printing poster flyer banner A1'},
     playbook:{l:'AMA Playbook',s:'How we do everything: SOPs, scripts and checklists',fn:'AMA_PLAYBOOK_OPEN',k:'playbook sop script checklist how to procedure',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }},
     revcal:{l:'My review calendar',s:'Times your team can book one-on-ones and reviews',fn:'AMA_REVCAL_OPEN',k:'review calendar one on one booking ppf appraisal',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, skillq:{l:'Training and sign-offs',s:'Approve training and sign staff off for extra work and new programs',fn:'AMA_SKILLQ_OPEN',k:'training upskill sign off approve skills pathway program',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, staffcfg:{l:'Staff settings',s:'Roles, schools, record types, pathways and class audit lines',fn:'AMA_STAFFCFG_OPEN',k:'staff settings roles types pathway audit schools edit',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, mediaopt:{l:'Social media opt-outs',s:'Students we must not post',fn:'AMA_MEDIAOPT_OPEN',k:'social media opt out photo consent no post stories'},
     conns:{l:'Connections',s:'Paste a connection key (owners only). Saved privately, never shown again',fn:'AMA_CONN_OPEN',k:'connection key sync secret supabase tate',can:function(){ var n=String((window.AMA_HUB_ME&&window.AMA_HUB_ME.name)||'').toLowerCase().split(' ')[0]; return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, mhub:{l:'Member Hub (coming soon)',s:'See the Member Hub as any family',fn:'AMA_MHUB_OPEN',k:'member hub family app preview parents',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, stars:{l:'AMA Stars',s:'Rewards for families: settings, give and use stars',fn:'AMA_STARS_OPEN',k:'stars rewards loyalty points voucher',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, pno:{l:"Parents' Night Out",s:'Plan, bookings, event night and follow-up',fn:'AMA_PNO_OPEN',k:'parents night out pno event kids party pizza movie',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, cgd:{l:'Community Growth Day',s:'Plan, promotion, registrations and follow-up',fn:'AMA_CGD_OPEN',k:'community growth day open day event referral bring a friend',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, failpay:{l:'Failed payments',s:'Families whose payment did not go through',fn:'AMA_FAILPAY_OPEN',k:'failed payments overdue declined card direct debit owing',can:function(){ return !!(window.AMAOS_CAN&&window.AMAOS_CAN()); }}, partners:{l:'Community partners',s:'Schools, childcare and local partners',fn:'AMA_PARTNERS_OPEN',k:'community partners schools childcare outreach',can:function(){ return mgmt()&&!!(window.AMAOS_CAN&&window.AMAOS_CAN()); }},
@@ -453,7 +454,7 @@ font-family:Inter,-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;co
   var MENUS = [
     {n:'Families', g:[['Join',['book','trials','close','newmem','referrals']],['Keep',['absent','requests','holds','cancels','absvideo']]], badge:['requests','holds','cancels','close']},
     {n:'Classes & events', g:[['',['attendance','promos','grading','parties','camp','privates','shop']]]},
-    {n:'Team', g:[['',['amaos','ihub','revcal','playbook','clock','shifts','efc','ghl','pay','epb','hubreq','toolkit']]]},
+    {n:'Team', g:[['',['amaos','ihub','revcal','playbook','clock','shifts','efc','ghl','pay','epb','hubreq','printreq','toolkit']]]},
     {n:'Business', g:[['',['mgmtd','staffm','skillq','staffcfg','sales','marketing','mediaopt','partners','pno','cgd','retention','failpay','stars','mhub','conns','playbook']]], can:mgmt}
   ];
   var ROLES = {
@@ -7191,6 +7192,64 @@ body.pf-saving #pfWrap button,body.pf-saving #pfSheet button{opacity:.45;pointer
   window.AMA_HUBREQ_OPEN = function(){ if (location.hash !== '#hubreq') history.replaceState(null, '', '#hubreq'); list(); };
   window.addEventListener('hashchange', function(){ if (location.hash === '#hubreq') list(); });
   if (location.hash === '#hubreq') (function wait(){ if (window.AMA_HUB_USER && window.AMA_HUB_POST) list(); else setTimeout(wait, 700); })();
+})();
+</script>
+<!-- 27 Nov 2026 (Mark, from Laurie): PRINT REQUESTS. Team > Print requests (or #printreq): staff ask for printing (A1 posters,
+     flyers...); Mark gets a text and sets the status. Same look as Hub change requests. -->
+<script>
+(function(){ if (window.__hbPrint) return; window.__hbPrint = 1;
+  function E(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function P(b){ b.kind = 'printreq'; return window.AMA_HUB_POST(b); }
+  var filt = 'open', SIZES = ['A1 poster', 'A2 poster', 'A3 poster', 'A4', 'A5 flyer', 'DL flyer', 'Banner', 'Other'];
+  function shell(inner){ var w = E('prWrap'); if (!w) { w = document.createElement('div'); w.id = 'prWrap'; w.className = 'hr-wrap'; document.body.appendChild(w); } w.innerHTML = '<div class="hr-box">' + inner + '</div>'; return w; }
+  function close(){ var w = E('prWrap'); if (w) w.remove(); if (location.hash === '#printreq') history.replaceState(null, '', location.pathname); }
+  function form(msg){
+    shell('<div class="hr-top"><h2>Print request</h2><button type="button" class="hr-b" data-prx>Close</button></div>' +
+      (msg ? '<div class="hr-card" style="border-color:#ffd200">' + esc(msg) + '</div>' : '<div class="hr-m" style="margin-top:6px">Ask for printing: A1 posters, flyers, banners. Mark gets a text and you can follow it here.</div>') +
+      '<label>What needs printing?</label><input id="prWhat" placeholder="e.g. Summer camp poster for the front window">' +
+      '<label>Size</label><select id="prSize">' + SIZES.map(function(s){ return '<option>' + s + '</option>'; }).join('') + '</select>' +
+      '<label>How many</label><input id="prQty" type="number" min="1" value="1">' +
+      '<label>Sides</label><select id="prSides"><option>Single-sided</option><option>Double-sided</option></select>' +
+      '<label>Artwork link (Canva or Google Drive)</label><input id="prLink" placeholder="https://">' +
+      '<label>Needed by</label><input id="prBy" type="date">' +
+      '<label>For which school</label><input id="prSchool" placeholder="e.g. Marrickville, or All">' +
+      '<label>Notes</label><textarea id="prNotes" style="min-height:70px" placeholder="Paper, finish, where it goes, anything else"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button type="button" class="hr-b y" data-prsend>Send to Mark</button><button type="button" class="hr-b" data-prlist>See all print requests</button></div>');
+  }
+  function list(){
+    shell('<div class="hr-top"><h2>Print requests</h2><button type="button" class="hr-b" data-prx>Close</button></div><div id="prList">Loading...</div>');
+    P({ act: 'list' }).then(function(j){
+      if (!j || !j.ok) { E('prList').textContent = (j && j.error) || 'Could not load.'; return; }
+      var L = j.list.filter(function(r){ return filt === 'all' || /^(New|Approved|Ordered)$/.test(r.status); });
+      E('prList').innerHTML = '<div class="hr-seg" style="margin:10px 0"><button type="button" class="hr-b y" data-prnew>+ New print request</button><button type="button" class="hr-b' + (filt === 'open' ? ' on' : '') + '" data-prf="open">Open</button><button type="button" class="hr-b' + (filt === 'all' ? ' on' : '') + '" data-prf="all">All</button></div>' +
+        (L.length ? L.map(function(r){
+          return '<div class="hr-card"><div><b>' + esc(r.qty) + ' &times; ' + esc(r.size) + '</b> ' + esc(r.what) + '<span class="hr-pill ' + esc(r.status.replace(' ', '')) + '">' + esc(r.status) + '</span></div>' +
+            '<div class="hr-m">' + esc(r.from) + ' &middot; ' + esc(r.at) + (r.by ? ' &middot; needed by ' + esc(r.by) : '') + ' &middot; ' + esc(r.sides) + (r.school ? ' &middot; ' + esc(r.school) : '') + '</div>' +
+            (r.link ? '<div style="margin-top:4px"><a href="' + esc(r.link) + '" target="_blank" rel="noopener" style="color:#ffd200">Artwork</a></div>' : '') +
+            (r.notes ? '<div style="white-space:pre-wrap;margin-top:4px">' + esc(r.notes) + '</div>' : '') + (r.note ? '<div class="hr-m" style="margin-top:4px">Mark: ' + esc(r.note) + '</div>' : '') +
+            (j.boss ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + j.statuses.filter(function(s){ return s !== r.status; }).map(function(s){ return '<button type="button" class="hr-b' + (s === 'Approved' ? ' y' : '') + '" data-prset="' + esc(r.id) + '" data-st="' + s + '">' + s + '</button>'; }).join('') + '</div>' : '') + '</div>';
+        }).join('') : '<div class="hr-m">Nothing here yet.</div>');
+    });
+  }
+  document.addEventListener('click', function(e){
+    var t = e.target, x; if (!t.closest || !t.closest('#prWrap')) return;
+    if (t.closest('[data-prx]')) { close(); return; }
+    if (t.closest('[data-prlist]')) { list(); return; }
+    if (t.closest('[data-prnew]')) { form(); return; }
+    if ((x = t.closest('[data-prf]'))) { filt = x.getAttribute('data-prf'); list(); return; }
+    if ((x = t.closest('[data-prsend]'))) {
+      var what = E('prWhat').value.trim(); if (what.length < 3) { E('prWhat').focus(); return; }
+      x.disabled = true; x.textContent = 'Sending...';
+      P({ act: 'add', what: what, size: E('prSize').value, qty: E('prQty').value, sides: E('prSides').value, link: E('prLink').value, by: E('prBy').value, school: E('prSchool').value, notes: E('prNotes').value }).then(function(j){
+        if (!j || !j.ok) { x.disabled = false; x.textContent = 'Send to Mark'; alert((j && j.error) || 'Could not send.'); return; } form('Sent. Mark will see it, and you can follow it under See all print requests.'); });
+      return;
+    }
+    if ((x = t.closest('[data-prset]'))) { var st = x.getAttribute('data-st'), note = st === 'Not now' ? (prompt('Note for the team (optional)') || '') : ''; x.disabled = true; P({ act: 'set', id: x.getAttribute('data-prset'), status: st, note: note }).then(function(){ list(); }); return; }
+  });
+  window.AMA_PRINTREQ_OPEN = function(){ if (location.hash !== '#printreq') history.replaceState(null, '', '#printreq'); list(); };
+  window.addEventListener('hashchange', function(){ if (location.hash === '#printreq') list(); });
+  if (location.hash === '#printreq') (function wait(){ if (window.AMA_HUB_USER && window.AMA_HUB_POST) list(); else setTimeout(wait, 700); })();
 })();
 </script>
 

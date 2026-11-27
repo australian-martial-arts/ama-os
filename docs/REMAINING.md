@@ -93,6 +93,15 @@ AMA OS never writes to these itself: every save goes through the hub, as the sig
 - [ ] Holds, cancels, follow-ups, new members and absent counts still come from the hub's copy. Read them from EFC / GHL directly.
   (Trials and members already come live from GHL and EFC.)
 
+## 5b. Summer 2027 holiday camp (Laurie's brief, 27 Nov; Mark approved all six points)
+- [x] Hub v503: no Fri 18 Dec; $80 a day, $70 a day for 5+ days (per child); no early bird; urgency per day (0-8 Book now, 9-14 Filling up, 15+ Only a few spots left); UTM source saved; admin "send booking link" text (OFF until Mark approves wording); Paid cash (walk-ins only)
+- [x] AMA OS camp: Bookings (Paid cash) and Booking link tabs
+- [ ] Themes: Friday = Superhero and Nerf Wars Day, Wednesday = Kama Day
+- [ ] New summer landing page /holiday-camp-summer-2027 (sun and beach look, Laurie's Drive photos, website video, urgency on hover, 48-hour refund terms); /holiday-camp forwards to it; preview to Mark first
+- [ ] Parent confirmation (bring a friend; free trial prompt for non-members), day-before reminder, staff new-booking alert: drafts to Mark first
+- [ ] Check Square, then go live (CAMP.live)
+- [x] Print requests (hub v504 + AMA OS); Christmas pause 21 Dec - 10 Jan on all "we miss you" texts (absentee day 9/30, We missed you button, win-back)
+
 ## 6. New feature requests
 - [ ] Member Hub news cards (Mark, 27 Nov): staff post a card to families in the Member Hub, e.g. "Buddy week coming - click here to book your friend",
       with a button that opens the trial booking for a friend (counts as a referral). Choose which schools/programs see it and when it shows and ends.
