@@ -96,17 +96,14 @@ section{padding:84px 0}
 .tl b{display:block;color:var(--g);font-size:18px}
 .tl span{font-size:14.5px;color:#2c3d34}
 .gal{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:180px;gap:12px;margin-top:28px}
-.gal div{border-radius:18px;position:relative;overflow:hidden;padding:0;background:repeating-linear-gradient(45deg,#d62839 0 12px,#fff 12px 24px);box-shadow:0 10px 26px rgba(0,40,25,.18)}
-.gal div i{position:absolute;inset:6px;border-radius:13px;background-size:cover;background-position:center;filter:saturate(1.12) contrast(1.04)}
-.gal div i:after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(214,40,57,.10),rgba(0,0,0,0) 35%,rgba(0,40,25,.0) 50%,rgba(0,40,25,.85))}
-.gal div:before{content:'';position:absolute;left:6px;right:6px;top:6px;height:18px;z-index:2;border-radius:13px 13px 0 0;background:radial-gradient(circle at 7px 11px,#ffd23f 4px,transparent 5px) 0 0/56px 18px,radial-gradient(circle at 21px 11px,#ff4d5e 4px,transparent 5px) 0 0/56px 18px,radial-gradient(circle at 35px 11px,#3ddc97 4px,transparent 5px) 0 0/56px 18px,radial-gradient(circle at 49px 11px,#5bc0ff 4px,transparent 5px) 0 0/56px 18px,linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,0));animation:twinkle 1.6s ease-in-out infinite}
-.gal div:after{content:'';position:absolute;inset:6px;z-index:1;border-radius:13px;pointer-events:none;background-image:radial-gradient(2.5px 2.5px at 20px 30px,#fff,transparent),radial-gradient(2px 2px at 80px 70px,#fff,transparent),radial-gradient(3px 3px at 50px 110px,#fff,transparent),radial-gradient(2px 2px at 110px 20px,#fff,transparent),radial-gradient(2.5px 2.5px at 140px 90px,#fff,transparent);background-size:160px 140px;opacity:.85;animation:snowfall 9s linear infinite}
-@keyframes snowfall{to{background-position:30px 140px}}
-.gal div em{position:absolute;top:22px;right:12px;z-index:3;font-style:normal;font-size:38px;line-height:1;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35));animation:bob 3s ease-in-out infinite}
-.gal .big em{font-size:60px}
+.gal div{border-radius:18px;position:relative;overflow:hidden;padding:0;background:#0b3d2a;box-shadow:0 14px 30px rgba(0,40,25,.22)}
+.gal div i{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .6s ease}
+.gal div:hover i{transform:scale(1.04)}
+.gal div i:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,30,18,.78))}
+.gal div:after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);pointer-events:none}
 .gal div b{position:absolute;left:18px;right:18px;bottom:16px;z-index:3;color:#fff;font-size:16px;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.5)}
 .gal .big b{font-size:24px;bottom:22px;left:24px}
-@keyframes bob{50%{transform:translateY(-8px) rotate(-6deg)}}
+@keyframes bob{50%{transform:translateY(-8px) rotate(-3deg)}}
 .gal .big{grid-column:span 2;grid-row:span 2}
 /* form */
 .form{scroll-margin-top:100px;max-width:880px;margin:0 auto;background:#fff;border-radius:28px;box-shadow:0 20px 60px rgba(0,61,41,.12);padding:34px;border-top:8px solid var(--red)}
@@ -168,7 +165,7 @@ footer b{color:#fff}
   .cards{grid-template-columns:1fr 1fr;gap:10px}.card{padding:14px}.card .v{font-size:17px}
   .fun{grid-template-columns:1fr 1fr}.tl{grid-template-columns:1fr}
   .row,.row3{grid-template-columns:1fr}.form{padding:22px}
-  .gal{grid-template-columns:1fr 1fr;grid-auto-rows:150px}.gal div b{font-size:13.5px;left:14px;right:12px;bottom:12px}.gal .big b{font-size:20px}.gal div em{font-size:30px}.gal .big em{font-size:48px}
+  .gal{grid-template-columns:1fr 1fr;grid-auto-rows:150px}.gal div b{font-size:13.5px;left:14px;right:12px;bottom:12px}.gal .big b{font-size:20px}
   section{padding:60px 0}
   header.nav .btn{padding:10px 16px;font-size:14px}
   .mbar{display:flex;position:fixed;left:10px;right:10px;bottom:10px;z-index:60;background:var(--g);color:#fff;border-radius:18px;padding:10px 12px 10px 16px;align-items:center;justify-content:space-between;box-shadow:0 12px 30px rgba(0,0,0,.3)}
@@ -308,8 +305,8 @@ footer b{color:#fff}
   'use strict';
   var HUB = 'https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec';
   /* Christmas tiles (swap for real Christmas Parents' Night Out photos when we have them) */
-  var GAL = [['1x-5IuDWMX06y75dX-lPwgvk1lsa3f3pB', 'A Christmas party at AMA', '🎄'], ['1dqoxv7NnBz4mp3XMPTrm-ZvjYHsp4kIi', 'Festive games and prizes', '🎁'], ['1fj6Zbko8wPIjDnAcfQMTjf0zEpIe2f83', 'Christmas ninja challenges', '⭐'], ['1JXNCyTScuvfoi13fqcJmOYLTBqkjuNwi', 'Dinner with friends', '🍕'], ['10b1EHSzxiwoQ_4zldZKgAYCvUo2kR3eq', 'Santa hats welcome', '🎅']]; // real AMA photos (public copies in Drive: AMA website images - Summer camp 2027 (public)) with a Christmas frame
-  var IMGU = function (id, w) { return 'https://lh3.googleusercontent.com/d/' + id + '=w' + (w || 1600); };
+  var GAL = [['x0', 'A Christmas party at AMA'], ['x1', 'Festive games and prizes'], ['x2', 'Christmas ninja challenges'], ['x3', 'Fun with friends'], ['x4', 'Santa hats welcome']]; // real AMA photos given a Christmas edit (Konvert), hosted next to this page
+  var IMGU = function (id) { return 'https://ama-os.train-ama.com/pno/img/' + id + '.jpg'; };
   var D = window.__AMA_PNO_ROOT || document; // inside GoHighLevel the page lives in a shadow root
   var $ = function (id) { return D.getElementById(id); };
   D.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return; var t = D.getElementById(a.getAttribute('href').slice(1)); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
@@ -379,7 +376,7 @@ footer b{color:#fff}
     EV.forEach(function (ev) { document.addEventListener(ev, go, true); D.addEventListener(ev, go, true); });
     go(); // try straight away (works where the browser allows sound without a tap)
   })();
-  $('gal').innerHTML = GAL.map(function (g, i) { return '<div class="' + (i === 0 ? 'big' : '') + '"><i style="background-image:url(' + IMGU(g[0], i === 0 ? 1200 : 700) + ')"></i><em style="animation-delay:' + (i * 0.4) + 's">' + g[2] + '</em><b>' + g[1] + '</b></div>'; }).join('');
+  $('gal').innerHTML = GAL.map(function (g, i) { return '<div class="' + (i === 0 ? 'big' : '') + '"><i style="background-image:url(' + IMGU(g[0]) + ')"></i><b>' + g[1] + '</b></div>'; }).join('');
 
   /* children */
   function nm(k, i) { return k.name.trim() || 'Child ' + (i + 1); }
