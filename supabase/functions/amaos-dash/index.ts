@@ -329,7 +329,8 @@ Deno.serve(async (req) => {
       if (ttl) {
         const ck = hubKey(me.first, body), hit = await sql`select data, at from ama_os.cache where key = ${ck}`;
         const age = hit.length ? Date.now() - new Date(hit[0].at as string).getTime() : Infinity;
-        if (!fresh && age < ttl * 1000) {
+        // 27 Nov 2026: always show the saved copy at once (the screen then asks again with fresh: true and redraws if anything changed).
+        if (!fresh && hit.length && age < Math.max(ttl, 86400) * 1000) {
           return json({ ...(hit[0].data as Record<string, unknown>), cachedAt: new Date(hit[0].at as string).toISOString() });
         }
         const out = await hubCall(me.name, String(me.login ?? ""), body); if (out.ok) await hubSave(ck, out);
@@ -338,8 +339,7 @@ Deno.serve(async (req) => {
       const out = await hubCall(me.name, String(me.login ?? ""), body);
       if ((HUB_LOOKUP[kind] ?? []).includes(String(body.act)) || kind === "epbtoken" || (kind === "headleave" && body.preview)) return json(out); // a look-up, not a change
       if (!["trialslots"].includes(kind)) await sql`insert into ama_os.audit (actor, actor_login, role, action, detail) values (${me.name}, ${me.login}, ${me.role}, ${"hub " + kind}, ${sql.json({ body: kind === "ppf" && body.data ? { ...body, data: "(their goals)" } : Array.isArray(body.files) ? { ...body, files: (body.files as { name?: string }[]).map((f) => f.name) } : body, ok: !!out.ok, error: out.error ?? null } as never)})`;
-      // Something changed: this person's saved copies are out of date (class lists stay).
-      if (out.ok && kind !== "trialslots") await sql`delete from ama_os.cache where key like ${"hub:" + me.first + ":%"} and key not like ${"hub:" + me.first + ":trialopts%"}`;
+      // 27 Nov 2026: saved copies are kept (no longer cleared), so the next screen still opens at once; it refreshes itself straight after.
       return json(out);
     }
 
