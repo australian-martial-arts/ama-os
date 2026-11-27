@@ -149,9 +149,6 @@ footer b{color:#fff}
 .share b{color:var(--g);font-size:17px}.share .msg{background:#fff;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14.5px;color:#334;line-height:1.45;overflow-wrap:anywhere}
 .share .btns{display:flex;flex-wrap:wrap;gap:8px}.share .btns a,.share .btns button{flex:1 1 140px;text-align:center;border:0;border-radius:999px;padding:12px 14px;font:700 15px Poppins,sans-serif;cursor:pointer;text-decoration:none}
 .share .sms{background:var(--g);color:#fff}.share .wa{background:#25d366;color:#fff}.share .cp{background:#fff;color:var(--g);border:2px solid var(--g)!important}
-.bells{position:fixed;left:14px;bottom:14px;z-index:70;border:0;border-radius:999px;background:var(--red);color:#fff;font:700 14px Poppins,sans-serif;padding:11px 16px;box-shadow:0 10px 24px rgba(0,0,0,.25);cursor:pointer}
-.bells.on{background:var(--g)}
-@media (max-width:620px){.bells{bottom:88px;left:10px;padding:9px 13px;font-size:13px}}
 .preview{background:#ff6b4a;color:#fff;text-align:center;font-weight:700;font-size:13.5px;padding:8px 14px}
 @media (max-width:980px){
   .cards{grid-template-columns:repeat(2,1fr)}
@@ -299,7 +296,6 @@ footer b{color:#fff}
   <div><b>Australian Martial Arts Academy</b><br>Studio 35/142 Addison Road, Marrickville NSW 2204<br>(02) 9569 1943 · Est. 1982</div>
   <div><a href="https://www.australianmartialarts.com.au/parents-night-out/" style="color:#fff">About Parents' Night Out</a> · <a href="https://www.australianmartialarts.com.au/" style="color:#fff">australianmartialarts.com.au</a></div>
 </div></footer>
-<button type="button" class="bells" id="bells">🔔 Play Jingle Bells</button>
 <div class="mbar"><div><div style="color:#cfe3d7;font-size:13px">Sat 19 Dec · 4–7pm</div><b>$60 per child</b></div><a class="btn y" href="#book">Book now</a></div>
 
 <script>
@@ -329,27 +325,54 @@ footer b{color:#fff}
     var FL = ['❄', '❅', '❆'], sn = ''; for (var j = 0; j < 40; j++) { var s = 12 + (j * 7 % 18), l = (j * 37) % 100, d = 8 + (j * 13 % 9), dl = -(j * 1.7 % 9); sn += '<i style="left:' + l + '%;font-size:' + s + 'px;animation-duration:' + d + 's;animation-delay:' + dl + 's;opacity:' + (0.5 + (j % 5) / 10) + '">' + FL[j % 3] + '</i>'; }
     $('snow').innerHTML = sn;
   })();
-  /* Jingle Bells: starts on the first tap (browsers block sound until then), the bell button turns it on and off */
-  var JB = (function () {
-    var N = { C: 523.25, D: 587.33, E: 659.25, F: 698.46, G: 783.99, c: 261.63, g: 392.0 };
-    var A = 'E1 E1 E2 E1 E1 E2 E1 G1 C1.5 D.5 E4 F1 F1 F1.5 F.5 F1 E1 E1 E.5 E.5 E1 D1 D1 E1 D2 G2 E1 E1 E2 E1 E1 E2 E1 G1 C1.5 D.5 E4 F1 F1 F1.5 F.5 F1 E1 E1 E.5 E.5 G1 G1 F1 D1 C4';
-    var tune = A.split(' ').map(function (t) { return [N[t[0]], parseFloat(t.slice(1))]; });
-    var ctx = null, on = false, timer = null, beat = 0.34;
-    function bell(t, f, len) {
-      [1, 2.01, 3.02].forEach(function (h, k) { var o = ctx.createOscillator(), g = ctx.createGain(); o.type = k ? 'sine' : 'triangle'; o.frequency.value = f * h; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime([0.16, 0.05, 0.025][k], t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.25, len * 0.9)); o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + len + 0.1); });
+  /* Christmas music (Jingle Bells and We Wish You a Merry Christmas, both public domain), played by the browser:
+     glockenspiel melody, sleigh bells, warm chords and bass. Starts as the page opens; if the browser blocks sound
+     until the visitor touches the page, it starts on their first tap or click. */
+  (function () {
+    var ctx, master, started = false, timer = null;
+    var SEMI = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, Bb: 10, B: 11 };
+    function hz(n) { var m = /^([A-G](?:#|b)?)(\d)$/.exec(n); return 440 * Math.pow(2, (SEMI[m[1]] + (+m[2] + 1) * 12 - 69) / 12); }
+    var CH = { C: ['C3', 'E3', 'G3'], F: ['F3', 'A3', 'C4'], G: ['G2', 'B2', 'D3'], G7: ['G2', 'B2', 'F3'], A7: ['A2', 'C#3', 'G3'], D7: ['D3', 'F#3', 'C4'], E7: ['E3', 'G#3', 'D4'], Am: ['A2', 'C3', 'E3'], Dm: ['D3', 'F3', 'A3'] };
+    function seq(str) { return str.split(' ').map(function (t) { var i = t.search(/[\d.]+$/), o = t.slice(0, i).split(':'); return [o[0], parseFloat(t.slice(i))]; }); }
+    var SONGS = [
+      { beat: 0.36, bar: 4, sleigh: true, mel: seq('E5:1 E5:1 E5:2 E5:1 E5:1 E5:2 E5:1 G5:1 C5:1.5 D5:.5 E5:4 F5:1 F5:1 F5:1.5 F5:.5 F5:1 E5:1 E5:1 E5:.5 E5:.5 E5:1 D5:1 D5:1 E5:1 D5:2 G5:2 E5:1 E5:1 E5:2 E5:1 E5:1 E5:2 E5:1 G5:1 C5:1.5 D5:.5 E5:4 F5:1 F5:1 F5:1.5 F5:.5 F5:1 E5:1 E5:1 E5:.5 E5:.5 G5:1 G5:1 F5:1 D5:1 C5:4'),
+        ch: 'C C C C F C G7 G C C C C F C G7 C' },
+      { beat: 0.42, bar: 3, pickup: 1, mel: seq('G4:1 C5:1 C5:.5 D5:.5 C5:.5 B4:.5 A4:1 A4:1 A4:1 D5:1 D5:.5 E5:.5 D5:.5 C5:.5 B4:1 G4:1 G4:1 E5:1 E5:.5 F5:.5 E5:.5 D5:.5 C5:1 A4:1 G4:.5 G4:.5 A4:1 D5:1 B4:1 C5:3'),
+        ch: 'C A7 Dm G7 E7 Am G7 C' }
+    ];
+    function bell(t, f, len, v) { // glockenspiel: bright, slightly inharmonic, ringing
+      [[1, 1, 'sine'], [2.76, .35, 'sine'], [5.4, .12, 'sine'], [1, .25, 'triangle']].forEach(function (p) {
+        var o = ctx.createOscillator(), g = ctx.createGain(); o.type = p[2]; o.frequency.value = f * p[0];
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * p[1], t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(2.2, 0.5 + len * 1.6));
+        o.connect(g); g.connect(master); o.start(t); o.stop(t + 2.4);
+      });
     }
-    function play() {
-      if (!on) return; var t = ctx.currentTime + 0.05, total = 0;
-      tune.forEach(function (n) { bell(t + total, n[0], n[1] * beat); if (n[1] >= 2) bell(t + total, n[0] / 2, n[1] * beat); total += n[1] * beat; });
-      timer = setTimeout(play, total * 1000 + 800);
+    var noise; function sleigh(t, v) { // sleigh bells: a shimmer of filtered noise
+      if (!noise) { noise = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate); var d = noise.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (Math.random() < 0.3 ? 1 : 0.4); }
+      var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noise; f.type = 'highpass'; f.frequency.value = 6500;
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16); s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + 0.2);
     }
-    function set(v) { on = v; var b = $('bells'); if (b) { b.textContent = on ? '🔕 Stop the music' : '🔔 Play Jingle Bells'; b.classList.toggle('on', on); } try { localStorage.setItem('amaPnoBells', on ? '1' : '0'); } catch (e) { }
-      if (on) { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); play(); } catch (e) { on = false; } } else { clearTimeout(timer); if (ctx) ctx.suspend(); } }
-    return { set: set, on: function () { return on; } };
+    function pad(t, notes, len) { notes.forEach(function (n) { var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = hz(n);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.035, t + 0.12); g.gain.setValueAtTime(0.035, t + len - 0.15); g.gain.linearRampToValueAtTime(0.0001, t + len);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + len + 0.05); }); }
+    function bass(t, n, len) { var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = hz(n) / 2;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + len * 0.9); o.connect(g); g.connect(master); o.start(t); o.stop(t + len); }
+    function playSong(sg, t0) {
+      var t = t0; sg.mel.forEach(function (m) { bell(t, hz(m[0]), m[1] * sg.beat, 0.2); t += m[1] * sg.beat; });
+      var c0 = t0 + (sg.pickup || 0) * sg.beat, bl = sg.bar * sg.beat;
+      sg.ch.split(' ').forEach(function (c, i) { var bt = c0 + i * bl, ns = CH[c]; pad(bt, ns, bl); for (var k = 0; k < sg.bar; k++) bass(bt + k * sg.beat, k % 2 ? ns[2] : ns[0], sg.beat); });
+      if (sg.sleigh) for (var x = t0; x < t - 0.01; x += sg.beat / 2) sleigh(x, Math.round((x - t0) / sg.beat * 2) % 2 ? 0.05 : 0.11);
+      return t - t0;
+    }
+    var si = 0;
+    function loop() { var len = playSong(SONGS[si % SONGS.length], ctx.currentTime + 0.1); si++; timer = setTimeout(loop, (len + 1.2) * 1000); }
+    function go() { if (started) return; try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); master = master || (function () { var g = ctx.createGain(); g.gain.value = 0.55; g.connect(ctx.destination); return g; })(); } catch (e) { return; }
+      ctx.resume().then(function () { if (started || ctx.state !== 'running') return; started = true; loop(); unhook(); }).catch(function () { }); }
+    var EV = ['pointerdown', 'keydown', 'touchend', 'click'];
+    function unhook() { EV.forEach(function (ev) { document.removeEventListener(ev, go, true); D.removeEventListener(ev, go, true); }); }
+    EV.forEach(function (ev) { document.addEventListener(ev, go, true); D.addEventListener(ev, go, true); });
+    go(); // try straight away (works where the browser allows sound without a tap)
   })();
-  $('bells').onclick = function (e) { e.stopPropagation(); JB.set(!JB.on()); };
-  var muted = false; try { muted = localStorage.getItem('amaPnoBells') === '0'; } catch (e) { }
-  if (!muted) { var first = function (e) { if (e && e.composedPath && e.composedPath().some(function (x) { return x && x.id === 'bells'; })) return; D.removeEventListener('pointerdown', first, true); document.removeEventListener('pointerdown', first, true); if (!JB.on()) JB.set(true); }; D.addEventListener('pointerdown', first, true); document.addEventListener('pointerdown', first, true); }
   $('gal').innerHTML = GAL.map(function (g, i) { return '<div class="' + (i === 0 ? 'big' : '') + '" style="background:' + g[2] + '"><span style="animation-delay:' + (i * 0.4) + 's">' + g[0] + '</span><b>' + g[1] + '</b></div>'; }).join('');
 
   /* children */
