@@ -18506,11 +18506,11 @@ function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? '
    (bookings, check-in, run sheet, results) shows them with no double entry. Test mode until Mark says go live:
    bookings are marked TEST, no payment is taken and nothing is sent. Texts stay off until Mark approves the wording. */
 const PNOPUB = {
-  live: false, date: '2026-12-19', title: "Christmas Parents' Night Out", label: 'Saturday 19 December',
+  live: true, date: '2026-12-19', title: "Christmas Parents' Night Out", // 27 Nov 2026 (Mark): go live label: 'Saturday 19 December',
   start: '4:00pm', end: '7:00pm', startT: '16:00', endT: '19:00', price: 60, cap: 40, // 27 Nov 2026 (Mark): $60 for the 3 hours minAge: 3, maxAge: 12,
   where: 'AMA Marrickville, Studio 35/142 Addison Rd, Marrickville', school: 'Marrickville',
   pageUrl: 'https://train.australianmartialarts.com.au/christmas-parents-night-out', refundHours: 48, coordinator: 'Hakan', // GHL page 'Christmas Parents Night Out 2026' in the AMA Admin Hub funnel
-  parentTextsOn: false, staffAlertOn: false, remindOn: false // OFF until Mark approves the wording
+  parentTextsOn: true, staffAlertOn: false, remindOn: true // 27 Nov 2026: parent confirmation and day-before texts approved with go live; staff alert waits for Mark's OK
 };
 function pnoPubSheets_() { return { E: staffSheet_(EVT.pno.ev, EVT.evCols), P: staffSheet_(EVT.pno.pp, EVT.ppCols) }; }
 function pnoPubJ_(s) { try { const o = JSON.parse(s || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
@@ -18668,6 +18668,14 @@ function pnoPubTexts_(who) {
   if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' };
   const ex = [{ name: 'Leo Smith', mobile: '0400 000 000', type: 'Non-member', data: { parent: 'Sarah Smith', age: 7, medical: 'Allergies: peanuts', bookingId: 'PX1127EXAMP' } }];
   return { ok: true, on: { parent: PNOPUB.parentTextsOn, staff: PNOPUB.staffAlertOn, remind: PNOPUB.remindOn }, confirm: pnoPubConfirmText_(ex), remind: pnoPubRemindText_('Sarah', 'Leo'), staff: pnoPubStaffText_(ex) };
+}
+/* 27 Nov 2026 (Mark): before going live, move the TEST Parents' Night Out bookings to the 'PNO test archive' tab (not deleted) */
+function pnoPubClearTests27Nov() {
+  const P = pnoPubSheets_().P, ss = SpreadsheetApp.openById(HOLD.sheetId), rows = pnoPubRows_().filter(function (r) { return /^TEST/i.test(r.status); });
+  let arc = ss.getSheetByName('PNO test archive'); if (!arc) { arc = ss.insertSheet('PNO test archive'); arc.appendRow(['Moved at'].concat(EVT.ppCols)); }
+  const v = P.getDataRange().getValues(); rows.forEach(function (r) { arc.appendRow([new Date()].concat(v[r.row - 1])); });
+  rows.sort(function (a, b) { return b.row - a.row; }).forEach(function (r) { P.deleteRow(r.row); });
+  Logger.log('Moved ' + rows.length + ' test PNO bookings: ' + rows.map(function (r) { return r.name + ' ' + r.data.bookingId; }).join(', '));
 }
 function pnoPubTestRun27Nov() { Logger.log(JSON.stringify(pnoPubInfo_())); Logger.log(JSON.stringify(pnoPubTexts_({ name: 'Mark' }))); }
 /* 27 Nov 2026 (Mark): before going live, clear the test camp bookings and Mark's and Tate's test staff availability.
