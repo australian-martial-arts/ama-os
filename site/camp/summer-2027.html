@@ -164,6 +164,8 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--g2);backgro
 .terms{background:var(--mint);border-radius:18px;padding:16px 18px;font-size:13.5px;color:#2c3d34;margin-top:14px}
 .terms b{color:var(--g)}
 .err{color:#b4361b;font-weight:600;font-size:14px;margin-top:10px;min-height:20px}
+.bad{border-color:#d8452b!important;background:#fff6f4!important}label.chk.bad{border:2px solid #d8452b;border-radius:12px;padding:6px 8px}
+.fe{color:#b4361b;font-size:13px;font-weight:600;margin-top:4px}
 .addkid{background:none;border:2px solid var(--g);color:var(--g);border-radius:999px;padding:9px 16px;font:700 14px Poppins;cursor:pointer}
 .rm{background:none;border:0;color:#b4361b;font:600 13px Poppins;cursor:pointer}
 .hp{position:absolute;left:-9999px}
@@ -288,15 +290,15 @@ footer b{color:#fff}
     <button type="button" class="addkid" id="addKid">+ Add a sibling</button>
     <h3>Parent details</h3>
     <div class="row"><div><label>First name</label><input name="first" autocomplete="given-name" required></div><div><label>Last name</label><input name="last" autocomplete="family-name" required></div></div>
-    <div class="row"><div><label>Mobile</label><input name="mobile" type="tel" inputmode="tel" autocomplete="tel" required></div><div><label>Email</label><input name="email" type="email" autocomplete="email" required></div></div>
+    <div class="row"><div><label>Mobile</label><input name="mobile" type="tel" inputmode="tel" autocomplete="tel" placeholder="0412 345 678" maxlength="16" required></div><div><label>Email</label><input name="email" type="email" autocomplete="email" required></div></div>
     <label>Who can pick up? (names and relationship)</label><input name="pickup" placeholder="e.g. Sarah (mum), John (grandad)">
     <label>Emergency contact if we can't reach you (name and mobile)</label><input name="emergency">
     <div class="row"><div><label>How did you hear about camp?</label><select name="heard"><option value="">Choose…</option><option>I am already an AMA family</option><option>Friend or family</option><option>Facebook or Instagram</option><option>Google</option><option>School newsletter</option><option>Flyer</option><option>Walked past</option><option>Other</option></select></div><div><label>Anything else we should know?</label><input name="notes"></div></div>
     <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     <!-- hidden tracking fields, as on the old GHL "School Holiday Camp Registration" form -->
     <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium"><input type="hidden" name="utm_campaign"><input type="hidden" name="utm_term"><input type="hidden" name="utm_content"><input type="hidden" name="gclid"><input type="hidden" name="fbclid"><input type="hidden" name="referrer"><input type="hidden" name="landing_page">
-    <label class="chk"><input type="checkbox" name="photos" checked> Photos and videos of my child at camp can be shared with families and on AMA social media.</label>
-    <label class="chk"><input type="checkbox" name="marketing" checked> AMA can send me news and offers (unsubscribe any time).</label>
+    <label class="chk"><input type="checkbox" name="photos"> Photos and videos of my child at camp can be shared with families and on AMA social media.</label>
+    <label class="chk"><input type="checkbox" name="marketing"> AMA can send me news and offers (unsubscribe any time).</label>
     <div class="terms">
       <b>Camp terms</b><br>
       <b>Assumption of risk:</b> physical activities carry inherent risks. We take every reasonable step to keep kids safe, but AMA can't be held responsible for injuries during activities. By attending, you confirm your child is physically and medically fit to take part.<br>
@@ -405,6 +407,41 @@ footer b{color:#fff}
   }
   function toggle(ymd) { var k = S.kids[S.cur], i = k.days.indexOf(ymd); if (i > -1) k.days.splice(i, 1); else k.days.push(ymd); k.days.sort(); drawAll(); }
   function nm(k, i) { return k.name.trim() || 'Child ' + (i + 1); }
+  /* 27 Nov 2026 (Mark): check everything at once, show each problem by its field, clear it as soon as it's fixed */
+  S.errs = {};
+  function fe(key) { return S.errs[key] ? '<div class="fe">' + esc(S.errs[key]) + '</div>' : ''; }
+  function auMobile(x) { var d = String(x || '').replace(/\D/g, '').replace(/^61(?=4)/, '0'); return /^04\d{8}$/.test(d) ? d : ''; }
+  function checkAll() {
+    var f = $('form'), v = function (n) { return (f.elements[n].value || '').trim(); }, E = {};
+    S.kids.forEach(function (k, i) {
+      var who = k.name.trim() || (S.kids.length > 1 ? 'Child ' + (i + 1) : 'your child'), a = String(k.age).trim(), n = Number(a);
+      if (!k.name.trim()) E['k' + i + '.name'] = 'Add ' + (S.kids.length > 1 ? 'this child\'s' : 'your child\'s') + ' name.';
+      if (!a) E['k' + i + '.age'] = 'Add ' + who + '\'s age.';
+      else if (!(n >= 5 && n <= 13) || Math.floor(n) !== n) E['k' + i + '.age'] = 'Camp is for ages 5 to 13. Questions? Call (02) 9569 1943.';
+    });
+    if (!v('first')) E.first = 'Add your first name.';
+    if (!v('last')) E.last = 'Add your last name.';
+    if (!auMobile(v('mobile'))) E.mobile = 'Enter an Australian mobile, like 0412 345 678.';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v('email'))) E.email = 'Enter a valid email, like name@example.com.';
+    if (!f.elements.agree.checked) E.agree = 'Please tick to agree to the camp terms.';
+    return E;
+  }
+  function markParent() {
+    var f = $('form');
+    ['first', 'last', 'mobile', 'email', 'agree'].forEach(function (n) {
+      var el = f.elements[n], box = n === 'agree' ? el.closest('label') : el, old = box.parentNode.querySelector('.fe[data-for="' + n + '"]');
+      if (old) old.remove();
+      box.classList.toggle('bad', !!S.errs[n]);
+      if (S.errs[n]) { var d = document.createElement('div'); d.className = 'fe'; d.dataset.for = n; d.textContent = S.errs[n]; box.insertAdjacentElement('afterend', d); }
+    });
+  }
+  function errSum() { var n = Object.keys(S.errs).length; $('err').textContent = n ? 'Please fix the ' + (n === 1 ? 'item' : n + ' items') + ' marked in red.' : ''; }
+  function clearErr(key, el) {
+    if (!S.errs[key] || checkAll()[key]) return; delete S.errs[key];
+    var box = el.type === 'checkbox' && el.closest('label.chk') ? el.closest('label.chk') : el; box.classList.remove('bad');
+    var nx = box.nextElementSibling; if (nx && nx.classList.contains('fe')) nx.remove();
+    errSum();
+  }
   /* 27 Nov 2026 (Mark): booking without days takes them to the calendar, then straight back to finish */
   S.picking = false;
   D.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('#mbGo'); if (!a || !S.info) return; var k = S.kids.filter(function (x) { return !x.days.length; })[0]; if (k) { e.preventDefault(); e.stopImmediatePropagation(); goPick(S.kids.indexOf(k)); } }, true);
@@ -466,7 +503,7 @@ footer b{color:#fff}
   function drawKids() {
     $('kids').innerHTML = S.kids.map(function (k, i) {
       return '<div class="kidbox" data-i="' + i + '"><div class="kh"><b>' + esc(nm(k, i)) + '</b>' + (S.kids.length > 1 ? '<button type="button" class="rm" data-rm="' + i + '">Remove</button>' : '') + '</div>' +
-        '<div class="row3"><div><label>Child\'s name</label><input data-f="name" value="' + esc(k.name) + '"></div><div><label>Age</label><input data-f="age" type="number" min="5" max="13" value="' + esc(k.age) + '"></div><div><label>AMA member?</label><select data-f="member"><option value="">Choose…</option><option' + (k.member === 'Yes' ? ' selected' : '') + '>Yes</option><option' + (k.member === 'No' ? ' selected' : '') + '>No</option></select></div></div>' +
+        '<div class="row3"><div><label>Child\'s name</label><input data-f="name" class="' + (S.errs['k' + i + '.name'] ? 'bad' : '') + '" value="' + esc(k.name) + '">' + fe('k' + i + '.name') + '</div><div><label>Age</label><input data-f="age" type="number" inputmode="numeric" min="5" max="13" step="1" class="' + (S.errs['k' + i + '.age'] ? 'bad' : '') + '" value="' + esc(k.age) + '">' + fe('k' + i + '.age') + '</div><div><label>AMA member?</label><select data-f="member"><option value="">Choose…</option><option' + (k.member === 'Yes' ? ' selected' : '') + '>Yes</option><option' + (k.member === 'No' ? ' selected' : '') + '>No</option></select></div></div>' +
         '<div class="days">' + (k.days.length ? '📅 ' + esc(fmtDays(k)) : '<a href="#days" data-pick="' + i + '">📅 Pick days for this child on the calendar</a>') + '</div>' +
         '<div class="row"><div><label>Medical conditions</label><input data-f="medical" value="' + esc(k.medical) + '"></div><div><label>Allergies</label><input data-f="allergies" value="' + esc(k.allergies) + '"></div></div>' +
         '<div class="row"><div><label>Medication we need to know about</label><input data-f="medication" value="' + esc(k.medication) + '"></div><div><label>Staying for an afternoon class? (optional)</label><input data-f="stay" value="' + esc(k.stay) + '" placeholder="e.g. 4:15pm Ninjas"></div></div>' +
@@ -474,9 +511,9 @@ footer b{color:#fff}
     }).join('');
     Array.prototype.forEach.call($('kids').querySelectorAll('[data-f]'), function (el) {
       var i = +el.closest('.kidbox').dataset.i, f = el.dataset.f;
-      el.oninput = el.onchange = function () { S.kids[i][f] = el.type === 'checkbox' ? el.checked : el.value; if (f === 'member') drawKids(); if (f === 'name') { drawTabs(); drawSum(); el.closest('.kidbox').querySelector('.kh b').textContent = nm(S.kids[i], i); } };
+      el.oninput = el.onchange = function () { S.kids[i][f] = el.type === 'checkbox' ? el.checked : el.value; clearErr('k' + i + '.' + f, el); if (f === 'member') drawKids(); if (f === 'name') { drawTabs(); drawSum(); el.closest('.kidbox').querySelector('.kh b').textContent = nm(S.kids[i], i); } };
     });
-    Array.prototype.forEach.call($('kids').querySelectorAll('[data-rm]'), function (b) { b.onclick = function () { S.kids.splice(+b.dataset.rm, 1); S.cur = 0; drawAll(); }; });
+    Array.prototype.forEach.call($('kids').querySelectorAll('[data-rm]'), function (b) { b.onclick = function () { S.kids.splice(+b.dataset.rm, 1); S.cur = 0; Object.keys(S.errs).forEach(function (x) { if (/^k\d/.test(x)) delete S.errs[x]; }); errSum(); drawAll(); }; });
     Array.prototype.forEach.call($('kids').querySelectorAll('[data-pick]'), function (a) { a.onclick = function () { S.cur = +a.dataset.pick; drawAll(); }; });
   }
   function drawAll() { if (!S.info) return; drawTabs(); drawCal(); drawSum(); drawKids(); drawPick(); }
@@ -486,13 +523,9 @@ footer b{color:#fff}
   $('addKid').onclick = function () { S.kids.push({ name: '', age: '', member: '', days: S.kids[S.cur].days.slice(), medical: '', allergies: '', medication: '', stay: '', trial: false }); S.cur = S.kids.length - 1; drawAll(); };
   $('form').onsubmit = function (e) {
     e.preventDefault(); var f = e.target, err = $('err'), v = function (n) { return (f.elements[n].value || '').trim(); };
-    err.textContent = '';
-    var bad = S.kids.filter(function (k) { return !k.name.trim(); })[0]; if (bad) { err.textContent = 'Add each child\'s name.'; return; }
+    S.errs = checkAll(); drawKids(); markParent(); errSum();
     var nod = S.kids.filter(function (k) { return !k.days.length; })[0]; if (nod) { goPick(S.kids.indexOf(nod)); return; }
-    if (!v('first') || !v('last')) { err.textContent = 'Add your first and last name.'; return; }
-    if (v('mobile').replace(/\D/g, '').length < 9) { err.textContent = 'Add your mobile number.'; return; }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email'))) { err.textContent = 'Add a valid email.'; return; }
-    if (!f.elements.agree.checked) { err.textContent = 'Please agree to the camp terms.'; return; }
+    if (Object.keys(S.errs).length) { var first = $('form').querySelector('.bad'); if (first) { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); if (first.focus && first.tagName === 'INPUT') first.focus({ preventScroll: true }); } return; }
     var go = $('go'); go.disabled = true; go.textContent = 'Saving your booking…';
     post({ kind: 'campbook', first: v('first'), last: v('last'), mobile: v('mobile'), email: v('email'), pickup: v('pickup'), emergency: v('emergency'), heard: v('heard'), notes: v('notes'), website: v('website'),
       photos: f.elements.photos.checked, marketing: f.elements.marketing.checked, ref: Q.get('ref') || '', utm: UTM,
@@ -509,6 +542,7 @@ footer b{color:#fff}
   if (Q.get('paid')) try { S.shareMsg = JSON.parse(sessionStorage.getItem('amaCampShare') || 'null'); } catch (x) { }
   if (Q.get('paid')) { $('book').scrollIntoView(); $('form').innerHTML = '<div class="done"><div style="font-size:54px">☀️</div><h3 style="color:var(--g)">Payment received. See you at camp!</h3><p>We\'ve texted you a confirmation. Questions? Call (02) 9569 1943.</p>' + shareBox(S.shareMsg) + '</div>'; }
 
+  ['input', 'change'].forEach(function (ev) { $('form').addEventListener(ev, function (e) { var n = e.target && e.target.name; if (n && /^(first|last|mobile|email|agree)$/.test(n)) clearErr(n, e.target); }); });
   drawSum(); drawKids();
   post({ kind: 'campinfo' }).then(function (j) {
     if (!j || !j.ok) throw new Error('no');

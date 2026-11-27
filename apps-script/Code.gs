@@ -18505,7 +18505,8 @@ function campBook_(b) {
   const s = function (x, n) { return String(x == null ? '' : x).replace(/[<>]/g, '').trim().slice(0, n || 200); };
   const first = s(b.first, 60), last = s(b.last, 60), mobile = s(b.mobile, 20), email = s(b.email, 120).toLowerCase();
   if (!first || !last) return { ok: false, error: 'Please add your first and last name.' };
-  if (String(mobile).replace(/\D/g, '').length < 9) return { ok: false, error: 'Please add a mobile number.' };
+  const mob = String(mobile).replace(/\D/g, '').replace(/^61(?=4)/, '0'); // 27 Nov 2026 (Mark): a real AU mobile, so the camp texts arrive
+  if (!/^04\d{8}$/.test(mob)) return { ok: false, error: 'Please enter an Australian mobile number, like 0412 345 678.' };
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'Please add a valid email.' };
   const valid = {}; campDays_().forEach(function (d) { valid[d.date] = d; });
   const kids = (b.kids || []).slice(0, 6).map(function (k) {
@@ -18513,6 +18514,8 @@ function campBook_(b) {
       days: (k.days || []).filter(function (d) { return valid[d]; }).sort(), medical: s(k.medical, 400), allergies: s(k.allergies, 300), medication: s(k.medication, 300), stay: s(k.stay, 120), trial: !!k.trial };
   }).filter(function (k) { return k.name; });
   if (!kids.length) return { ok: false, error: 'Please add at least one child.' };
+  const badAge = kids.filter(function (k) { return !(k.age >= CAMP.minAge && k.age <= CAMP.maxAge && Math.floor(k.age) === k.age); })[0]; // 27 Nov 2026 (Mark): ages 5 to 13 only
+  if (badAge) return { ok: false, error: 'Camp is for ages ' + CAMP.minAge + ' to ' + CAMP.maxAge + '. Please check ' + badAge.name + '\'s age, or call us on (02) 9569 1943.' };
   const bad = kids.filter(function (k) { return !k.days.length; }); if (bad.length) return { ok: false, error: 'Please pick at least one day for ' + bad[0].name + '.' };
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
@@ -18520,7 +18523,10 @@ function campBook_(b) {
     kids.forEach(function (k) { k.days.forEach(function (d) { need[d] = (need[d] || 0) + 1; }); });
     const full = Object.keys(need).filter(function (d) { return (taken[d] || 0) + need[d] > CAMP.cap; });
     if (full.length && CAMP.live) return { ok: false, full: full, error: 'Sorry, ' + full.map(function (d) { return valid[d].label; }).join(', ') + (full.length > 1 ? ' are' : ' is') + ' now full. Please choose another day.' };
-    const id = 'HC' + Utilities.formatDate(new Date(), CONFIG.timezone, 'MMdd') + Math.floor(1000 + Math.random() * 9000), now = new Date();
+    // 27 Nov 2026 (Mark): 5 random letters/numbers (not guessable, no clashes); still HC + date so staff can read it
+    const AB = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', have = {}; rows.forEach(function (r) { have[String(r['Booking ID'])] = 1; });
+    let id = ''; do { id = 'HC' + Utilities.formatDate(new Date(), CONFIG.timezone, 'MMdd'); for (let q = 0; q < 5; q++) id += AB.charAt(Math.floor(Math.random() * AB.length)); } while (have[id]);
+    const now = new Date();
     /* friend referral (no discount): ?ref=<booking id> on the camp link */
     const ref = String(b.ref || '').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 12); let refBy = '';
     if (ref) { const rr = rows.filter(function (r) { return String(r['Booking ID']) === ref; })[0]; if (rr) refBy = ref + ' (' + (rr['Parent first'] + ' ' + rr['Parent last']).trim() + ')'; }
