@@ -12,7 +12,7 @@
 <style>
 :root{--sky:#8ed8f2;--sky2:#d9f4fb;--sea2:#1aa6c4;--g:#00563A;--g2:#007C52;--g3:#003d29;--y:#FAEC1E;--y2:#ffd400;--mint:#E4F1E8;--sand:#FFF6DC;--sea:#1fb5c9;--sea2:#0e8fa8;--coral:#ff6b4a;--ink:#10241b;--mut:#5a6b62;--line:#dfe8e2;--r:22px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;line-height:1.55}
+body,:host{display:block;margin:0;font-family:Poppins,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased;line-height:1.55}
 img{max-width:100%;display:block}a{color:inherit}
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:14px 26px;font:700 16px Poppins,sans-serif;text-decoration:none;border:0;cursor:pointer;transition:transform .15s,box-shadow .15s}
@@ -338,7 +338,10 @@ footer b{color:#fff}
   /* Laurie's Summer 27 poster and camp photos (public copies, view only). */
   var PH = { poster: '1PsWp9uUiGuGl1COYVLwYV82LfQhNPm4S', gal: ['1x-5IuDWMX06y75dX-lPwgvk1lsa3f3pB', '1dqoxv7NnBz4mp3XMPTrm-ZvjYHsp4kIi', '1fj6Zbko8wPIjDnAcfQMTjf0zEpIe2f83', '1JXNCyTScuvfoi13fqcJmOYLTBqkjuNwi', '10b1EHSzxiwoQ_4zldZKgAYCvUo2kR3eq', '1vV-Jm08EIBTiRaP-pbAhexPo2j9WjW91', '1ETOFdQJX6xqLiAQgRu84Wmi8E67-DOhL'] }; // public copies in Drive: AMA website images - Summer camp 2027 (public)
   var IMG = function (id, w) { return 'https://lh3.googleusercontent.com/d/' + id + '=w' + (w || 1600); };
-  var $ = function (id) { return document.getElementById(id); };
+  var D = window.__AMA_CAMP_ROOT || document; // inside GoHighLevel the page lives in a shadow root (styles kept separate)
+  var $ = function (id) { return D.getElementById(id); };
+  /* in-page links (#days, #book...) also work inside the shadow root */
+  D.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return; var t = D.getElementById(a.getAttribute('href').slice(1)); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var ICON = { 1: '🥢', 2: '⚡', 3: '🌀', 4: '⚔️', 5: '🦸' };
   var WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -348,7 +351,7 @@ footer b{color:#fff}
   try { if (Object.keys(UTM).length) sessionStorage.setItem('amaCampUtm', JSON.stringify(UTM)); else UTM = JSON.parse(sessionStorage.getItem('amaCampUtm') || '{}'); } catch (e) { }
   try { UTM.referrer = UTM.referrer || sessionStorage.getItem('amaCampRef') || document.referrer || ''; sessionStorage.setItem('amaCampRef', UTM.referrer); } catch (e) { UTM.referrer = document.referrer || ''; }
   UTM.landing_page = location.origin + location.pathname;
-  Object.keys(UTM).forEach(function (k) { var el = document.querySelector('#form [name="' + k + '"]'); if (el) el.value = String(UTM[k]).slice(0, 200); });
+  Object.keys(UTM).forEach(function (k) { var el = D.querySelector('#form [name="' + k + '"]'); if (el) el.value = String(UTM[k]).slice(0, 200); });
 
   $('posterImg').src = IMG(PH.poster, 1024);
   $('gal').innerHTML = PH.gal.map(function (id, i) { return '<div class="' + (i === 0 ? 'big' : '') + '" style="background-image:url(' + IMG(id, i === 0 ? 1200 : 700) + ')"></div>'; }).join('');
