@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Christmas Parents' Night Out | AMA Marrickville</title>
-<meta name="description" content="AMA Christmas Parents' Night Out at AMA Marrickville. Saturday 19 December, 4pm to 7pm. Ages 3 to 12. $70 per child, dinner and snacks included.">
+<meta name="description" content="AMA Christmas Parents' Night Out at AMA Marrickville. Saturday 19 December, 4pm to 7pm. Ages 3 to 12. $60 per child, dinner and snacks included.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <!-- AMA Christmas Parents' Night Out 2026. Built 27 Nov 2026 (Mark) from the summer camp page. Places and booking come from the AMA hub. -->
@@ -40,8 +40,8 @@ header.nav .btn{white-space:nowrap}header.nav .wrap{display:flex;align-items:cen
 .bulb:nth-child(3n){animation-delay:.5s}.bulb:nth-child(3n+1){animation-delay:1s}
 @keyframes twinkle{50%{opacity:.35}}
 .snow{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.snow i{position:absolute;top:-12px;width:7px;height:7px;border-radius:50%;background:#fff;opacity:.85;animation:fall linear infinite}
-@keyframes fall{to{transform:translateY(760px) translateX(30px)}}
+.snow i{position:absolute;top:-30px;color:#fff;font-style:normal;line-height:1;text-shadow:0 0 6px rgba(255,255,255,.7);animation:fall linear infinite;user-select:none}
+@keyframes fall{0%{transform:translateY(0) translateX(0) rotate(0)}50%{transform:translateY(380px) translateX(24px) rotate(180deg)}100%{transform:translateY(780px) translateX(-10px) rotate(360deg)}}
 .hero .in{position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding:96px 0 150px}
 .eyebrow{display:inline-flex;gap:8px;align-items:center;background:var(--red);color:#fff;border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px;box-shadow:0 6px 16px rgba(0,0,0,.25)}
 .hero h1{font-size:clamp(42px,6.4vw,78px);line-height:.98;margin:18px 0 16px;font-weight:900;color:var(--y);letter-spacing:-.01em;text-transform:uppercase;text-shadow:0 5px 0 var(--red2),0 12px 28px rgba(0,0,0,.35)}
@@ -96,7 +96,12 @@ section{padding:84px 0}
 .tl b{display:block;color:var(--g);font-size:18px}
 .tl span{font-size:14.5px;color:#2c3d34}
 .gal{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:180px;gap:12px;margin-top:28px}
-.gal div{border-radius:18px;background:#ddd center/cover no-repeat}
+.gal div{border-radius:18px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:14px}
+.gal div span{font-size:64px;line-height:1;filter:drop-shadow(0 8px 14px rgba(0,0,0,.3));animation:bob 3s ease-in-out infinite}
+.gal .big span{font-size:120px}
+.gal div b{margin-top:12px;font-size:16px;font-weight:800;text-shadow:0 2px 6px rgba(0,0,0,.25)}
+.gal div:after{content:'❄  ❅  ❆';position:absolute;top:8px;left:0;right:0;font-size:14px;opacity:.45;letter-spacing:6px}
+@keyframes bob{50%{transform:translateY(-8px) rotate(-3deg)}}
 .gal .big{grid-column:span 2;grid-row:span 2}
 /* form */
 .form{scroll-margin-top:100px;max-width:880px;margin:0 auto;background:#fff;border-radius:28px;box-shadow:0 20px 60px rgba(0,61,41,.12);padding:34px;border-top:8px solid var(--red)}
@@ -144,6 +149,9 @@ footer b{color:#fff}
 .share b{color:var(--g);font-size:17px}.share .msg{background:#fff;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14.5px;color:#334;line-height:1.45;overflow-wrap:anywhere}
 .share .btns{display:flex;flex-wrap:wrap;gap:8px}.share .btns a,.share .btns button{flex:1 1 140px;text-align:center;border:0;border-radius:999px;padding:12px 14px;font:700 15px Poppins,sans-serif;cursor:pointer;text-decoration:none}
 .share .sms{background:var(--g);color:#fff}.share .wa{background:#25d366;color:#fff}.share .cp{background:#fff;color:var(--g);border:2px solid var(--g)!important}
+.bells{position:fixed;left:14px;bottom:14px;z-index:70;border:0;border-radius:999px;background:var(--red);color:#fff;font:700 14px Poppins,sans-serif;padding:11px 16px;box-shadow:0 10px 24px rgba(0,0,0,.25);cursor:pointer}
+.bells.on{background:var(--g)}
+@media (max-width:620px){.bells{bottom:88px;left:10px;padding:9px 13px;font-size:13px}}
 .preview{background:#ff6b4a;color:#fff;text-align:center;font-weight:700;font-size:13.5px;padding:8px 14px}
 @media (max-width:980px){
   .cards{grid-template-columns:repeat(2,1fr)}
@@ -193,7 +201,7 @@ footer b{color:#fff}
       <div class="tk">Admit one Christmas ninja</div>
       <div class="tv">Saturday 19 December<br>4:00pm to 7:00pm</div>
       <div class="dash"></div>
-      <div class="price"><b>$70</b><span>per child</span></div>
+      <div class="price"><b>$60</b><span>per child</span></div>
       <ul><li>Dinner and snacks included</li><li>Run by AMA instructors</li><li>Members and non-members welcome</li></ul>
       <a class="btn r" href="#book">Book now</a>
       <div style="text-align:center"><span class="urg ok" id="urg">Book now</span></div>
@@ -203,7 +211,7 @@ footer b{color:#fff}
 </section>
 
 <div class="wrap"><div class="cards">
-  <div class="card"><div class="k">Price</div><div class="v">$70 per child</div><div class="s">Dinner and snacks included</div></div>
+  <div class="card"><div class="k">Price</div><div class="v">$60 per child</div><div class="s">Dinner and snacks included</div></div>
   <div class="card"><div class="k">When</div><div class="v">Sat 19 Dec</div><div class="s">Drop-off 4pm, pick-up 7pm</div></div>
   <div class="card"><div class="k">Who</div><div class="v">Ages 3 to 12</div><div class="s">Members and non-members</div></div>
   <div class="card"><div class="k">Places</div><div class="v" id="placesV">Limited</div><div class="s">Supervised by AMA instructors</div></div>
@@ -260,7 +268,7 @@ footer b{color:#fff}
       <b>Changes and refunds:</b> let us know at least <span id="refH">48</span> hours before the night for a full refund. Call (02) 9569 1943.
     </div>
     <label class="chk"><input type="checkbox" name="agree"> I have read and agree to the terms.</label>
-    <div class="totbar"><span id="totLbl">1 child</span><b id="totAmt">$70</b></div>
+    <div class="totbar"><span id="totLbl">1 child</span><b id="totAmt">$60</b></div>
     <div class="err" id="err"></div>
     <button class="btn r" type="submit" id="go" style="width:100%;font-size:18px;padding:18px;margin-top:6px">Book and pay</button>
     <p style="text-align:center;margin-top:10px;font-size:13px;color:var(--mut)">Secure payment by Square. You'll get a confirmation text and a link to share with a friend.</p>
@@ -283,7 +291,7 @@ footer b{color:#fff}
   <details class="q"><summary>Is dinner included?</summary><p>Yes. Dinner and snacks are included. Tell us about any allergies when you book, and please don't send food containing nuts.</p></details>
   <details class="q"><summary>What should they wear and bring?</summary><p>Comfortable clothes they can move in, and a water bottle. Christmas outfits and Santa hats are very welcome!</p></details>
   <details class="q"><summary>Who looks after the kids?</summary><p>Our AMA instructors run the whole night, with every child signed in and out.</p></details>
-  <details class="q"><summary>How much does it cost?</summary><p>$70 per child, paid when you book.</p></details>
+  <details class="q"><summary>How much does it cost?</summary><p>$60 per child, paid when you book.</p></details>
   <details class="q"><summary>Can I cancel?</summary><p>Yes. Let us know at least 48 hours before the night for a full refund. Call (02) 9569 1943.</p></details>
 </div></section>
 
@@ -291,19 +299,20 @@ footer b{color:#fff}
   <div><b>Australian Martial Arts Academy</b><br>Studio 35/142 Addison Road, Marrickville NSW 2204<br>(02) 9569 1943 · Est. 1982</div>
   <div><a href="https://www.australianmartialarts.com.au/parents-night-out/" style="color:#fff">About Parents' Night Out</a> · <a href="https://www.australianmartialarts.com.au/" style="color:#fff">australianmartialarts.com.au</a></div>
 </div></footer>
-<div class="mbar"><div><div style="color:#cfe3d7;font-size:13px">Sat 19 Dec · 4–7pm</div><b>$70 per child</b></div><a class="btn y" href="#book">Book now</a></div>
+<button type="button" class="bells" id="bells">🔔 Play Jingle Bells</button>
+<div class="mbar"><div><div style="color:#cfe3d7;font-size:13px">Sat 19 Dec · 4–7pm</div><b>$60 per child</b></div><a class="btn y" href="#book">Book now</a></div>
 
 <script>
 (function () {
   'use strict';
   var HUB = 'https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec';
-  var GAL = ['1x-5IuDWMX06y75dX-lPwgvk1lsa3f3pB', '1fj6Zbko8wPIjDnAcfQMTjf0zEpIe2f83', '1dqoxv7NnBz4mp3XMPTrm-ZvjYHsp4kIi', '1JXNCyTScuvfoi13fqcJmOYLTBqkjuNwi', '1ETOFdQJX6xqLiAQgRu84Wmi8E67-DOhL']; // AMA photos (public copies in Drive)
-  var IMG = function (id, w) { return 'https://lh3.googleusercontent.com/d/' + id + '=w' + (w || 1200); };
+  /* Christmas tiles (swap for real Christmas Parents' Night Out photos when we have them) */
+  var GAL = [['🎄', 'A Christmas party at AMA', 'radial-gradient(circle at 50% 35%,#13a46b,#00563A 70%)'], ['🎁', 'Festive games and prizes', 'linear-gradient(135deg,#d62839,#a4161a)'], ['🥋', 'Christmas ninja challenges', 'linear-gradient(135deg,#f6c453,#e09f1f)'], ['🍕', 'Dinner with friends', 'linear-gradient(135deg,#2a9d8f,#1d6f66)'], ['🎅', 'Santa hats welcome', 'linear-gradient(135deg,#a4161a,#6a040f)']];
   var D = window.__AMA_PNO_ROOT || document; // inside GoHighLevel the page lives in a shadow root
   var $ = function (id) { return D.getElementById(id); };
   D.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return; var t = D.getElementById(a.getAttribute('href').slice(1)); if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  var PRICE = 70, S = { info: null, kids: [{ name: '', age: '', member: '', medical: '', allergies: '' }], errs: {}, friend: null };
+  var PRICE = 60, S = { info: null, kids: [{ name: '', age: '', member: '', medical: '', allergies: '' }], errs: {}, friend: null };
   var Q = new URLSearchParams(location.search), UTM = {};
   ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'fbclid', 'src'].forEach(function (k) { if (Q.get(k)) UTM[k] = Q.get(k); });
   try { if (Object.keys(UTM).length) sessionStorage.setItem('amaPnoUtm', JSON.stringify(UTM)); else UTM = JSON.parse(sessionStorage.getItem('amaPnoUtm') || '{}'); } catch (e) { }
@@ -317,10 +326,31 @@ footer b{color:#fff}
     var cols = ['#d62839', '#FAEC1E', '#2ec27e', '#4cc9f0', '#f6c453'], h = '<path d="M0,10 Q60,40 120,12 T240,12 T360,12 T480,12 T600,12 T720,12 T840,12 T960,12 T1080,12 T1200,12 T1320,12 T1440,12" stroke="#0a2f20" stroke-width="2" fill="none"/>';
     for (var i = 0; i < 24; i++) { var x = 30 + i * 60, y = 22 + (i % 2 ? 6 : 10); h += '<ellipse class="bulb" cx="' + x + '" cy="' + y + '" rx="6" ry="9" fill="' + cols[i % cols.length] + '" style="filter:drop-shadow(0 0 6px ' + cols[i % cols.length] + ')"/>'; }
     $('lights').innerHTML = h;
-    var sn = ''; for (var j = 0; j < 46; j++) { var s = 3 + (j * 7 % 6), l = (j * 37) % 100, d = 7 + (j * 13 % 9), dl = -(j * 1.7 % 9); sn += '<i style="left:' + l + '%;width:' + s + 'px;height:' + s + 'px;animation-duration:' + d + 's;animation-delay:' + dl + 's;opacity:' + (0.45 + (j % 5) / 10) + '"></i>'; }
+    var FL = ['❄', '❅', '❆'], sn = ''; for (var j = 0; j < 40; j++) { var s = 12 + (j * 7 % 18), l = (j * 37) % 100, d = 8 + (j * 13 % 9), dl = -(j * 1.7 % 9); sn += '<i style="left:' + l + '%;font-size:' + s + 'px;animation-duration:' + d + 's;animation-delay:' + dl + 's;opacity:' + (0.5 + (j % 5) / 10) + '">' + FL[j % 3] + '</i>'; }
     $('snow').innerHTML = sn;
   })();
-  $('gal').innerHTML = GAL.map(function (id, i) { return '<div class="' + (i === 0 ? 'big' : '') + '" style="background-image:url(' + IMG(id, i === 0 ? 1400 : 700) + ')"></div>'; }).join('');
+  /* Jingle Bells: starts on the first tap (browsers block sound until then), the bell button turns it on and off */
+  var JB = (function () {
+    var N = { C: 523.25, D: 587.33, E: 659.25, F: 698.46, G: 783.99, c: 261.63, g: 392.0 };
+    var A = 'E1 E1 E2 E1 E1 E2 E1 G1 C1.5 D.5 E4 F1 F1 F1.5 F.5 F1 E1 E1 E.5 E.5 E1 D1 D1 E1 D2 G2 E1 E1 E2 E1 E1 E2 E1 G1 C1.5 D.5 E4 F1 F1 F1.5 F.5 F1 E1 E1 E.5 E.5 G1 G1 F1 D1 C4';
+    var tune = A.split(' ').map(function (t) { return [N[t[0]], parseFloat(t.slice(1))]; });
+    var ctx = null, on = false, timer = null, beat = 0.34;
+    function bell(t, f, len) {
+      [1, 2.01, 3.02].forEach(function (h, k) { var o = ctx.createOscillator(), g = ctx.createGain(); o.type = k ? 'sine' : 'triangle'; o.frequency.value = f * h; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime([0.16, 0.05, 0.025][k], t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.25, len * 0.9)); o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + len + 0.1); });
+    }
+    function play() {
+      if (!on) return; var t = ctx.currentTime + 0.05, total = 0;
+      tune.forEach(function (n) { bell(t + total, n[0], n[1] * beat); if (n[1] >= 2) bell(t + total, n[0] / 2, n[1] * beat); total += n[1] * beat; });
+      timer = setTimeout(play, total * 1000 + 800);
+    }
+    function set(v) { on = v; var b = $('bells'); if (b) { b.textContent = on ? '🔕 Stop the music' : '🔔 Play Jingle Bells'; b.classList.toggle('on', on); } try { localStorage.setItem('amaPnoBells', on ? '1' : '0'); } catch (e) { }
+      if (on) { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); play(); } catch (e) { on = false; } } else { clearTimeout(timer); if (ctx) ctx.suspend(); } }
+    return { set: set, on: function () { return on; } };
+  })();
+  $('bells').onclick = function (e) { e.stopPropagation(); JB.set(!JB.on()); };
+  var muted = false; try { muted = localStorage.getItem('amaPnoBells') === '0'; } catch (e) { }
+  if (!muted) { var first = function (e) { if (e && e.composedPath && e.composedPath().some(function (x) { return x && x.id === 'bells'; })) return; D.removeEventListener('pointerdown', first, true); document.removeEventListener('pointerdown', first, true); if (!JB.on()) JB.set(true); }; D.addEventListener('pointerdown', first, true); document.addEventListener('pointerdown', first, true); }
+  $('gal').innerHTML = GAL.map(function (g, i) { return '<div class="' + (i === 0 ? 'big' : '') + '" style="background:' + g[2] + '"><span style="animation-delay:' + (i * 0.4) + 's">' + g[0] + '</span><b>' + g[1] + '</b></div>'; }).join('');
 
   /* children */
   function nm(k, i) { return k.name.trim() || 'Child ' + (i + 1); }

@@ -18507,7 +18507,7 @@ function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? '
    bookings are marked TEST, no payment is taken and nothing is sent. Texts stay off until Mark approves the wording. */
 const PNOPUB = {
   live: false, date: '2026-12-19', title: "Christmas Parents' Night Out", label: 'Saturday 19 December',
-  start: '4:00pm', end: '7:00pm', startT: '16:00', endT: '19:00', price: 70, cap: 40, minAge: 3, maxAge: 12,
+  start: '4:00pm', end: '7:00pm', startT: '16:00', endT: '19:00', price: 60, cap: 40, // 27 Nov 2026 (Mark): $60 for the 3 hours minAge: 3, maxAge: 12,
   where: 'AMA Marrickville, Studio 35/142 Addison Rd, Marrickville', school: 'Marrickville',
   pageUrl: 'https://train.australianmartialarts.com.au/christmas-parents-night-out', refundHours: 48, coordinator: 'Hakan', // GHL page 'Christmas Parents Night Out 2026' in the AMA Admin Hub funnel
   parentTextsOn: false, staffAlertOn: false, remindOn: false // OFF until Mark approves the wording
@@ -18519,7 +18519,7 @@ function pnoPubEvent_() {
   const S = pnoPubSheets_(), tz = CONFIG.timezone, v = S.E.getDataRange().getValues();
   for (let i = 1; i < v.length; i++) {
     const d = v[i][1] instanceof Date ? Utilities.formatDate(v[i][1], tz, 'yyyy-MM-dd') : String(v[i][1] || '').replace(/^'/, '').slice(0, 10);
-    if (v[i][0] && d === PNOPUB.date) return { row: i + 1, id: String(v[i][0]), data: pnoPubJ_(v[i][4]) };
+    if (v[i][0] && d === PNOPUB.date) { const dd = pnoPubJ_(v[i][4]); if (dd.price !== PNOPUB.price) { dd.price = PNOPUB.price; S.E.getRange(i + 1, 5).setValue(JSON.stringify(dd)); } return { row: i + 1, id: String(v[i][0]), data: dd }; }
   }
   const id = 'PN' + Date.now().toString(36).toUpperCase(), data = { start: PNOPUB.startT, end: PNOPUB.endT, length: '3 hours', price: PNOPUB.price, cap: PNOPUB.cap, ages: PNOPUB.minAge + ' to ' + PNOPUB.maxAge,
     freq: 'One-off', friends: 'Yes', nonm: 'Yes', obj: 'New trials', growth: 'Public booking page with a bring-a-friend link: ' + PNOPUB.pageUrl };
