@@ -16629,7 +16629,9 @@ function testHome5Nov() {
    2) 'batch': the hub home sends its read-only calls together in one trip. ===== */
 const TCCACHE = { secs: 330 };
 function tcGen_() { return CacheService.getScriptCache().get('tc_gen') || '0'; }
-function tcBump_() { try { CacheService.getScriptCache().put('tc_gen', String(Date.now()), 21600); } catch (e) { } }
+function tcBump_() { try { const n = String(Date.now()); CacheService.getScriptCache().putAll({ tc_gen: n, tc_touch: n }, 21600); } catch (e) { } }
+/* 27 Nov 2026 (Bianca, Auburn): a list built before someone ticked Arrived must not be saved over the tick. tc_touch = last change; only cache a list started after it. */
+function tcFresh_(t0) { try { return +(CacheService.getScriptCache().get('tc_touch') || 0) < t0; } catch (e) { return false; } }
 function tcCacheKey_(loc, ymd) { return 'tcday_' + loc + '_' + ymd + '_' + tcGen_(); }
 function tcDay_(b) {
   const loc = String((b && b.loc) || ''), today = Utilities.formatDate(new Date(), CONFIG.timezone, 'yyyy-MM-dd');
@@ -16637,15 +16639,15 @@ function tcDay_(b) {
   if (ymd !== today || !CONFIG.locations[loc]) return tcDayRaw_(b);
   const C = CacheService.getScriptCache(), key = tcCacheKey_(loc, ymd), hit = C.get(key);
   if (hit) { try { return JSON.parse(hit); } catch (e) { } }
-  const r = tcDayRaw_(b);
-  if (r && r.ok) { try { C.put(key, JSON.stringify(r), TCCACHE.secs); } catch (e) { } }
+  const t0 = Date.now(), r = tcDayRaw_(b);
+  if (r && r.ok && tcFresh_(t0)) { try { C.put(tcCacheKey_(loc, ymd), JSON.stringify(r), TCCACHE.secs); } catch (e) { } }
   return r;
 }
 function tcWarm_() {
   const h = +Utilities.formatDate(new Date(), CONFIG.timezone, 'H'); if (h < 6 || h > 21) return;
   const today = Utilities.formatDate(new Date(), CONFIG.timezone, 'yyyy-MM-dd'), C = CacheService.getScriptCache();
   Object.keys(CONFIG.locations).forEach(function (loc) {
-    try { const r = tcDayRaw_({ loc: loc, date: today }); if (r && r.ok) C.put(tcCacheKey_(loc, today), JSON.stringify(r), TCCACHE.secs); } catch (e) { Logger.log('tcWarm ' + loc + ' ' + e); }
+    try { PROMO_ATT_ = null; const t0 = Date.now(), r = tcDayRaw_({ loc: loc, date: today }); if (r && r.ok && tcFresh_(t0)) C.put(tcCacheKey_(loc, today), JSON.stringify(r), TCCACHE.secs); } catch (e) { Logger.log('tcWarm ' + loc + ' ' + e); }
   });
 }
 function tcSave_(b, who) { const r = tcSaveRaw_(b, who); tcBump_(); return r; }
@@ -21847,7 +21849,7 @@ function promo_(who, b) {
     else sh.appendRow([today, pid, cid, name, school, item, String(who.name || ''), new Date()]);
     try { ghlPost_('/contacts/' + cid + '/notes', { body: (b.undo ? 'Promotion hand-out un-ticked: ' : 'Promotion hand-out given: ') + item + ' (' + school + ', by ' + String(who.name || '') + ')' }); } catch (e) { }
     CacheService.getScriptCache().remove('promo_arr_' + today);
-    try { CacheService.getScriptCache().remove(tcCacheKey_(school, today)); } catch (e) { } /* 22 Nov 2026: home Today's trials shows what is still to hand out */
+    try { CacheService.getScriptCache().remove(tcCacheKey_(school, today)); } catch (e) { } tcBump_(); /* 22 Nov 2026: home Today's trials shows what is still to hand out */
     return { ok: true };
   }
   // 22 Nov 2026 (Mark): No show for a promotion session, from Today's trials on the home page. Shown on the card, noted on the contact.
@@ -21857,13 +21859,13 @@ function promo_(who, b) {
     const P = PropertiesService.getScriptProperties(), key = 'promons_' + day + '_' + cid;
     if (b.undo) P.deleteProperty(key); else P.setProperty(key, String(who.name || 'staff'));
     try { ghlPost_('/contacts/' + cid + '/notes', { body: (b.undo ? 'Promotion no-show cleared: ' : 'Promotion session missed (no show): ') + day + ' (' + school + ', marked by ' + String(who.name || '') + ')' }); } catch (e) { }
-    try { CacheService.getScriptCache().remove(tcCacheKey_(school, day)); } catch (e) { }
+    try { CacheService.getScriptCache().remove(tcCacheKey_(school, day)); } catch (e) { } tcBump_();
     return { ok: true };
   }
   if (act === 'here') {
     const cid = String(b.cid || ''), ev = String(b.ev || ''), day = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? String(b.date) : today;
     if (!cid) return { ok: false, error: 'Missing details.' };
-    try { CacheService.getScriptCache().remove(tcCacheKey_(String(b.school || '').slice(0, 30), day)); } catch (e) { }
+    try { CacheService.getScriptCache().remove(tcCacheKey_(String(b.school || '').slice(0, 30), day)); } catch (e) { } tcBump_();
     const sh = promoSheet_(PROMOS.attTab);
     if (b.undo) { const v = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues() : []; for (let i = v.length - 1; i >= 0; i--) if (String(v[i][2]) === cid && promoD_(v[i][0]) === day) sh.deleteRow(i + 2); }
     else if (!promoAtt_().ev[cid + '|' + ev]) sh.appendRow([day, String(b.pid || ''), cid, String(b.name || '').slice(0, 60), String(b.school || '').slice(0, 30), ev, String(who.name || ''), new Date()]);
