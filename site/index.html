@@ -204,6 +204,7 @@
       <section id="tabParty" hidden></section>
       <section id="tabPv" hidden></section>
       <section id="tabCamp" hidden></section>
+      <section id="tabEfc" hidden></section>
       <section id="tabStock" hidden></section>
       <section id="tabPb" hidden></section>
       <section id="tabIh" hidden></section>
@@ -305,13 +306,13 @@
       attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading', os2: 'grading2' }, parties: { l: 'Birthday parties', h: '#parties', os2: 'parties' }, camp: { l: 'Holiday camp', h: '#camp', os2: 'camp' }, privates: { l: 'Private lessons', h: '', os2: 'privates' }, shop: { l: 'Shop and stock', h: '#stock', os2: 'stock' },
       ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '', os2: 'revcal' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', os2: 'pay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } }, epb: { l: 'Employment packs', h: '', os2: 'epb', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1; } }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
-      mgmtd: { l: 'Management dashboard', os: 'mgmt', can: function () { return isMgmt() || ['busra', 'laurie', 'phu'].indexOf(ME.first) > -1; } }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', os2: 'skillq', can: isMgmt }, sales: { l: 'Sales', h: '#sales', os2: 'sec:sales', can: isMgmt },
+      mgmtd: { l: 'Management dashboard', os: 'mgmt', can: function () { return isMgmt() || ['busra', 'laurie', 'phu'].indexOf(ME.first) > -1; } }, efcchk: { l: 'EFC checks', h: '', os2: 'efcchk', can: function () { return isMgmt() || ['busra', 'laurie', 'phu'].indexOf(ME.first) > -1; } }, staffm: { l: 'Staff', os: 'list:staff', can: isMgmt }, students: { l: 'Students (EFC)', os: 'list:students' }, skillq: { l: 'Training and sign-off', h: '', os2: 'skillq', can: isMgmt }, sales: { l: 'Sales', h: '#sales', os2: 'sec:sales', can: isMgmt },
       marketing: { l: 'Marketing', h: '#marketing', os2: 'sec:marketing', can: isMgmt }, mediaopt: { l: 'Media opt-outs', os: 'list:mediaopt', can: isMgmt }, retention: { l: 'Retention', h: '#retention', os2: 'sec:retention', can: isMgmt }, failpay: { l: 'Failed payments', h: '', os2: 'failpay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } },
       stars: { l: 'AMA Stars', h: '', os2: 'stars', can: isMgmt }, mhub: { l: 'Member Hub', h: '', can: isMgmt }, conns: { l: 'Connections', os: 'conns', can: isMgmt }, autos: { l: 'Automations', os: 'autos', can: isMgmt }
     };
     var GROUPS = [['My work', ['myday', 'today', 'check', 'appr']], ['Families · Join', ['book', 'trials', 'close', 'newmem', 'referrals']], ['Families · Keep', ['absent', 'requests', 'holds', 'cancels', 'absvideo']],
       ['Classes & events', ['attendance', 'promos', 'grading', 'parties', 'camp', 'privates', 'shop']], ['Team', ['ihub', 'revcal', 'playbook', 'clock', 'shifts', 'efc', 'ghl', 'pay', 'epb', 'hubreq', 'toolkit']],
-      ['Business', ['mgmtd', 'students', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns', 'autos']]];
+      ['Business', ['mgmtd', 'efcchk', 'students', 'staffm', 'skillq', 'sales', 'marketing', 'mediaopt', 'retention', 'failpay', 'stars', 'mhub', 'conns', 'autos']]];
     var CUR = 'home';
     function ini(l) { var w = l.replace(/[^A-Za-z ]/g, '').split(/\s+/).filter(Boolean); return (((w[0] || '')[0] || '') + ((w[1] || '')[0] || '')).toUpperCase(); }
     function navBuild() {
@@ -328,11 +329,12 @@
     function go(view) {
       if (DJ && DJ.me && DJ.me.hub) { if (view === 'list:holds') view = 'holds2'; if (view === 'list:cancels') view = 'cancels2'; if (view === 'list:close') view = 'close2'; if (view === 'list:followup') view = 'follow2'; if (view === 'list:newmembers') view = 'newmem2'; if (view === 'list:absent') view = 'absent2'; if (view === 'list:grading') view = 'grading2'; }
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow', 'tabNm', 'tabAbs', 'tabGr'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabEfc', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow', 'tabNm', 'tabAbs', 'tabGr'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
       else if (view.indexOf('sec:') === 0) { $('tabSec').hidden = false; loadSec(view.slice(4)); window.scrollTo(0, 0); }
+      else if (view === 'efcchk') { $('tabEfc').hidden = false; loadEfc(); window.scrollTo(0, 0); }
       else if (view === 'camp') { $('tabCamp').hidden = false; loadCamp(); window.scrollTo(0, 0); }
       else if (view === 'playbook') { $('tabPb').hidden = false; loadPb(); window.scrollTo(0, 0); }
       else if (view === 'revcal') { $('tabRc').hidden = false; loadRc(); window.scrollTo(0, 0); }
@@ -369,7 +371,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow', 'tabNm', 'tabAbs', 'tabGr'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabEfc', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow', 'tabNm', 'tabAbs', 'tabGr'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -605,6 +607,95 @@
         el.innerHTML = h;
         Array.prototype.forEach.call(el.querySelectorAll('[data-sx]'), function (b) { b.onclick = function () { go(b.dataset.sx); }; });
       });
+    }
+    /* 27 Nov 2026: EFC tools from the hub. On a family card: attendance from EFC and "Add missed class" (books the class in EFC and
+       marks the student present, through the hub's EFC write key). EFC checks screen: Live from EFC, Hub vs EFC checks, and
+       Enrolled vs paying vs attending. The checks still run every night in the hub. */
+    function ymdL(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    function agoL(n) { var d = new Date(); d.setDate(d.getDate() - n); return ymdL(d); }
+    function fmtDM(s) { var p = String(s).split('-'); return Number(p[2]) + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(p[1]) - 1]; }
+    function famAtt(box, mobile) {
+      box.innerHTML = '<p class="note">Loading attendance from EFC…</p>';
+      hubAct({ kind: 'efcatt', act: 'members', mobile: mobile }).then(function (r) {
+        if (!r || !r.ok || !(r.members || []).length) { box.innerHTML = '<p class="note">' + esc((r && r.error) || 'No EFC students with this mobile.') + '</p>'; return; }
+        box.innerHTML = ((r.ups || []).length ? '<p class="note"><b>Upgrade program:</b> ' + esc(r.ups.join(', ')) + ' (from their EFC billing)</p>' : '') + r.members.map(function (m, i) { return '<div class="ahs" data-i="' + i + '" style="padding:8px 0;border-top:1px solid var(--line)"><b>' + esc(m.name) + '</b> <span class="tsum">' + esc(m.school) + (m.groups ? ' · ' + esc(m.groups) : '') + '</span><p class="tsum ahsum" style="margin:4px 0">Loading…</p><div class="ahl"></div></div>'; }).join('');
+        r.members.forEach(function (m, i) {
+          var row = box.querySelector('.ahs[data-i="' + i + '"]'), sum = row.querySelector('.ahsum'), lst = row.querySelector('.ahl');
+          hubAct({ kind: 'efcatt', act: 'history', school: m.school, memberId: m.id }).then(function (h) {
+            if (!h || !h.ok) { sum.innerHTML = '<span style="color:var(--err)">' + esc((h && h.error) || 'Could not load.') + '</span>'; return; }
+            var att = h.rows.filter(function (x) { return x.a; }), c = function (f) { return att.filter(function (x) { return x.d >= f; }).length; }, w4 = c(agoL(28)), m3 = c(agoL(91)), last = att[0];
+            var days = last ? Math.round((new Date(ymdL(new Date())) - new Date(last.d)) / 864e5) : null;
+            sum.innerHTML = '<b>' + att.length + '</b> classes this year · last 4 wks <b>' + w4 + '</b> (' + (w4 / 4).toFixed(1) + '/wk) · 3 mths <b>' + m3 + '</b> · last trained ' + (last ? esc(fmtDM(last.d)) + (days >= 14 ? ' <span style="color:var(--err)">(' + days + ' days ago)</span>' : '') : '<span style="color:var(--err)">none this year</span>') + ' · <button type="button" class="ahopen" style="background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit">View classes</button>';
+            sum.querySelector('.ahopen').onclick = function () { var sel = h.rows.filter(function (x) { return x.d >= agoL(91); });
+              lst.innerHTML = '<p class="note" style="margin:4px 0">Last 3 months</p>' + (sel.map(function (x) { return '<div class="tsum" style="display:flex;gap:8px;padding:3px 0;border-top:1px solid var(--line)"><span style="min-width:90px">' + esc(fmtDM(x.d)) + ' ' + esc(x.t) + '</span><span style="flex:1">' + esc(x.n) + (x.by ? ' · added by ' + esc(x.by) : '') + '</span><span style="color:' + (x.a ? 'var(--ok,#1B7A3D)' : 'var(--err)') + '">' + (x.a ? '✓' : esc(x.s || 'not attended')) + '</span></div>'; }).join('') || '<p class="note">No classes.</p>'); };
+          });
+        });
+      });
+    }
+    function famAdd(box, mobile) {
+      box.innerHTML = '<p class="note">Loading students…</p>';
+      hubAct({ kind: 'efcatt', act: 'members', mobile: mobile }).then(function (r) {
+        if (!r || !r.ok) { box.innerHTML = '<p class="msg err">' + esc((r && r.error) || 'Could not load.') + '</p>'; return; }
+        if (!r.members.length) { box.innerHTML = '<p class="note">No enrolled EFC students with this mobile.</p>'; return; }
+        box.innerHTML = '<p class="note">For a student who trained but did not sign in on the kiosk. AMA OS books them into the class in EFC and marks them present.</p><div class="bkf"><label>Student</label><select class="amem">' + r.members.map(function (m, i) { return '<option value="' + i + '">' + esc(m.name) + ' (' + esc(m.school) + (m.groups ? ', ' + esc(m.groups) : '') + ')</option>'; }).join('') + '</select><label>School of the class</label><select class="asch">' + (r.schools || []).map(function (s) { return '<option value="' + esc(s.name) + '">' + esc(s.name) + (s.write ? '' : ' (no EFC write key yet)') + '</option>'; }).join('') + '</select><label>Date</label><input type="date" class="adt" max="' + ymdL(new Date()) + '" value="' + ymdL(new Date()) + '"></div><button type="button" class="chip aload" style="margin-top:8px">Show classes</button><div class="alist" style="margin-top:8px"></div>';
+        var mem = box.querySelector('.amem'), sch = box.querySelector('.asch'), dt = box.querySelector('.adt'), list = box.querySelector('.alist');
+        var setS = function () { var m = r.members[+mem.value]; if (m) sch.value = m.school; list.innerHTML = ''; }; mem.onchange = setS; setS(); sch.onchange = dt.onchange = function () { list.innerHTML = ''; };
+        box.querySelector('.aload').onclick = function () { var m = r.members[+mem.value]; list.innerHTML = '<p class="note">Loading the ' + esc(sch.value) + ' timetable…</p>';
+          hubAct({ kind: 'efcatt', act: 'classes', school: sch.value, date: dt.value, memberId: sch.value === m.school ? m.id : '' }).then(function (c) {
+            if (!c || !c.ok) { list.innerHTML = '<p class="msg err">' + esc((c && c.error) || 'Could not load.') + '</p>'; return; }
+            if (!c.classes.length) { list.innerHTML = '<p class="note">No classes at ' + esc(sch.value) + ' on that day.</p>'; return; }
+            var info = {};
+            list.innerHTML = c.classes.map(function (x) { info[x.id] = { name: x.name, time: x.start + '-' + x.end };
+              return '<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--line)"><input type="checkbox" value="' + esc(x.id) + '"' + (x.state === 'present' ? ' disabled' : '') + '><span><b>' + esc(x.start) + '–' + esc(x.end) + ' ' + esc(x.name) + '</b><br><span class="tsum">' + esc([x.prog, x.groups].filter(Boolean).join(' · ')) + '</span>' + (x.state === 'present' ? ' <b>✓ already present</b>' : x.state === 'booked' ? ' <b>booked, not marked present</b>' : '') + '</span></label>'; }).join('') +
+              (sch.value !== m.school ? '<p class="note">' + esc(m.name) + ' is a ' + esc(m.school) + ' member. EFC may not accept a class at another school.</p>' : '') +
+              '<div class="bkf"><label>Why</label><input class="awhy" placeholder="e.g. came late, forgot to sign in"></div>' +
+              (c.write ? '<button type="button" class="btn aadd" style="width:auto;padding:8px 14px;margin-top:8px">Add to EFC and mark present</button>' : '<p class="note">AMA OS cannot write to EFC for ' + esc(sch.value) + ' yet. Add it in EFC for now.</p>') + '<div class="ares" style="margin-top:8px"></div>';
+            var add = list.querySelector('.aadd'); if (!add) return;
+            add.onclick = function () { var ids = [].map.call(list.querySelectorAll('input[type=checkbox]:checked'), function (x) { return x.value; }), res = list.querySelector('.ares');
+              if (!ids.length) { res.innerHTML = '<p class="msg err">Tick at least one class.</p>'; return; }
+              add.disabled = true; add.textContent = 'Adding…';
+              hubAct({ kind: 'efcatt', act: 'add', school: sch.value, date: dt.value, memberId: m.id, student: m.name, sessions: ids, reason: list.querySelector('.awhy').value, info: info }).then(function (a) {
+                if (!a || !a.ok) { res.innerHTML = '<p class="msg err">' + esc((a && a.error) || 'Did not work.') + '</p>'; add.disabled = false; add.textContent = 'Add to EFC and mark present'; return; }
+                res.innerHTML = a.results.map(function (x) { return '<p class="' + (x.ok ? 'note' : 'msg err') + '" style="margin:2px 0">' + (x.ok ? '✓ ' : '✗ ') + esc(x.name) + ': ' + esc(x.result) + '</p>'; }).join(''); add.textContent = 'Done'; });
+            };
+          });
+        };
+      });
+    }
+    $('findOut').addEventListener('click', function (e) { var b = e.target.closest('[data-fx]'); if (!b) return; var w = b.closest('.famx'), box = w.querySelector('.famxo');
+      if (b.dataset.fx === 'att') famAtt(box, w.dataset.mob); else famAdd(box, w.dataset.mob); });
+    var EFV = { tab: 'live' };
+    function loadEfc() { var el = $('tabEfc'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">EFC checks</h2><p class="note">Loading…</p>';
+      var k = EFV.tab === 'live' ? 'efclive' : EFV.tab === 'checks' ? 'efcchecks' : 'efcuse', t = EFV.tab;
+      hubRead({ kind: k }, 'efcchk', function (j) { if (EFV.tab !== t) return; EFV[t] = j; drawEfc(); }); }
+    function drawEfc() {
+      var el = $('tabEfc'), j = EFV[EFV.tab], canUse = ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1;
+      var h = '<h2 class="sec">EFC checks</h2><p class="note">Read from EFC. Nothing here changes EFC. The checks run every night; to run them again now, use the <a href="' + HUB_URL + '" target="_blank" rel="noopener">hub &#8599;</a>.</p><div class="chips">' +
+        [['live', 'Live from EFC'], ['checks', 'Hub vs EFC checks']].concat(canUse ? [['use', 'Enrolled vs paying']] : []).map(function (x) { return '<button type="button" class="chip" data-eft="' + x[0] + '" aria-pressed="' + (EFV.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+      var mob = function (m) { return String(m || '').replace(/^\+?61(\d{9})$/, '0$1'); };
+      if (!j) h += '<p class="note">Loading…</p>';
+      else if (!j.ok) h += '<p class="msg err">' + esc(j.error || 'Could not load.') + '</p>';
+      else if (!j.summary) h += '<div class="box"><p>Not built yet. It builds overnight.</p></div>';
+      else if (EFV.tab === 'live') { var s = j.summary;
+        h += '<p class="note">Read from EFC ' + esc(s.at) + '.</p><div style="overflow-x:auto"><table class="t"><tr><th>School</th><th>Enrolled</th><th>Trained 30 days</th><th>Billing</th><th>Possible ghosts</th><th>Billing, not training</th><th>Overdue</th></tr>' +
+          (s.schools || []).map(function (c) { return c.error ? '<tr><td>' + esc(c.school) + '</td><td colspan="6">' + esc(c.error) + '</td></tr>' : '<tr><td><b>' + esc(c.school) + '</b></td><td>' + c.enrolled + '</td><td>' + c.trained30 + '</td><td>' + c.billing + '</td><td>' + c.ghost + '</td><td>' + c.notTraining + '</td><td>' + c.overdue + (c.overdueAmt ? ' ($' + Number(c.overdueAmt).toLocaleString() + ')' : '') + '</td></tr>'; }).join('') + '</table></div>' +
+          [['Possible ghost', 'Possible ghosts', 'Enrolled in EFC, no next invoice, not trained in 60+ days, and not on hold in the hub. Most will need expiring in EFC.'], ['Billing, not training', 'Billing but not training', 'Paying, but no class in 30+ days and not on hold. Retention calls.'], ['Overdue', 'Overdue balances', 'An overdue balance in EFC.']].map(function (g) {
+            var L = (j.flagged || []).filter(function (x) { return String(x.flags).indexOf(g[0]) > -1; }); if (!L.length) return '';
+            return '<details class="row"><summary><span class="a">' + esc(g[1]) + '</span><span class="b">' + L.length + '</span></summary><p class="note">' + esc(g[2]) + '</p>' + L.map(function (x) { return '<div style="padding:6px 0;border-top:1px solid var(--line)"><b>' + esc(x.name) + '</b> <span class="tsum">' + esc([x.school, x.groups].filter(Boolean).join(' · ')) + '</span><p class="tsum" style="margin:2px 0">Last trained ' + (x.last ? esc(x.last) + ' (' + esc(x.days) + ' days)' : 'never') + (x.next ? ' · next invoice ' + esc(x.next) : '') + (Number(x.overdue) ? ' · overdue $' + esc(x.overdue) : '') + ' · ' + esc(x.parent || '') + ' <a href="tel:' + esc(mob(x.mobile)) + '">' + esc(mob(x.mobile)) + '</a></p></div>'; }).join('') + '</details>'; }).join(''); }
+      else if (EFV.tab === 'checks') {
+        h += '<p class="note">Checked ' + esc(j.summary.at) + '. "Would do in EFC" is a preview only.</p>' + [['Cancellation', 'Cancellations', 'Is billing stopping at the last class, and is the enrolment ended in EFC?'], ['Hold', 'Holds', 'Is billing paused for the hold, and restarted after it?'], ['New member', 'New members (last 45 days)', 'Is the subscription set up and the member enrolled in EFC?'], ['Price', 'Prices (new members)', 'Does the EFC subscription match the joining form?'], ['Student list', 'Hub enrolments vs EFC (last 60 days)', 'Students that match are not listed.'], ['Overdue', 'Overdue payments', 'Families with an overdue balance in EFC.']].map(function (t) {
+          var s = j.summary[t[0]]; if (!s) return ''; var L = (j.list || []).filter(function (x) { return x.type === t[0]; }), o = { Problem: 0, Check: 1, 'Not matched': 2, OK: 3 }; L.sort(function (a, b) { return (o[a.result] || 9) - (o[b.result] || 9); });
+          return '<details class="row"' + (s.problem ? ' open' : '') + '><summary><span class="a">' + esc(t[1]) + '</span><span class="b">' + (s.problem || 0) + ' problems · ' + (s.ok || 0) + ' OK · ' + (s.unmatched || 0) + ' not found in EFC</span></summary><p class="note">' + esc(t[2]) + '</p>' +
+            L.filter(function (x) { return x.result !== 'OK'; }).slice(0, 150).map(function (x) { return '<div style="padding:6px 0;border-top:1px solid var(--line)"><b>' + esc(x.family) + '</b> <span class="tsum">' + esc(x.school || '') + ' · <a href="tel:' + esc(mob(x.mobile)) + '">' + esc(mob(x.mobile)) + '</a></span>' + (x.members ? '<p class="tsum" style="margin:2px 0">' + esc(x.members) + '</p>' : '') + hcRow('Hub ', esc(x.dates)) + hcRow('EFC ', esc(x.billing)) + hcRow('Result ', '<b' + (x.result === 'Problem' ? ' style="color:var(--err)"' : '') + '>' + esc(x.result) + '</b>' + (x.problem ? ': ' + esc(x.problem) : '')) + (x.would ? hcRow('Would do in EFC ', esc(x.would)) : '') + '</div>'; }).join('') + '</details>'; }).join(''); }
+      else { var S = j.summary.schools || {}, fl = {}; Object.keys(S).forEach(function (s) { Object.keys(S[s].flags || {}).forEach(function (f) { fl[f] = 1; }); }); fl = Object.keys(fl).sort();
+        h += '<p class="note">Built ' + esc(j.summary.at) + '. Attendance: last 12 weeks of EFC registers. Paying: the active EFC subscription (Kickstarter = 2 a week).</p><div style="overflow-x:auto"><table class="t"><tr><th>School</th><th>Families</th><th>Students</th><th>Avg/wk</th>' + fl.map(function (f) { return '<th>' + esc(f) + '</th>'; }).join('') + '</tr>' +
+          Object.keys(S).sort().map(function (s) { var x = S[s]; return '<tr><td><b>' + esc(s) + '</b></td><td>' + x.families + '</td><td>' + x.students + '</td><td>' + x.avg + '</td>' + fl.map(function (f) { return '<td>' + ((x.flags || {})[f] || 0) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' +
+          '<div class="chips" style="margin-top:10px">' + ['All'].concat(fl).map(function (f) { return '<button type="button" class="chip" data-euf="' + esc(f) + '" aria-pressed="' + ((EFV.f || 'All') === f) + '">' + esc(f) + '</button>'; }).join('') + '</div>';
+        var L = (j.list || []).filter(function (x) { return !EFV.f || EFV.f === 'All' || String(x.flags).indexOf(EFV.f) > -1; });
+        h += '<p class="note">' + L.length + ' families</p>' + L.slice(0, 120).map(function (x) { return '<div style="padding:6px 0;border-top:1px solid var(--line)"><b>' + esc(x.fam) + '</b> <span class="tsum">' + esc(x.school) + ' · ' + esc(x.kids) + '</span>' + hcRow('Enrolled in ', esc(x.progs)) + hcRow('Paying for ', esc(x.subs) + (x.wk ? ' · $' + esc(x.wk) + '/wk' : '')) + hcRow('Attending ', esc(Number(x.pw4 || 0).toFixed(1)) + ' a week (4 wks), ' + esc(Number(x.pw12 || 0).toFixed(1)) + ' (12 wks)') + hcRow('Flags ', '<b style="color:var(--err)">' + esc(x.flags) + '</b>') + '</div>'; }).join('') + (L.length > 120 ? '<p class="note">Showing 120. Pick a flag to narrow it.</p>' : ''); }
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('[data-eft]'), function (b) { b.onclick = function () { EFV.tab = b.dataset.eft; drawEfc(); if (!EFV[EFV.tab]) loadEfc(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-euf]'), function (b) { b.onclick = function () { EFV.f = b.dataset.euf; drawEfc(); }; });
     }
     /* Holiday camp (preview; management): days with their children, the staff roster (approve, remove, swap) and camp follow-ups. Moving bookings, money and refunds stay in the hub. */
     var CPV = { tab: 'days' };
@@ -1901,7 +1992,8 @@
         hist('Trials', f.trials, function (t) { return esc((t['Child'] || '') + ' ' + (t['Trial'] || '') + ' ' + (t['School'] || '')); }) +
         hist('Joined', f.joined, function (n) { return esc((n['Students'] || '') + ' from ' + nice(n['Start date'])); }) +
         (f.docs && f.docs.length ? '<div class="hist"><b>Documents:</b> ' + f.docs.length + '</div>' : '') +
-        (f.absent ? '<div class="hist"><b>Absentee follow-ups:</b> ' + f.absent + '</div>' : '') + '</div>';
+        (f.absent ? '<div class="hist"><b>Absentee follow-ups:</b> ' + f.absent + '</div>' : '') +
+        (DJ && DJ.me && DJ.me.hub && f.mobile ? '<div class="famx" data-mob="' + esc(f.mobile) + '"><div class="chips" style="margin-top:8px"><button type="button" class="chip" data-fx="att">Attendance (EFC)</button><button type="button" class="chip" data-fx="add">Add missed class</button></div><div class="famxo"></div></div>' : '') + '</div>';
     }
     $('findForm').onsubmit = function (e) {
       e.preventDefault(); go('find'); var q = $('findQ').value.trim(), out = $('findOut'); out.innerHTML = '<p class="note">Searching…</p>';
