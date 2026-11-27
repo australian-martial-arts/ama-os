@@ -211,6 +211,8 @@
       <section id="tabSq" hidden></section>
       <section id="tabEpb" hidden></section>
       <section id="tabPay" hidden></section>
+      <section id="tabHolds" hidden></section>
+      <section id="tabCx" hidden></section>
       <section id="tabSec" hidden></section>
     </div>
   </div>
@@ -294,7 +296,7 @@
     var I = {
       myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
       book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
-      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
+      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', os2: 'holds2', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', os2: 'cancels2', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties', os2: 'parties' }, camp: { l: 'Holiday camp', h: '#camp', os2: 'camp' }, privates: { l: 'Private lessons', h: '', os2: 'privates' }, shop: { l: 'Shop and stock', h: '#stock', os2: 'stock' },
       ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '', os2: 'revcal' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', os2: 'pay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } }, epb: { l: 'Employment packs', h: '', os2: 'epb', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1; } }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
@@ -319,8 +321,9 @@
       $('nav').innerHTML = h;
     }
     function go(view) {
+      if (DJ && DJ.me && DJ.me.hub) { if (view === 'list:holds') view = 'holds2'; if (view === 'list:cancels') view = 'cancels2'; }
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
@@ -331,6 +334,8 @@
       else if (view === 'skillq') { $('tabSq').hidden = false; loadSq(); window.scrollTo(0, 0); }
       else if (view === 'epb') { $('tabEpb').hidden = false; loadEpb(); window.scrollTo(0, 0); }
       else if (view === 'pay') { $('tabPay').hidden = false; loadPay(); window.scrollTo(0, 0); }
+      else if (view === 'holds2') { $('tabHolds').hidden = false; loadHolds(); window.scrollTo(0, 0); }
+      else if (view === 'cancels2') { $('tabCx').hidden = false; loadCx(); window.scrollTo(0, 0); }
       else if (view === 'ihub') { $('tabIh').hidden = false; loadIh(); window.scrollTo(0, 0); }
       else if (view === 'stock') { $('tabStock').hidden = false; loadStock(); window.scrollTo(0, 0); }
       else if (view === 'parties') { $('tabParty').hidden = false; loadParty(); window.scrollTo(0, 0); }
@@ -354,7 +359,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -1027,6 +1032,88 @@
       Array.prototype.forEach.call(b.querySelectorAll('[data-sfd]'), function (x) { x.onclick = function () { PY.sfDays = +x.dataset.sfd; PY.sfOpen = {}; pyStaff(); }; });
       Array.prototype.forEach.call(b.querySelectorAll('[data-sfs]'), function (x) { x.onclick = function () { PY.sfSort = x.dataset.sfs; pyStaffDraw(); }; });
       Array.prototype.forEach.call(b.querySelectorAll('[data-sfr]'), function (x) { x.onclick = function () { var id = x.dataset.sfr; PY.sfOpen[id] = !PY.sfOpen[id]; pyStaffDraw(); }; });
+    }
+    /* Holds (preview): the hub's hold list by stage, with its buttons (resend signing link, certificate received, done in EFC, restarted, extend, cancelling instead). */
+    var HLV = {};
+    function hcRow(lbl, val) { return val ? '<span class="tsum" style="display:block">' + lbl + val + '</span>' : ''; }
+    function loadHolds(fresh) { var el = $('tabHolds'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Holds</h2><p class="note">Loading…</p>';
+      var cb = function (j) { if (CUR !== 'holds2') return; HLV.d = j; drawHolds(); }; if (fresh) hubAct({ kind: 'holdlist' }, true).then(cb); else hubRead({ kind: 'holdlist' }, 'holds2', cb); }
+    function drawHolds() {
+      var el = $('tabHolds'), j = HLV.d; if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Holds</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var R = { medical: 'Sick or injured', travel: 'Going away', other: 'Something else' }, when = function (n, a, b) { return n === null || n === undefined ? '' : n === 0 ? 'today' : n > 0 ? a + ' ' + n + (n === 1 ? ' day' : ' days') : b + ' ' + (-n) + (n === -1 ? ' day' : ' days') + ' ago'; };
+      var G = [['waiting', 'Waiting on Mark or Sarah'], ['sign', 'Waiting for the family to sign'], ['cert', 'Waiting for the medical certificate'], ['efc', 'Put on hold in EFC'], ['resume', 'Hold ending: restart billing in EFC'], ['onhold', 'On hold now']];
+      var h = '<h2 class="sec">Holds</h2><p class="note">In EFC: pause payments from the hold start date and set them to restart on the end date, then tap Done in EFC. When the hold ends, check billing has restarted and tap Restarted. <a href="https://train.australianmartialarts.com.au/membership-freeze" target="_blank" rel="noopener">Log a hold &#8599;</a></p>';
+      if (!j.items.length) h += '<div class="box"><p>Nothing to action.</p></div>';
+      G.forEach(function (g) { var it = j.items.filter(function (x) { return x.stage === g[0]; }); if (!it.length) return;
+        h += (g[0] === 'onhold' ? '<details style="margin-top:12px"><summary class="tday" style="cursor:pointer">On hold now: nothing to action (' + it.length + ')</summary>' : '<div class="tday" style="margin-top:12px">' + g[1] + ' (' + it.length + ')</div>');
+        it.forEach(function (x) {
+          var B = function (a, t, main) { return '<button type="button" class="' + (main ? 'btn' : 'chip') + ' hla" data-a="' + a + '"' + (main ? ' style="width:auto;padding:8px 14px"' : '') + '>' + t + '</button>'; };
+          h += '<div class="box hlc" data-id="' + esc(x.id) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.holder) + ' <span class="tsum">' + esc(x.id) + '</span>' + (x.outside ? ' <span class="chip">Outside terms</span>' : '') + (x.ext ? ' <span class="chip">Extension of ' + esc(x.ext) + '</span>' : '') + '</b><span class="chip">' + esc(x.loc) + '</span></div>' +
+            hcRow('', esc(x.students) + (x.mobile ? ' · <a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : '')) +
+            hcRow('Hold ', '<b>' + esc(x.start) + '</b> to <b>' + esc(x.end) + '</b>' + (x.weeks ? ' (' + esc(x.weeks) + ' weeks)' : '') + ' · ' + (x.startsIn > 0 ? when(x.startsIn, 'starts in', '') : when(x.endsIn, 'ends in', 'ended'))) +
+            hcRow('Reason: ', esc(R[x.reason] || x.reason) + (x.detail ? ' · ' + esc(x.detail) : '') + (x.debit ? ' · Next payment ' + esc(x.debit) : '')) +
+            hcRow('Logged by ', esc(x.by) + (x.approvedBy ? ' · Approved: ' + esc(x.approvedBy) : '') + (x.efc ? ' · In EFC ' + esc(x.efc) : '')) +
+            (x.signed ? hcRow('Signed ', esc(x.signed) + (x.pdf ? ' · <a href="' + esc(x.pdf) + '" target="_blank" rel="noopener">Signed PDF</a>' : '')) : (g[0] !== 'waiting' ? hcRow('Not signed yet · ', x.email ? 'link ' + esc(x.linkSent || 'not sent') + ' to ' + esc(x.email) : 'no email on file') : '')) +
+            (x.words ? '<p class="note" style="margin:6px 0">Family\'s words: ' + esc(x.words) + '</p>' : '') + (x.staffNotes ? '<p class="note" style="margin:6px 0">Staff notes: ' + esc(x.staffNotes) + '</p>' : '') +
+            (x.ext && g[0] === 'efc' ? '<p class="note">Extension: in EFC, change the date billing restarts to ' + esc(x.end) + '.</p>' : '') +
+            '<div class="chips" style="margin-top:8px">' + (g[0] === 'waiting' ? '<button type="button" class="chip" data-go3="approvals">Open Approvals</button>' : '') +
+            (g[0] === 'sign' ? B('resend', 'Resend signing link', 1) + B('efc', 'Done in EFC anyway') : '') + (g[0] === 'cert' ? B('cert', 'Certificate received', 1) : '') + (g[0] === 'efc' ? B('efc', 'Done in EFC', 1) : '') +
+            (g[0] === 'resume' || g[0] === 'onhold' ? B('resume', 'Restarted in EFC', g[0] === 'resume') : '') + (x.canExtend ? '<button type="button" class="chip hlx">Extend this hold</button>' : '') + B('cancelling', 'Cancelling instead') + '</div><div class="hlf"></div><p class="tmsg note"></p></div>';
+        });
+        if (g[0] === 'onhold') h += '</details>';
+      });
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('[data-go3]'), function (b) { b.onclick = function () { go(b.dataset.go3); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.hla'), function (b) { b.onclick = function () { var c = b.closest('.hlc'), m = c.querySelector('.tmsg'), a = b.dataset.a;
+        if (a === 'cancelling' && !confirm('Take this hold off the list? Only do this if the family is cancelling instead. Log the cancellation as usual.')) return;
+        if (a === 'resend' && !confirm('Email the family their signing link again?')) return;
+        b.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'holdaction', id: c.dataset.id, act: a }).then(function (r) { if (r && r.ok) { m.textContent = 'Saved.'; setTimeout(function () { loadHolds(true); }, 600); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.hlx'), function (b) { b.onclick = function () { var c = b.closest('.hlc'), x = j.items.filter(function (i) { return i.id === c.dataset.id; })[0], f = c.querySelector('.hlf'); if (!x || f.innerHTML) return; var med = x.reason === 'medical';
+        f.innerHTML = '<div class="bkf" style="border-top:1px dashed var(--line-2);margin-top:10px;padding-top:6px"><label>How much longer? (currently back on ' + esc(x.end) + ')</label><select class="hxw">' + [1, 2, 3, 4, 5, 6, 8, 10, 12].map(function (n) { return '<option value="' + n + '"' + (n === 3 ? ' selected' : '') + '>' + n + (n === 1 ? ' more week' : ' more weeks') + '</option>'; }).join('') + '</select><p class="tsum hxd"></p>' +
+          (med ? '<label>Updated medical certificate</label><select class="hxc"><option value="received">Received</option><option value="tofollow">To follow</option></select>' : '<p class="tsum">Not a medical hold, so this goes to Mark or Sarah to approve.</p>') +
+          '<label>In the family\'s words (printed on the extension agreement they sign)</label><textarea class="hxt" rows="3"></textarea><label>Staff notes (hub only)</label><textarea class="hxs" rows="2"></textarea></div><div class="chips" style="margin-top:8px"><button type="button" class="btn hxgo" style="width:auto;padding:8px 14px">Send extension</button><button type="button" class="chip hxno">Cancel</button></div>';
+        var sel = f.querySelector('.hxw'), show = function () { var d = new Date((x.endYmd || '') + 'T00:00:00'); if (isNaN(d)) return; d.setDate(d.getDate() + 7 * +sel.value); f.querySelector('.hxd').textContent = 'New return date and billing restart: ' + d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); }; sel.onchange = show; show();
+        f.querySelector('.hxno').onclick = function () { f.innerHTML = ''; };
+        f.querySelector('.hxgo').onclick = function () { var g2 = this, m = c.querySelector('.tmsg'), words = f.querySelector('.hxt').value.trim(); if (words.length < 5) { m.textContent = 'Add what the family told you.'; return; } g2.disabled = true; m.textContent = 'Sending…';
+          hubAct({ kind: 'holdextend', id: x.id, weeks: +sel.value, certificate: med ? f.querySelector('.hxc').value : '', words: words, staffNotes: f.querySelector('.hxs').value || '' }).then(function (r) {
+            if (!r || !r.ok) { g2.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; return; }
+            m.textContent = r.approval === 'requested' ? 'Saved as ' + r.id + '. Sent to Mark and Sarah to approve.' : 'Saved as ' + r.id + ' (' + r.total + ' weeks in total). ' + (/^sent/.test(r.agreement || '') ? 'The extension agreement has been emailed to the family to sign.' : 'The agreement was not emailed (' + (r.agreement || '') + '), so please call the family.');
+            setTimeout(function () { loadHolds(true); }, 3000); }); }; }; });
+    }
+    /* Cancels (preview): the hub's cancellation list by stage, with its buttons, plus forms sent. */
+    var CXV = { tab: 'todo' };
+    function loadCx(fresh) { var el = $('tabCx'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Cancels</h2><p class="note">Loading…</p>';
+      var k = CXV.tab === 'sent' ? 'cxsent' : 'cxlist', cb = function (j) { if (CUR !== 'cancels2') return; CXV[k] = j; drawCx(); }; if (fresh) hubAct({ kind: k }, true).then(cb); else hubRead({ kind: k }, 'cancels2', cb); }
+    function drawCx() {
+      var el = $('tabCx'), sent = CXV.tab === 'sent', j = CXV[sent ? 'cxsent' : 'cxlist'];
+      var h = '<h2 class="sec">Cancels</h2><div class="chips"><button type="button" class="chip" data-cxt="todo" aria-pressed="' + !sent + '">To action</button><button type="button" class="chip" data-cxt="sent" aria-pressed="' + sent + '">Forms sent</button></div>';
+      if (!j) h += '<p class="note">Loading…</p>'; else if (!j.ok) h += '<p class="msg err">' + esc(j.error || 'Could not load.') + '</p>';
+      else if (sent) { var sg = j.items.filter(function (x) { return x.signed; }).length; h += '<p class="note">' + j.items.length + ' forms sent, ' + sg + ' signed, ' + (j.items.length - sg) + ' not signed yet. Newest first.</p>' + j.items.map(function (x) { var by = x.efcBy || x.takenBy;
+          return '<div class="box" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.holder || 'Unknown') + (x.students ? ' <span class="tsum">(' + esc(x.students) + ')</span>' : '') + '</b><span class="chip">' + (x.signed ? 'Signed ' + esc(x.signed) : x.sentOk ? 'Not signed yet' : 'Not sent') + '</span></div>' + (by ? hcRow('Looked after by ', esc(by)) : '') +
+            hcRow('', [x.loc, x.sentOk ? 'Sent ' + esc(x.sent) : esc(x.sent), x.mobile ? '<a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : '', x.efc ? 'Done in EFC ' + esc(x.efc) : ''].filter(String).join(' · ')) + (x.status ? hcRow('Status: ', esc(x.status)) : '') + '</div>'; }).join(''); }
+      else {
+        j.items.forEach(function (x) { if (x.efcDone) x.status = 'complaint'; });
+        var G = [['awaiting approval', 'Waiting on Mark or Sarah'], ['waiting for signature', 'Waiting for the parent to sign'], ['waiting for email', 'Waiting for their email'], ['notice running', 'Notice running: action in EFC'], ['approved early stop', 'Early stop approved: action in EFC'], ['complaint', 'Done in EFC: complaint still to close (Sarah)']];
+        var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }), canPay = ME.role === 'owner' || ME.role === 'full';
+        h += '<p class="note">In EFC: set the cancellation to the last class date, and add any uniform or equipment balance to the final payment. Then tap Done in EFC.</p>' + (j.items.length ? '' : '<div class="box"><p>Nothing to action.</p></div>');
+        G.forEach(function (g) { var it = j.items.filter(function (x) { return x.status === g[0]; }); if (!it.length) return; h += '<div class="tday" style="margin-top:12px">' + g[1] + ' (' + it.length + ')</div>';
+          it.forEach(function (x) { var sg2 = g[0] === 'waiting for email' || g[0] === 'waiting for signature', act = g[0] === 'notice running' || g[0] === 'approved early stop';
+            h += '<div class="box cxc" data-id="' + esc(x.id) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.holder) + ' <span class="tsum">' + esc(x.id) + '</span>' + (x.complaint ? ' <span class="chip" style="color:var(--err)">Complaint</span>' : '') + '</b><span class="chip">' + esc(x.loc) + '</span></div>' +
+              hcRow('', esc(x.students) + (x.mobile ? ' · <a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : '')) + hcRow('Reason: ', esc(x.reason) + ' · Logged ' + esc(x.logged) + ' by ' + esc(x.by)) +
+              (x.noticeEnds ? hcRow('Last payment ', '<b>' + esc(x.noticeEnds) + '</b> · Last class <b>' + esc(x.lastClass) + '</b>' + (x.approvedBy ? ' · ' + esc(x.approvedBy) : '')) : '') + (x.wanted && g[0] !== 'notice running' ? hcRow('Wanted to stop ', esc(x.wanted)) : '') + hcRow('Uniform balance: ', esc(x.uniform || '-')) +
+              (x.signedAt ? hcRow('Signed ', esc(x.signedAt) + (x.pdf ? ' · <a href="' + esc(x.pdf) + '" target="_blank" rel="noopener">Signed PDF</a>' : '')) : (x.email ? hcRow('Not signed yet · ', 'link ' + esc(x.linkSent || 'not sent') + ' to ' + esc(x.email)) : '')) +
+              (x.words ? '<p class="note" style="margin:6px 0">' + esc(x.words) + '</p>' : '') + (x.complaintOutcome ? hcRow('Complaint outcome: ', esc(x.complaintOutcome)) : '') +
+              '<div class="bkf" style="margin-top:6px">' + (x.complaint && !x.complaintOutcome ? '<label>Complaint: what happened, and how it was resolved</label><input class="cxnote">' : '') + (sg2 ? '<label>Date their email came in</label><input type="date" class="cxdate" value="' + today + '">' : '') + (x.noticeEnds && !sg2 && canPay ? '<label>New last payment date (only if changing it)</label><input type="date" class="cxdate">' : '') + '<label>Saved by</label><select class="cxby"><option value="">Me</option>' + ['Busra', 'Sarah', 'Mark', 'Hakan', 'Bianca', 'Mady', 'Tate', 'Dilek', 'Phu', 'Gericho', 'Lincoln'].map(function (n) { return '<option>' + n + '</option>'; }).join('') + '</select></div>' +
+              '<div class="chips" style="margin-top:8px">' + (x.complaint && !x.complaintOutcome ? '<button type="button" class="chip cxa" data-a="complaint">Save complaint outcome</button>' : '') + (sg2 ? '<button type="button" class="btn cxa" data-a="email" style="width:auto;padding:8px 14px">Email received</button>' : '') + (x.noticeEnds && !sg2 && canPay ? '<button type="button" class="chip cxa" data-a="lastpay">Change last payment</button>' : '') +
+              (act ? '<button type="button" class="btn cxa" data-a="efc" style="width:auto;padding:8px 14px">Done in EFC</button>' : '') + (!x.signedAt && x.email ? '<button type="button" class="chip cxa" data-a="resend">Resend signing link</button>' : '') + '<button type="button" class="chip cxa" data-a="withdrawn">Changed their mind</button><button type="button" class="chip cxa" data-a="saved">Saved: they\'re staying</button></div><p class="tmsg note"></p></div>'; }); });
+      }
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('[data-cxt]'), function (b) { b.onclick = function () { CXV.tab = b.dataset.cxt; drawCx(); loadCx(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.cxa'), function (b) { b.onclick = function () { var c = b.closest('.cxc'), m = c.querySelector('.tmsg'), a = b.dataset.a, dt = c.querySelector('.cxdate');
+        if (a === 'resend' && !confirm('Email the family their signing link again?')) return; if ((a === 'withdrawn' || a === 'saved') && !confirm(a === 'saved' ? 'Mark this family as saved (staying)?' : 'Mark this cancellation as withdrawn (they changed their mind)?')) return;
+        b.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'cxaction', id: c.dataset.id, act: a, by: (c.querySelector('.cxby') || {}).value || '', date: dt ? dt.value : '', note: (c.querySelector('.cxnote') || {}).value || '' }).then(function (r) { if (r && r.ok) { m.textContent = 'Saved.'; setTimeout(function () { loadCx(true); }, 600); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
     }
     /* Birthday parties (preview): every party by stage, its details, stage, checklist and notes. Placing a party in a time slot stays in the hub. */
     var PT = { open: '', st: 'Open' };
