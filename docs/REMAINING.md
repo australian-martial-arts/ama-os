@@ -21,7 +21,7 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 - [ ] Member Hub as staff see it - `mhub`, `mvid` (move videos)
 - [ ] Instructor Hub tabs: onboarding (`ionb`), move reviews (`mvid`), class audits (`caudit`), My team (`staff` beyond `me`)
 - [ ] Sales, Marketing and Retention dashboards (AMA OS has link pages only) - `retention`, `mgmt`, `mgmtextra`, `mgmtpeople`, `ytd`, `gmoney`, `gnums`
-- [ ] EFC tools: billing checks, enrolled vs paying vs attending, add a missed class - `efcchecks`, `efcuse`, `efcatt`, `efclive`
+- [x] EFC tools (27 Nov: EFC checks screen; Attendance and Add missed class on the family card. Running the checks again now stays in the hub) - `efcchecks`, `efcuse`, `efcatt`, `efclive`
 
 ## 2. In AMA OS but view only (the buttons are still in the hub)
 - [~] Trials / Close the sale actions (27 Nov: Close the sale, follow-up outcomes, details, confirmed, 24-hour call, change class or time, remove done; still hub: confirm + full fact find, recommendation tool, resend reports, win-back) - `followups`, `followupdone`, `trialff`, `trialmove`, `trialcallback`, `trialcall24`, `trialremove`, `trialinfo`, `trialinfoev`, `tcresend`, `tcabsenttext`, `winback`, `chaselist`, `chaseaction`, `reclog`, `reclast`
@@ -80,6 +80,14 @@ Links already sent to families point at the hub: move them with redirects, or ke
 - [ ] Toolkit sign-in (Tate) - `amasso`
 - [ ] GoHighLevel webhooks - `reply`, `cbreply` (Tate)
 - [ ] Move video data - `viddata`; student info - `stuinfo`; page scripts - `pagejs`; Pack Builder - `epbprefill`, `epbupload`
+
+## 4b. Outside systems the hub writes to (27 Nov audit)
+AMA OS never writes to these itself: every save goes through the hub, as the signed-in staff member, so the hub's keys and rules are used.
+- EFC: Add missed class and Live attendance check-in (book the class + mark present). Everything else in EFC (holds, cancels, packages) is still done by hand in EFC; the hub only checks it.
+- Deputy: roster shifts (add, change, delete), leave, extra shifts, staff contacts, new staff from Employment packs; automatic: hours sync, geofence and trim jobs, Deputy autopilot.
+- GoHighLevel: texts and emails, notes, tags, contact updates, trial bookings and moves, calendar events, opportunities.
+- Square: holiday camp payments. Stripe: shop checkout links. Google: Drive (signed forms, photos, videos, backups), Gmail (payroll and holds emails), Calendar (trial calendar sync).
+- Anthropic: move video feedback. Tate's Toolkit: skip sync, replies, Black-belt-prep calls (never break).
 
 ## 5. Data from the source
 - [ ] Holds, cancels, follow-ups, new members and absent counts still come from the hub's copy. Read them from EFC / GHL directly.
