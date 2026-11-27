@@ -13,7 +13,7 @@
   'use strict';
   var HUB = 'https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec';
   /* Christmas tiles (swap for real Christmas Parents' Night Out photos when we have them) */
-  var GAL = [['x0', 'A Christmas party at AMA'], ['x1', 'Festive games and prizes'], ['x2', 'Christmas ninja challenges'], ['x3', 'Fun with friends'], ['x4', 'Santa hats welcome']]; // real AMA photos given a Christmas edit (Konvert), hosted next to this page
+  var GAL = [['x0', 'A Christmas party at AMA'], ['y1', 'Festive games and prizes'], ['y2', 'Christmas ninja challenges'], ['y3', 'Fun with friends'], ['y4', 'Santa hats welcome']]; // real AMA photos given a Christmas edit (Konvert), hosted next to this page
   var IMGU = function (id) { return 'https://ama-os.train-ama.com/pno/img/' + id + '.jpg'; };
   var D = window.__AMA_PNO_ROOT || document; // inside GoHighLevel the page lives in a shadow root
   var $ = function (id) { return D.getElementById(id); };
