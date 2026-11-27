@@ -1,6 +1,7 @@
 /* AMA Christmas Parents' Night Out page for GoHighLevel. Built from site/pno/christmas-2026.html by scripts/build-pno.py. */
 (function () {
   var host = document.getElementById('ama-pno'); if (!host || host.shadowRoot) return;
+  if (!document.title) document.title = "Christmas Parents' Night Out | AMA Marrickville";
   if (!document.querySelector('link[data-ama-font]')) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.setAttribute('data-ama-font', '1'); l.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap'; document.head.appendChild(l); }
   /* hide GoHighLevel's own (empty) sections so the page starts at the top */
   Array.prototype.forEach.call(document.querySelectorAll('[id^="section-"], .c-section, section'), function (el) { if (!el.contains(host)) el.style.display = 'none'; });
