@@ -18808,7 +18808,7 @@ function campConfirmText_(rs) {
     'Drop-off from 9am, pick-up at 3pm (come at 2:55 to catch the show!) at AMA Marrickville, Studio 35/142 Addison Rd.\n' +
     'Pack lunch, snacks and a water bottle (no nuts please). Fridays are superhero dress-up day 🦸\n\n' +
     (trial.length ? 'New to AMA? We\'ll give you a call to book ' + trial.join(' and ') + ' a free trial class before camp, so they can meet the instructors first.\n\n' : '') +
-    'Camp is even better with a mate! Share this link with a friend: ' + campShareUrl_(r0['Booking ID']) + '\n\nAny questions, just reply or call (02) 9569 1943. See you soon! AMA';
+    'Camp is even better with a mate! Want to bring a friend? Send them this link to save their spot: ' + campShareUrl_(r0['Booking ID']) + '\n\nAny questions, just reply or call (02) 9569 1943. See you soon! AMA';
 }
 function campRemindText_(first, kids, d) {
   const fri = new Date(d.date + 'T12:00:00').getDay() === 5;
