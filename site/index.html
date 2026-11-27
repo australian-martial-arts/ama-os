@@ -215,6 +215,8 @@
       <section id="tabCx" hidden></section>
       <section id="tabClose" hidden></section>
       <section id="tabFollow" hidden></section>
+      <section id="tabNm" hidden></section>
+      <section id="tabAbs" hidden></section>
       <section id="tabSec" hidden></section>
     </div>
   </div>
@@ -297,8 +299,8 @@
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
       myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
-      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', os2: 'follow2', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close', os2: 'close2' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
-      absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', os2: 'holds2', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', os2: 'cancels2', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
+      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', os2: 'follow2', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close', os2: 'close2' }, newmem: { l: 'New members', os: 'list:newmembers', os2: 'newmem2', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
+      absent: { l: 'Absent follow-up', os: 'list:absent', os2: 'absent2', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', os2: 'holds2', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', os2: 'cancels2', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties', os2: 'parties' }, camp: { l: 'Holiday camp', h: '#camp', os2: 'camp' }, privates: { l: 'Private lessons', h: '', os2: 'privates' }, shop: { l: 'Shop and stock', h: '#stock', os2: 'stock' },
       ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '', os2: 'revcal' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
       pay: { l: 'Roster, leave and pay', h: '', os2: 'pay', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan', 'busra'].indexOf(ME.first) > -1; } }, epb: { l: 'Employment packs', h: '', os2: 'epb', can: function () { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1; } }, hubreq: { l: 'Hub change requests', h: '#hubreq', os2: 'hubreq' }, toolkit: { l: 'AMA Toolkit', x: 'https://app.train-ama.com' },
@@ -323,9 +325,9 @@
       $('nav').innerHTML = h;
     }
     function go(view) {
-      if (DJ && DJ.me && DJ.me.hub) { if (view === 'list:holds') view = 'holds2'; if (view === 'list:cancels') view = 'cancels2'; if (view === 'list:close') view = 'close2'; if (view === 'list:followup') view = 'follow2'; }
+      if (DJ && DJ.me && DJ.me.hub) { if (view === 'list:holds') view = 'holds2'; if (view === 'list:cancels') view = 'cancels2'; if (view === 'list:close') view = 'close2'; if (view === 'list:followup') view = 'follow2'; if (view === 'list:newmembers') view = 'newmem2'; if (view === 'list:absent') view = 'absent2'; }
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow', 'tabNm', 'tabAbs'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
@@ -340,6 +342,8 @@
       else if (view === 'cancels2') { $('tabCx').hidden = false; loadCx(); window.scrollTo(0, 0); }
       else if (view === 'close2') { $('tabClose').hidden = false; loadClose(); window.scrollTo(0, 0); }
       else if (view === 'follow2') { $('tabFollow').hidden = false; loadFollow(); window.scrollTo(0, 0); }
+      else if (view === 'newmem2') { $('tabNm').hidden = false; loadNm(); window.scrollTo(0, 0); }
+      else if (view === 'absent2') { $('tabAbs').hidden = false; loadAbs(); window.scrollTo(0, 0); }
       else if (view === 'ihub') { $('tabIh').hidden = false; loadIh(); window.scrollTo(0, 0); }
       else if (view === 'stock') { $('tabStock').hidden = false; loadStock(); window.scrollTo(0, 0); }
       else if (view === 'parties') { $('tabParty').hidden = false; loadParty(); window.scrollTo(0, 0); }
@@ -363,7 +367,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow', 'tabNm', 'tabAbs'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -1195,6 +1199,97 @@
         hubAct({ kind: 'replydone', cid: c.dataset.cid, how: how }).then(function (r2) { if (!(r2 && r2.ok)) { b.disabled = false; m.textContent = (r2 && r2.error) || 'Not saved.'; return; } c.style.opacity = '.45'; m.innerHTML = 'Saved. <button type="button" class="chip rpu">Undo</button>';
           m.querySelector('.rpu').onclick = function () { var u = this; u.disabled = true; hubAct({ kind: 'replyundo', cid: c.dataset.cid, how: how }).then(function (x) { if (x && x.ok) { c.style.opacity = ''; b.disabled = false; m.textContent = 'Undone. It is back on the list.'; } else { u.disabled = false; m.textContent = (x && x.error) || 'Could not undo.'; } }); }; }); }; });
     }
+    var NM_BL = {today:'Office calls that are due now (day 3, day 10, day 14, day 42) and any concerns. Bianca and Mady.',first:'Their instructor welcomes them in their first class and introduces a buddy.',call3:'Office call: how was the first class? Sort out anything that is in the way.',text7:'An automatic text goes out. No call needed.',second:'Check EFC for a second class. A family that books a second class in week 2 is far more likely to stay.',call14:'Office call: goals and how stripes and gradings work.',goal21:'Their instructor sets a simple goal with the student.',text30:'An automatic text with the Google review link.',call42:'Office call at six weeks. Upgrade conversation if it is going well; find out why if attendance has dropped.',prog60:'Their instructor tells the parent what progress they have seen and what is next.',text90:'An automatic milestone text.',concern:'A staff member flagged a concern. Sort it out, then tap Resolved.',paused:'On hold or cancelling. The track waits.',all:'Every new family in their first 90 days.',instructor:'New students at your school who need a personal touch from you in class. Do it, then tap Done.'};
+    /* New members (preview): every new family for their first 90 days, by touch, with the hub's buttons. */
+    var NMV = { v: '' };
+    function loadNm(fresh) { var el = $('tabNm'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">New members</h2><p class="note">Loading…</p>';
+      var cb = function (j) { if (CUR !== 'newmem2' || Array.prototype.some.call(el.querySelectorAll('textarea'), function (t) { return t.value; })) return; NMV.d = j; drawNm(); };
+      if (fresh) hubAct({ kind: 'nmlist' }, true).then(cb); else hubRead({ kind: 'nmlist' }, 'newmem2', cb); }
+    function drawNm() {
+      var el = $('tabNm'), j = NMV.d; if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">New members</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var ins = !!j.instructor, TABS = ins ? [['instructor', 'Your class touches']] : [['today', 'To do today'], ['first', 'First class'], ['call3', 'Day 3 call'], ['text7', 'Day 7 text'], ['second', 'Day 10 second class'], ['call14', 'Day 14 call'], ['goal21', 'Day 21 goal'], ['text30', 'Day 30 text'], ['call42', 'Day 42 call'], ['prog60', 'Day 60 progress'], ['text90', 'Day 90 text'], ['concern', 'Concerns'], ['paused', 'On hold / cancelling'], ['all', 'Everyone']];
+      var v = ins ? 'instructor' : (NMV.v || 'today');
+      var inT = function (k) { if (k === 'all' || k === 'instructor') return j.items; if (k === 'today') return j.items.filter(function (x) { return x.group === 'office' || x.group === 'concern'; }); if (k === 'concern' || k === 'paused') return j.items.filter(function (x) { return x.group === k; }); return j.items.filter(function (x) { return x.stage === k && x.group !== 'paused' && x.group !== 'concern'; }); };
+      var h = '<h2 class="sec">New members</h2><p class="note">Every new family for their first 90 days, from the Enrolments tab. Each touch is a small step that helps them stay.</p>';
+      if (!ins) h += '<div class="chips">' + TABS.map(function (t) { var n = inT(t[0]).filter(function (x) { return t[0] === 'all' || x.group !== 'later'; }).length; return '<button type="button" class="chip" data-nmv="' + t[0] + '" aria-pressed="' + (t[0] === v) + '">' + esc(t[1]) + ' (' + n + ')</button>'; }).join('') + '</div>';
+      h += '<p class="note">' + esc(NM_BL[v] || '') + '</p>';
+      var list = inT(v), due = list.filter(function (x) { return v === 'all' || x.group !== 'later'; }), wait = v === 'all' ? [] : list.filter(function (x) { return x.group === 'later'; });
+      var card = function (x, mini) { var b = '<div class="box nmc" data-row="' + esc(x.trow) + '" data-stage="' + esc(x.stage) + '" style="margin:6px 0' + (mini ? ';opacity:.8' : '') + '"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.students.join(' & ')) + '</b><span class="chip">' + esc(x.school) + '</span></div>' +
+          hcRow('', esc(x.parent) + (x.mobile && !ins ? ' · <a href="tel:' + esc(x.mobile.replace(/\s/g, '')) + '">' + esc(x.mobile) + '</a>' : '') + ' · started ' + esc(x.start) + ' (day ' + x.days + ')') + '<p class="note" style="margin:6px 0">' + esc(x.note) + '</p>';
+        if (mini) return b + '</div>';
+        if (x.guide) b += '<p class="note" style="margin:6px 0"><b>' + (x.group === 'office' ? 'Say something like:' : 'What to do:') + '</b> ' + esc(x.guide) + '</p>';
+        if (x.log) b += '<p class="tsum">' + esc(x.log).split(' | ').join('<br>') + '</p>';
+        var B = function (a, t, main) { return '<button type="button" class="' + (main ? 'btn' : 'chip') + ' nma" data-a="' + a + '"' + (main ? ' style="width:auto;padding:8px 14px"' : '') + '>' + t + '</button>'; };
+        b += '<textarea rows="2" placeholder="Notes (optional)" style="width:100%;margin-top:6px"></textarea><div class="chips" style="margin-top:6px">';
+        if (ins || x.group === 'instructor') b += B('done', 'Done', 1); else if (x.group === 'concern') b += B('resolved', 'Resolved', 1);
+        else if (x.stage === 'second') b += B('back2', 'Been back for a 2nd class', 1) + B('notback', 'Not yet: called them') + B('noanswer', 'No answer');
+        else if (x.group === 'office') b += B('done', 'Spoke to them', 1) + B('noanswer', 'No answer, left a message');
+        if (!ins && x.group !== 'concern') b += B('concern', 'Raise a concern'); if (!ins) b += B('remove', 'Remove: not a member');
+        return b + '</div><p class="tmsg note"></p></div>'; };
+      h += due.length ? due.map(function (x) { return card(x, x.group === 'later' || x.group === 'auto' || x.group === 'paused' || x.group === 'complete'); }).join('') : '<div class="box"><p>Nobody here right now.</p></div>';
+      if (wait.length) h += '<div class="tday" style="margin-top:12px">Done for this stage, waiting for the next (' + wait.length + ')</div>' + wait.map(function (x) { return card(x, true); }).join('');
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('[data-nmv]'), function (b) { b.onclick = function () { NMV.v = b.dataset.nmv; drawNm(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.nma'), function (b) { b.onclick = function () { var c = b.closest('.nmc'), m = c.querySelector('.tmsg'), a = b.dataset.a, ta = c.querySelector('textarea');
+        if (a === 'remove' && !confirm('Remove this family from the new member list? Only if they are not a member.')) return;
+        b.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'nmaction', row: c.dataset.row, stage: c.dataset.stage, act: a, note: ta ? ta.value : '' }).then(function (r) { if (r && r.ok) { m.textContent = 'Saved.'; if (ta) ta.value = ''; setTimeout(function () { loadNm(true); }, 700); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+    }
+    /* Absent follow-up (preview): members who have stopped coming, by stage, with the hub's buttons and texts. */
+    var ABV = { v: '' };
+    function loadAbs(fresh) { var el = $('tabAbs'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Absent follow-up</h2><p class="note">Loading…</p>';
+      var cb = function (j) { if (CUR !== 'absent2' || Array.prototype.some.call(el.querySelectorAll('input[data-f="note"],input.abrt'), function (i) { return i.value; })) return; ABV.d = j; drawAbs(); };
+      if (fresh) hubAct({ kind: 'abslist' }, true).then(cb); else hubRead({ kind: 'abslist' }, 'absent2', cb); }
+    function drawAbs() {
+      var el = $('tabAbs'), j = ABV.d; if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Absent follow-up</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var tips = {}, say = {}; (j.outcomes || []).forEach(function (o) { tips[o.k] = o.tip; }); (j.reasons || []).forEach(function (r) { say[r.k] = r.say; });
+      var rOpts = '<option value="">Why did they stop coming?</option>' + (j.reasons || []).map(function (r) { return '<option value="' + esc(r.k) + '">' + esc(r.t) + '</option>'; }).join('');
+      var sOpts = '<option value="">Save option offered (optional)</option>' + (j.saves || []).map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
+      var light = function (x) { var c = { yellow: '#b7791f', orange: '#dd6b20', red: 'var(--err)' }[x.light] || ''; return '<span class="chip"' + (c ? ' style="color:' + c + ';border-color:' + c + '"' : '') + '>' + x.days + ' days</span>'; };
+      var B = function (a, t, main, attr) { return '<button type="button" class="' + (main ? 'btn' : 'chip') + ' ' + (attr || 'aba') + '" data-a="' + a + '"' + (main ? ' style="width:auto;padding:8px 14px"' : '') + '>' + t + '</button>'; };
+      var card = function (x, mode) {
+        var top = '<div class="box abc" data-rows="' + esc(x.rows) + '" data-stage="' + esc(x.stage || '') + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.members.map(function (m) { return m.name; }).join(' & ')) + ' ' + light(x) + (x.tries ? ' <span class="chip"' + (x.tries >= 3 ? ' style="color:var(--err)"' : '') + '>' + x.tries + (x.tries === 1 ? ' call' : ' calls') + ', no answer</span>' : '') + '</b><span class="chip">' + esc(x.school || '') + '</span></div>' +
+          x.members.map(function (m) { return hcRow('', '<b>' + esc(m.name) + '</b>' + (m.lastAt ? ' · last trained ' + esc(m.lastAt) : '')); }).join('') +
+          hcRow('', (x.adult ? 'Member\'s own number' : 'Parent: <b>' + esc(x.parent) + '</b>') + (x.mobile ? ' · <a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : '') + ' · <b>' + esc(x.note) + '</b>' + (x.group === 'head' && x.head ? ' · for ' + esc(x.head) : '')) +
+          (x.repeatHold ? '<p class="msg err" style="margin:6px 0"><b>Repeat absentee:</b> on this list ' + x.repeat + ' times in 30 days, so no automatic text was sent. Check their sign-ins or call before texting.</p>' : '') +
+          '<div class="chips" style="margin-top:6px">' + (x.nsi ? '<span class="chip">Training, not signing in: paused until ' + esc(x.nsi.until) + '</span><button type="button" class="chip abnsi" data-undo="1">Remove pause</button>' : '<button type="button" class="chip abnsi">Training, not signing in</button>') + '</div>' +
+          (x.replied ? '<p class="note" style="margin:6px 0"><b>Replied' + (x.replied.at ? ' (' + esc(x.replied.at) + ')' : '') + ':</b> ' + esc(x.replied.t) + '</p><div class="chips"><input class="abrt" placeholder="Reply by text (sent from the AMA number)" style="flex:1 1 220px"><button type="button" class="chip abtx">Send text</button></div>' : '') +
+          (x.reason ? hcRow('Reason: ', '<b>' + esc(x.reason) + '</b>') : '') + (x.log ? '<p class="note" style="margin:6px 0">' + esc(x.log) + '</p>' : '');
+        var tail = '<p class="tmsg note"></p></div>';
+        if (mode === 'video') return top + '<p class="note"><b>Video script:</b> ' + esc(x.script || '') + '</p><div class="chips">' + B('video', 'Video sent', 1) + B('seen', 'Back in class') + '<button type="button" class="chip ablog">Text sign-in reminder</button></div>' + tail;
+        if (mode === 'check') return top + '<div class="chips">' + B('came', 'Came back', 1) + B('nocame', 'Did not come') + '</div>' + tail;
+        if (mode === 'mini') return top + '<div class="bkf"><input data-f="note" placeholder="Note (optional)"></div><div class="chips" style="margin-top:6px">' + B('seen', 'Back in class') + '</div>' + tail;
+        return top + '<div class="bkf"><select data-f="reason">' + rOpts + '</select><p class="note absay" hidden></p><select data-f="save">' + sOpts + '</select><label>What they said</label><input data-f="note"><label>Date (return class, or call back)</label><input type="date" data-f="date"></div>' +
+          '<div class="chips" style="margin-top:8px">' + B('booked', 'Return class booked', 1) + (x.replied ? B('replied', 'Replied: no follow-up needed') : '') + B('noanswer', 'No answer') + B('callback', 'Call back on date') + B('hold', 'Wants a hold') + B('cancel', 'Wants to cancel') + B('efc', 'Was in class: add to live attendance') + B('other', 'Something else') + (x.stage === 'final' ? B('close', 'Close: no response') : '') + '<button type="button" class="chip ablog">Text sign-in reminder</button></div>' + tail;
+      };
+      var STG = [['replied', 'Replied'], ['today', 'Call today'], ['auto7', 'Day 9 text'], ['call1', 'Day 12 call'], ['video', 'Day 15 video'], ['call2', 'Day 18 call'], ['head', 'Day 21 head instructor'], ['auto30', 'Day 30 text'], ['final', 'Day 35 close'], ['booked', 'Return booked'], ['back', 'Came back'], ['paused', 'On hold / cancelling'], ['efc', 'EFC clean-up']];
+      var BL = { replied: 'Families who texted back and nobody has actioned yet. Read the reply, answer by text if needed, then pick an outcome.', today: 'Everything that needs a call today: day 12 and 18 calls, day 35 last tries, call-backs due, head instructor calls, return classes to check, and families who replied.', auto7: j.sendOn ? 'They get an automatic text. No call needed yet.' : 'Automatic texts are not switched on yet. Call if you have time; otherwise they move to the day 12 call.', call1: 'First call. Listen, find the real reason, and book a return class.', video: 'The student\'s own instructor sends a short personal video. Chase the instructor if one is waiting, or tick it off here.', call2: 'Second call, after the instructor video.', head: 'Day 21 and still not back. A head instructor at their school makes a personal save call.', auto30: 'Automatic reactivation text.', final: 'Last try. If there is still no answer, close the card.', booked: 'Return class booked. The day after the class, check whether they came.', back: 'Members who have trained again in the last 10 days.', paused: 'On a hold, asking for one, cancelling, or not active in EFC. No calls or texts.', efc: 'Staff said these members are not really absent. Fix them in EFC, then tap Fixed.' };
+      var PG = { hold: 1, cancel: 1, inactive: 1 }, isToday = function (x) { return x.group === 'office' || x.group === 'check' || x.group === 'head'; };
+      var inStage = function (k) { if (k === 'replied') return j.items.filter(function (x) { return x.replyOpen; }); if (k === 'today') return j.items.filter(function (x) { return isToday(x) && !x.replyOpen; }); if (k === 'paused') return j.items.filter(function (x) { return PG[x.group]; }); if (k === 'booked') return j.items.filter(function (x) { return x.group === 'booked' || x.group === 'check'; }); return j.items.filter(function (x) { return (x.stage === k || (k === 'auto7' && !x.stage)) && x.group !== 'booked' && x.group !== 'check' && !PG[x.group]; }); };
+      var count = function (k) { return k === 'back' ? (j.recentBack || []).length : k === 'efc' ? (j.fixes || []).length : inStage(k).length; };
+      if (!ABV.v) ABV.v = j.items.some(function (x) { return x.replyOpen; }) ? 'replied' : 'today';
+      var v = ABV.v, h = '<h2 class="sec">Absent follow-up</h2><p class="note">Members who have stopped coming, from EFC. One card per family. The goal of every call is a booked return class. Anyone who trains again drops off by themselves.</p><div class="chips">' + STG.map(function (s) { return '<button type="button" class="chip" data-abv="' + s[0] + '" aria-pressed="' + (s[0] === v) + '">' + esc(s[1]) + ' (' + count(s[0]) + ')</button>'; }).join('') + '</div><p class="note">' + esc(BL[v] || '') + '</p>';
+      if (v === 'back') h += (j.recentBack || []).length ? '<div class="box"><p>' + j.recentBack.map(esc).join('<br>') + '</p></div>' : '<div class="box"><p>Nobody yet.</p></div>';
+      else if (v === 'efc') h += (j.fixes || []).length ? j.fixes.map(function (f) { return '<div class="box abc" data-rows="' + esc(f.row) + '" style="margin:6px 0"><b>' + esc(f.name) + '</b> <span class="chip">' + esc(f.school) + '</span>' + (f.note ? '<p class="note">' + esc(f.note) + '</p>' : '') + '<div class="chips">' + B('fixed', 'Fixed in EFC') + '</div><p class="tmsg note"></p></div>'; }).join('') : '<div class="box"><p>Nothing to fix.</p></div>';
+      else { var list = inStage(v), due = list.filter(function (x) { return x.group !== 'later' && !(v === 'auto7' && !x.stage); }), wait = list.filter(function (x) { return x.group === 'later' || (v === 'auto7' && !x.stage); });
+        var modeOf = function (x) { return x.group === 'check' ? 'check' : x.group === 'instructor' ? 'video' : (x.group === 'booked' || PG[x.group]) ? 'mini' : 'full'; };
+        h += due.length ? due.map(function (x) { return card(x, modeOf(x)); }).join('') : '<div class="box"><p>Nobody here right now.</p></div>';
+        if (wait.length) h += '<div class="tday" style="margin-top:12px">Done for this stage, waiting for the next (' + wait.length + ')</div>' + wait.map(function (x) { return card(x, 'mini'); }).join(''); }
+      el.innerHTML = h;
+      var msgOf = function (b) { return b.closest('.abc').querySelector('.tmsg'); };
+      Array.prototype.forEach.call(el.querySelectorAll('[data-abv]'), function (b) { b.onclick = function () { ABV.v = b.dataset.abv; drawAbs(); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('select[data-f="reason"]'), function (s) { s.onchange = function () { var p = s.closest('.abc').querySelector('.absay'); if (say[s.value]) { p.hidden = false; p.innerHTML = '<b>Say this:</b> ' + esc(say[s.value]); } else p.hidden = true; }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.aba'), function (b) { b.onclick = function () { var c = b.closest('.abc'), m = msgOf(b), a = b.dataset.a, f = function (n) { var e = c.querySelector('[data-f="' + n + '"]'); return e ? e.value.trim() : ''; };
+        if ((a === 'callback' || a === 'booked') && !f('date')) { m.textContent = 'Pick the date first.'; return; } if ((a === 'booked' || a === 'hold' || a === 'cancel') && !f('reason')) { m.textContent = 'Pick why they stopped coming first.'; return; } if (a === 'other' && !f('note')) { m.textContent = 'Write what happened first.'; return; }
+        b.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'absaction', rows: c.dataset.rows, stage: c.dataset.stage || '', act: a, date: f('date'), note: f('note'), reason: f('reason'), save: f('save') }).then(function (r) { if (r && r.ok) { m.innerHTML = 'Saved.' + (tips[a] ? ' <b>Next:</b> ' + esc(tips[a]) : ''); setTimeout(function () { loadAbs(true); }, tips[a] ? 4000 : 700); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.abnsi'), function (b) { b.onclick = function () { var c = b.closest('.abc'), m = msgOf(b), undo = !!b.dataset.undo; if (!undo && !confirm('Pause this family for 30 days (no texts or calls)? They will show in Live attendance so the instructor checks them in.')) return; b.disabled = true; m.textContent = 'Saving…';
+        hubAct({ kind: 'absnsi', rows: c.dataset.rows, undo: undo ? 1 : 0 }).then(function (r) { if (r && r.ok) m.textContent = undo ? 'Pause removed.' : 'Paused until ' + (r.until || '') + '. They now show in Live attendance.'; else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.ablog'), function (b) { b.onclick = function () { var c = b.closest('.abc'), m = msgOf(b); if (!confirm('Text this family a reminder to sign in on the EFC app?')) return; b.disabled = true; m.textContent = 'Sending…';
+        hubAct({ kind: 'abslogin', rows: c.dataset.rows }).then(function (r) { if (r && r.ok) m.textContent = 'Reminder sent.'; else { b.disabled = false; m.textContent = (r && r.error) || 'Not sent.'; } }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.abtx'), function (b) { b.onclick = function () { var c = b.closest('.abc'), m = msgOf(b), t = c.querySelector('.abrt').value.trim(); if (!t) { m.textContent = 'Write the text first.'; return; } if (!confirm('Send this text to the family from the AMA number?\n\n' + t)) return; b.disabled = true; m.textContent = 'Sending…';
+        hubAct({ kind: 'abstext', rows: c.dataset.rows, text: t }).then(function (r) { if (r && r.ok) { m.textContent = 'Text sent.'; c.querySelector('.abrt').value = ''; } else { b.disabled = false; m.textContent = (r && r.error) || 'Not sent.'; } }); }; });
+    }
     /* Birthday parties (preview): every party by stage, its details, stage, checklist and notes. Placing a party in a time slot stays in the hub. */
     var PT = { open: '', st: 'Open' };
     function loadParty() {
@@ -1265,16 +1360,41 @@
         hubAct({ kind: 'liveatt', act: 'add', school: LA.school, session: c.id, memberId: u.id, student: u.name, className: c.name, time: c.start }).then(function (r) { b.textContent = r && r.ok ? '✓ ' + u.name : (r && r.error) || 'Not added'; if (!(r && r.ok)) b.disabled = false; }); }; });
     }
     /* Referrals (preview): families who joined through a referral and where each reward is up to. Actions stay in the hub for now. */
-    function loadRef() {
+    function loadRef(fresh) {
       var el = $('tabRef'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Referrals</h2><p class="note">Loading…</p>';
-      hubRead({ kind: 'reflist' }, 'referrals', function (j) {
-        if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Referrals</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
-        var L = j.items || [];
-        el.innerHTML = '<h2 class="sec">Referrals</h2><p class="note">' + L.length + ' open. To record a reward or presentation, use the hub: <a href="' + HUB_URL + '#referrals" target="_blank" rel="noopener">Referrals &#8599;</a></p>' + (L.length ? L.map(function (r) {
-          return '<div class="box" style="margin:8px 0"><div class="chips" style="margin:0 0 4px"><span class="chip" aria-pressed="true">' + esc(r.stage) + '</span><span class="tsum" style="margin:6px 0 0 4px">' + esc([r.loc, r.date].filter(Boolean).join(' · ')) + '</span></div>' +
-            '<b>' + esc(r.by || '') + '</b> referred <b>' + esc(r.student || '') + '</b>' + (r.reward ? '<p class="tsum" style="margin:4px 0">Reward: ' + esc(r.reward) + (r.readyAt ? ', ready ' + esc(r.readyAt) : '') + '</p>' : '') +
-            (r.presentOn ? '<p class="tsum" style="margin:2px 0' + (r.presentLate ? ';color:var(--err)' : '') + '">Present ' + esc(r.presentOn) + (r.instructor ? ' by ' + esc(r.instructor) : '') + '</p>' : '') + (r.notes ? '<p class="tsum" style="margin:2px 0">' + esc(r.notes) + '</p>' : '') + '</div>'; }).join('') : '<div class="box"><p>No open referrals.</p></div>');
-      });
+      var cb = function (j) { if (CUR !== 'referrals' || Array.prototype.some.call(el.querySelectorAll('input[data-f="note"],input[data-f="by"]'), function (i) { return i.value; })) return; RFV.d = j; drawRef(); };
+      if (fresh) hubAct({ kind: 'reflist' }, true).then(cb); else hubRead({ kind: 'reflist' }, 'referrals', cb);
+    }
+    /* Referrals (preview): thank the member who referred, choose the reward, get it ready, present it. Same buttons as the hub. */
+    var RFV = {};
+    function drawRef() {
+      var el = $('tabRef'), j = RFV.d; if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Referrals</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var stages = [['call', 'To thank: call the member who referred'], ['check', 'Check who referred (the form does not name a member)'], ['wait', 'No answer: try again in 2 days'], ['prepare', 'Get the reward ready'], ['present', 'Instructor to present the reward']], groups = {};
+      j.items.forEach(function (x) { var k = x.stage + '|' + String(x.by).toLowerCase() + '|' + x.loc; (groups[k] = groups[k] || { stage: x.stage, by: x.by, loc: x.loc, items: [] }).items.push(x); });
+      var staffOpts = '<option value="">Instructor who will present it…</option>' + (j.staff || []).map(function (n) { return '<option>' + esc(n) + '</option>'; }).join(''), rewardOpts = '<option value="">Reward they chose…</option>' + (j.rewards || []).map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('');
+      var B = function (a, t, main) { return '<button type="button" class="' + (main ? 'btn' : 'chip') + ' rfa" data-a="' + a + '"' + (main ? ' style="width:auto;padding:8px 14px"' : '') + '>' + t + '</button>'; };
+      var h = '<h2 class="sec">Referrals</h2><p class="note">When a family joins because a member sent them, ' + esc(j.owner || 'the office') + ' calls that member to say thank you and offer a reward. Then put the reward and a referral card in an envelope at reception, and choose the instructor who will present it at mat chat.</p>', any = false;
+      stages.forEach(function (sg) { var gs = Object.keys(groups).map(function (k) { return groups[k]; }).filter(function (g) { return g.stage === sg[0]; }); if (!gs.length) return; any = true;
+        h += '<div class="tday" style="margin-top:12px">' + sg[1] + ' (' + gs.length + ')</div>';
+        gs.forEach(function (g) { var x = g.items[0], rows = g.items.map(function (i) { return i.row; }).join(','), studs = g.items.map(function (i) { return i.student; }).join(', '), call = sg[0] === 'call' || sg[0] === 'wait' || sg[0] === 'check';
+          h += '<div class="box rfc" data-rows="' + esc(rows) + '" data-by="' + esc(g.by) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(g.by) + '</b><span class="chip">' + esc(g.loc) + '</span></div>' +
+            hcRow('Referred ', '<b>' + esc(studs) + '</b>, who joined ' + esc(x.date) + (x.days !== null && x.days !== undefined ? ' (' + x.days + (x.days === 1 ? ' day' : ' days') + ' ago)' : '')) +
+            hcRow('', x.mobile ? 'Mobile: <a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : 'No mobile found for this member. Look them up in EFC or GHL, then save it here.') +
+            (x.action ? hcRow('Last: ', esc(x.action) + ' ' + esc(x.actionDate) + (x.doneBy ? ' by ' + esc(x.doneBy) : '')) : '') +
+            (x.reward ? hcRow('Reward: ', '<b>' + esc(x.reward) + '</b>' + (x.instructor ? ' · Presenting: ' + esc(x.instructor) : '') + (x.readyAt ? ' · At reception since ' + esc(x.readyAt) : '') + (x.presentOn ? ' · Presenting <b>' + esc(x.presentOn) + '</b>' + (x.presentLate ? ' (overdue)' : '') : '')) : '') +
+            (x.notes ? '<p class="note" style="margin:6px 0">' + esc(x.notes) + '</p>' : '') + '<div class="bkf" style="margin-top:6px">' +
+            (call ? (!x.mobile ? '<label>Member mobile</label><input type="tel" data-f="mobile">' : '') + '<select data-f="reward">' + rewardOpts + '</select><input data-f="note" placeholder="Note (optional)">' : '') +
+            (sg[0] === 'prepare' ? '<select data-f="instructor">' + staffOpts + '</select><label>Date it will be presented</label><input type="date" data-f="pdate"><label>Class time</label><input type="time" data-f="ptime">' : '') + '</div><div class="chips" style="margin-top:8px">' +
+            (call ? (!x.mobile ? B('mobile', 'Save mobile') : '') + B('thanked', 'Thanked', 1) + B('noanswer', 'No answer') + B('notmember', 'Not a member') : '') +
+            (sg[0] === 'prepare' ? B('ready', /off payments/i.test(x.reward) ? 'Applied in EFC: tell the instructor' : 'Envelope at reception: tell the instructor', 1) + B('handedout', 'Already handed out') : '') + (sg[0] === 'present' ? B('presented', 'Presented', 1) : '') + '</div><p class="tmsg note"></p></div>'; }); });
+      if (!any) h += '<div class="box"><p>Nobody to thank right now. New referrals appear here as soon as the family joins.</p></div>';
+      h += '<div class="tday" style="margin-top:12px">Add a referral</div><div class="box rfc" data-add="1"><p class="note">For a referral that was not ticked on the joining form.</p><div class="bkf"><label>Member who referred (full name)</label><input data-f="by"><label>Their mobile (optional)</label><input type="tel" data-f="mobile"><label>Student(s) who joined</label><input data-f="student"><label>School</label><select data-f="loc"><option value="">School…</option><option>Marrickville</option><option>Concord</option><option>Sydenham</option><option>Auburn</option><option>Sylvania</option></select><label>Date</label><input type="date" data-f="date" value="' + new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }) + '"><label>Note (optional)</label><input data-f="note"></div><div class="chips" style="margin-top:8px">' + B('add', 'Add referral', 1) + '</div><p class="tmsg note"></p></div>';
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('.rfa'), function (b) { b.onclick = function () { var c = b.closest('.rfc'), m = c.querySelector('.tmsg'), a = b.dataset.a, f = function (n) { var e = c.querySelector('[data-f="' + n + '"]'); return e ? e.value.trim() : ''; }, body = { kind: 'refaction', act: a, note: f('note') };
+        if (a === 'add') { body.by = f('by'); body.mobile = f('mobile'); body.student = f('student'); body.loc = f('loc'); body.date = f('date'); }
+        else { body.rows = c.dataset.rows.split(','); body.by = c.dataset.by; body.reward = f('reward'); body.instructor = f('instructor'); body.pdate = f('pdate'); body.ptime = f('ptime'); body.mobile = f('mobile'); }
+        b.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct(body).then(function (r) { if (r && r.ok) { m.textContent = 'Saved.'; Array.prototype.forEach.call(c.querySelectorAll('input[data-f]'), function (i) { if (i.type !== 'date') i.value = ''; }); setTimeout(function () { loadRef(true); }, 700); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
     }
     /* Failed payments (preview; the five money viewers only): families with an overdue EFC balance and what has been tried. */
     function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { maximumFractionDigits: 0 }); }
