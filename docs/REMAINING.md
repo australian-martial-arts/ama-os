@@ -24,7 +24,7 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 - [ ] EFC tools: billing checks, enrolled vs paying vs attending, add a missed class - `efcchecks`, `efcuse`, `efcatt`, `efclive`
 
 ## 2. In AMA OS but view only (the buttons are still in the hub)
-- [~] Trials / Close the sale actions (27 Nov: Close the sale all buttons, Trials follow-up outcomes done; still hub: move, callback, call24, remove, resend reports, win-back) - `followups`, `followupdone`, `trialff`, `trialmove`, `trialcallback`, `trialcall24`, `trialremove`, `trialinfo`, `trialinfoev`, `tcresend`, `tcabsenttext`, `winback`, `chaselist`, `chaseaction`, `reclog`, `reclast`
+- [~] Trials / Close the sale actions (27 Nov: Close the sale, follow-up outcomes, details, confirmed, 24-hour call, change class or time, remove done; still hub: confirm + full fact find, recommendation tool, resend reports, win-back) - `followups`, `followupdone`, `trialff`, `trialmove`, `trialcallback`, `trialcall24`, `trialremove`, `trialinfo`, `trialinfoev`, `tcresend`, `tcabsenttext`, `winback`, `chaselist`, `chaseaction`, `reclog`, `reclast`
 - [x] Enquiry replies inbox (27 Nov, in Trials) - `replylist`, `replydone`, `replyundo`
 - [x] New members actions (27 Nov) - `nmlist`, `nmaction`
 - [x] Absent follow-up actions (27 Nov: all stages, outcomes, sign-in reminder, reply by text, training-not-signing-in) - `abslist`, `absaction`, `abstext`, `abslogin`, `absnsi`, `absnsilist`
