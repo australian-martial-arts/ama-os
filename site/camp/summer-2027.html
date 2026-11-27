@@ -186,6 +186,12 @@ footer b{color:#fff}
 .mbar{display:none}
 .done{text-align:center;padding:30px}
 .done h3{font-size:28px}
+.friend{box-sizing:border-box;max-width:100%;background:linear-gradient(135deg,#e2f6ea,#fff8e1);border:2px solid var(--g);border-radius:18px;padding:14px 16px;margin-bottom:14px;color:var(--g);display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between}
+.friend[hidden]{display:none}.friend b{font-size:17px}.friend .fd{font-size:14px;color:#334;margin-top:2px}
+.friend button{border:0;border-radius:999px;background:var(--g);color:#fff;font:700 15px Poppins,sans-serif;padding:10px 18px;cursor:pointer}
+.c .fr{position:absolute;top:5px;right:6px;background:var(--y);color:var(--g);font-size:9.5px;font-weight:800;border-radius:999px;padding:1px 6px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c.sel .fr{right:22px}
+.fhero{display:inline-block;background:#fff;color:var(--g);border-radius:999px;padding:6px 14px;font-weight:700;margin-top:12px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
 .pickmsg{box-sizing:border-box;max-width:100%;scroll-margin-top:110px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;justify-content:space-between;background:#fff3c2;border:2px solid var(--y);border-radius:16px;padding:12px 16px;margin-bottom:14px;font-weight:600;color:var(--g)}
 .pickmsg[hidden]{display:none}.pickmsg button{border:0;border-radius:999px;background:var(--g);color:#fff;font:700 15px Poppins,sans-serif;padding:10px 18px;cursor:pointer}
 .months.flash{animation:flash 1.2s ease 2;border-radius:18px}@keyframes flash{0%,100%{box-shadow:0 0 0 0 rgba(255,214,0,0)}50%{box-shadow:0 0 0 6px rgba(255,214,0,.9)}}
@@ -207,7 +213,7 @@ footer b{color:#fff}
   .hero .in{grid-template-columns:1fr;padding:40px 0 140px;gap:26px}.hero .poster{max-width:300px}.hero .palm{width:180px;opacity:.6}.hero .poster .stamp{width:100px;height:100px;left:-12px}.hero .poster .stamp b{font-size:24px}
   .ribbon .cards{grid-template-columns:1fr 1fr;gap:10px}.card{padding:14px}.card .v{font-size:18px}
   .week{grid-template-columns:1fr}.week .day:last-child{grid-column:auto}
-  .c{min-height:58px;padding:5px 4px;border-radius:10px}.c .t{display:none}.c .n{font-size:14px}.c .u{font-size:8.5px;padding:1px 4px}
+  .c{min-height:58px;padding:5px 4px;border-radius:10px}.c .t{display:none}.c .n{font-size:14px}.c .u{font-size:8.5px;padding:1px 4px}.c .fr{font-size:8px;padding:0 4px;top:4px;right:3px}.c.sel .fr{right:16px}
   .tip{display:none}
   .row,.row3{grid-template-columns:1fr}.form{padding:22px}
   .gal{grid-template-columns:1fr 1fr;grid-auto-rows:140px}
@@ -262,6 +268,7 @@ footer b{color:#fff}
   <div class="sh"><div class="tag">Dates and prices</div><h2>Pick your camp days</h2><p>Tap the days you want. Hover over a day to see its theme and how fast it's filling. Closed on public holidays, Christmas Eve and New Year's Eve.</p></div>
   <div class="cal-wrap">
     <div>
+      <div class="friend" id="friendBox" hidden></div>
       <div class="pickmsg" id="pickMsg" hidden></div>
       <div class="kid-tabs" id="kidTabs"></div>
       <div class="months" id="months"><div class="month"><p class="small">Loading camp days…</p></div></div>
@@ -395,7 +402,7 @@ footer b{color:#fff}
       }
       var ymd = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'), d = byDate[ymd], inRange = ymd >= a && ymd <= z;
       if (!d) { cells += '<div class="c' + (inRange ? ' closed' : '') + '"><span class="n">' + dt.getDate() + '</span>' + (inRange ? '<span class="t">Closed</span>' : '') + '</div>'; continue; }
-      cells += '<div class="c ' + (d.full ? 'full' : 'open') + (k.days.indexOf(ymd) > -1 ? ' sel' : '') + '" tabindex="0" data-d="' + ymd + '"><span class="n">' + dt.getDate() + '</span><span class="t">' + esc(d.theme) + '</span><span class="u ' + uClass(d) + '">' + esc(uText(d)) + '</span><div class="tip"><b>' + esc(d.label) + ' · ' + esc(d.theme) + '</b>' + esc((d.heroes || []).join(' · ')) + '<br><span style="color:#ffe98a;font-weight:700">' + esc(uText(d)) + '</span></div></div>';
+      cells += '<div class="c ' + (d.full ? 'full' : 'open') + (k.days.indexOf(ymd) > -1 ? ' sel' : '') + '" tabindex="0" data-d="' + ymd + '"><span class="n">' + dt.getDate() + '</span>' + (S.friend && S.friend.days.indexOf(ymd) > -1 ? '<span class="fr">' + esc(S.friend.short) + '</span>' : '') + '<span class="t">' + esc(d.theme) + '</span><span class="u ' + uClass(d) + '">' + esc(uText(d)) + '</span><div class="tip"><b>' + esc(d.label) + ' · ' + esc(d.theme) + '</b>' + esc((d.heroes || []).join(' · ')) + '<br><span style="color:#ffe98a;font-weight:700">' + esc(uText(d)) + '</span></div></div>';
     }
     flush();
     $('months').innerHTML = html;
@@ -444,6 +451,23 @@ footer b{color:#fff}
   }
   /* 27 Nov 2026 (Mark): booking without days takes them to the calendar, then straight back to finish */
   S.picking = false;
+  /* 27 Nov 2026 (Mark): came from a friend's link? Show who's booked and which days, so they can join them */
+  function loadFriend() {
+    var ref = (Q.get('ref') || '').trim(); if (!ref) return;
+    post({ kind: 'campref', ref: ref }).then(function (j) {
+      if (!j || !j.ok || !j.kids || !j.kids.length) return;
+      var lab = {}; (S.info.days || []).forEach(function (d) { lab[d.date] = d.label; });
+      var days = j.days.filter(function (d) { return lab[d]; }); if (!days.length) return;
+      var who = andList(j.kids), L = days.map(function (d) { return lab[d]; }), many = j.kids.length > 1;
+      S.friend = { kids: j.kids, days: days, who: who, short: many ? 'Friends' : j.kids[0] };
+      var when = L.length <= 4 ? andList(L) : L.length + ' days from ' + L[0] + ' to ' + L[L.length - 1];
+      var fb = $('friendBox'); fb.hidden = false;
+      fb.innerHTML = '<div><b>🎉 ' + esc(who) + (many ? ' are' : ' is') + ' booked in!</b><div class="fd">' + esc(when) + '. Look for ' + (many ? '"Friends"' : esc(j.kids[0]) + '\'s name') + ' on the calendar.</div></div><button type="button" id="friendSame">Book the same days</button>';
+      $('friendSame').onclick = function () { var k = S.kids[S.cur]; days.forEach(function (d) { var x = (S.info.days || []).filter(function (y) { return y.date === d; })[0]; if (x && !x.full && k.days.indexOf(d) < 0) k.days.push(d); }); k.days.sort(); drawAll(); this.textContent = '✓ Added'; };
+      var h = D.querySelector('.hero .lead'); if (h && !$('fhero')) { var t = document.createElement('div'); t.id = 'fhero'; t.className = 'fhero'; t.textContent = '👋 ' + who + (many ? ' are' : ' is') + ' going to camp. Come too!'; h.insertAdjacentElement('afterend', t); }
+      drawAll();
+    }).catch(function () { });
+  }
   D.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('#mbGo'); if (!a || !S.info) return; var k = S.kids.filter(function (x) { return !x.days.length; })[0]; if (k) { e.preventDefault(); e.stopImmediatePropagation(); goPick(S.kids.indexOf(k)); } }, true);
   function goPick(i) {
     S.cur = i; S.picking = true; drawAll();
@@ -547,7 +571,7 @@ footer b{color:#fff}
   post({ kind: 'campinfo' }).then(function (j) {
     if (!j || !j.ok) throw new Error('no');
     S.info = j; $('previewBar').hidden = !!j.live; $('refH').textContent = j.refundHours || 48;
-    drawWeek(); drawRun(); drawAll();
+    drawWeek(); drawRun(); drawAll(); loadFriend();
   }).catch(function () { $('months').innerHTML = '<div class="month"><p>Camp days could not load. Please refresh, or call (02) 9569 1943 to book.</p></div>'; });
 })();
 </script>
