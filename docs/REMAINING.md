@@ -30,7 +30,7 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 - [x] Absent follow-up actions (27 Nov: all stages, outcomes, sign-in reminder, reply by text, training-not-signing-in) - `abslist`, `absaction`, `abstext`, `abslogin`, `absnsi`, `absnsilist`
 - [x] Holds and Cancels actions (27 Nov: list, resend, certificate, done in EFC, restarted, extend, cancelling instead; cancels to action and forms sent; approvals already in Approvals) - `holdlist`, `holdaction`, `holdextend`, `holdrecord`, `cxlist`, `cxaction`, `cxdone`, `cxfast`, `cxlookup`, `cxsent`, `cancel`, `reqadd`, `reqhistory`
 - [x] Referrals actions (27 Nov) - `refaction`
-- [ ] Gradings actions - `gradelist`, `gradesave`, `gradesend`, `gradefix`, `gradepace`
+- [x] Gradings actions (27 Nov: decisions, technique help, fix in EFC. Grading texts stay in Tate's Toolkit only) - `gradelist`, `gradesave`, `gradesend`, `gradefix`, `gradepace`
 - [ ] Birthday parties: links, settings, suppliers - `partylinks`, `partysettings`, `partysupplier`
 - [ ] Holiday camp actions - `campapprove`, `campmove`, `campswap`, `camprefund`, `campsquare`, `campupdate`
 - [ ] Private lessons actions - `pvbook`, `pvstatus`, `pvaddinst`, `pvavail`
@@ -85,7 +85,12 @@ Links already sent to families point at the hub: move them with redirects, or ke
 - [ ] Holds, cancels, follow-ups, new members and absent counts still come from the hub's copy. Read them from EFC / GHL directly.
   (Trials and members already come live from GHL and EFC.)
 
-## 6. Other open items
+## 6. New feature requests
+- [ ] Member Hub news cards (Mark, 27 Nov): staff post a card to families in the Member Hub, e.g. "Buddy week coming - click here to book your friend",
+      with a button that opens the trial booking for a friend (counts as a referral). Choose which schools/programs see it and when it shows and ends.
+      Builds on the Member Hub, so it comes with or after moving the Member Hub.
+
+## 7. Other open items
 - [ ] Switch previews on for the whole team after Mark and Tate test (`HUB_PREVIEW` in amaos-dash)
 - [ ] Rotate the hub secret value (after mapping the GHL workflows that send it); fix the public rec page that exposes it
 - [ ] Decide whether the GitHub repo should be private
