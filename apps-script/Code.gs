@@ -10493,6 +10493,7 @@ function previewNewMembers() {
 const MYDAY = { sundayCalls: 20, customerFrom: 16 * 60, perHourBefore: 10, perHourAfter: 3, reach: 0.5, winsPerHours: 3, minWins: 2, cacheKey: 'myday_q4', cacheSecs: 900 };
 // Every 10 minutes from 7am to 9pm the list is rebuilt in the background, so My day opens quickly.
 function mydayWarm() {
+  if (CAMP.live) try { campCheckPaid_(); } catch (e) { Logger.log('campCheckPaid_ ' + e); } // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
   try { campRemindTick_(); } catch (e) { Logger.log('campRemindTick_ ' + e); } // 27 Nov 2026: camp day-before reminders (off until Mark approves)
   try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { amaosTrialsPush_(); } catch (e) { Logger.log('amaosTrialsPush_ ' + e); } /* 26 Nov 2026: GHL trials to AMA OS */ try { amaosLiveTick_(); } catch (e) { Logger.log('amaosLiveTick_ ' + e); } /* 26 Nov 2026: hub records to AMA OS through the day */ try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
 
@@ -18424,7 +18425,7 @@ function stuCardPeek9Nov() { ['Malachy Maloney-Grange', 'Thalia Reyes', 'Steven 
    PAYMENT IS NOT CONNECTED YET (waiting on Hakan / Squarespace). Until CAMP.live is true every booking is saved as a TEST,
    is not counted against places, and nothing is sent. Messages stay off until Mark approves the wording (CAMP.textsOn). */
 const CAMP = {
-  live: false, textsOn: false,
+  live: true, textsOn: false, // 27 Nov 2026 (Mark): camp page takes payments
   /* running costs for the money report: DRAFT numbers for Mark to confirm (edit here) */
   costs: { staffHourly: 35, staffHours: 7, perChildDay: 4, perDayFixed: 0, squarePct: 2.2 },
   coordinator: 'Hakan', rosterAdmins: ['mark', 'hakan'], // only these can approve / remove / swap camp staff
@@ -18496,6 +18497,30 @@ function campInfo_() {
 }
 /* 27 Nov 2026 (Laurie): message on each calendar day, from places booked that day */
 function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? 'Filling up' : 'Book now'; }
+/* 27 Nov 2026 (Mark): before going live, clear the test camp bookings and Mark's and Tate's test staff availability.
+   Rows are MOVED to the 'Camp test archive' tab (not deleted). Run campTestsList27Nov first to see what will move. */
+function campTestPick27Nov_() {
+  const out = [];
+  [[campSheet_(), function (o) { return /^TEST/i.test(String(o.Status || '')); }],
+   [campSheet_('staff'), function (o) { return /^(mark|tate)\b/i.test(String(o.Name || '').trim()); }]].forEach(function (p) {
+    const sh = p[0], v = sh.getDataRange().getValues(), H = v[0].map(String);
+    v.slice(1).forEach(function (r, i) { const o = {}; H.forEach(function (h, j) { o[h] = r[j]; }); if (p[1](o)) out.push({ sh: sh, row: i + 2, vals: r, o: o }); });
+  });
+  return out;
+}
+function campTestsList27Nov() {
+  const all = campTestPick27Nov_(); Logger.log(all.length + ' rows');
+  all.forEach(function (x) { const o = x.o; Logger.log(x.sh.getName() + ' row ' + x.row + ': ' + (o['Booking ID'] ? [o['Booking ID'], o.Status, o['Parent first'] + ' ' + o['Parent last'], o.Email, o.Child, o.Age, o.Days].join(' | ') : [o['Emp ID'], o.Name, o.Day, o.Available].join(' | '))); });
+  const v = campSheet_().getDataRange().getValues(); Logger.log('Bookings tab rows (not counting header): ' + (v.length - 1) + '; staff tab rows: ' + (campSheet_('staff').getLastRow() - 1));
+}
+function campTestsClear27Nov() {
+  const all = campTestPick27Nov_(), ss = SpreadsheetApp.openById(HOLD.sheetId);
+  let arc = ss.getSheetByName('Camp test archive'); if (!arc) { arc = ss.insertSheet('Camp test archive'); arc.appendRow(['Moved at', 'From tab', 'Row values']); }
+  const now = new Date();
+  all.forEach(function (x) { arc.appendRow([now, x.sh.getName()].concat(x.vals)); });
+  all.slice().sort(function (a, b) { return b.row - a.row; }).forEach(function (x) { x.sh.deleteRow(x.row); });
+  Logger.log('Moved ' + all.length + ' test rows to Camp test archive');
+}
 /* 27 Nov 2026 (Mark): a friend's bring-a-friend link shows who invited them and which days they're booked, so they can pick the same days.
    Public, so it only gives the children's first names and days, only for paid bookings (any booking while in test mode), and only for the new random codes. */
 function campRef_(ref) {
