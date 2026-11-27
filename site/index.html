@@ -574,14 +574,15 @@
         var canChk = DJ.me && DJ.me.check && past && !t.walkin && !t.promo && String(t.id).charAt(0) !== 'W'; // the hub's after-trial check has no promotion families
         h += '<div class="trial"><div class="t">' + esc(t.time) + '</div><div class="w"><b>' + esc(t.who) + num + pill + '</b><span>' + esc(t.cls) + ' · ' + esc(t.loc) + '</span></div>' +
           '<div class="tright">' + (t.status ? '<div class="st ' + (ST[t.status] || '') + '">' + esc(t.status) + '</div>' : '<div class="st">' + esc(t.loc) + '</div>') +
-          (canChk ? '<button type="button" class="chip tchk" data-chk="' + esc(t.id) + '">' + (t.att ? 'Edit check' : 'Check') + '</button>' : '') + '</div></div>' +
-          (canChk && chkOpen === t.id ? chkForm(t) : '');
+          (canChk ? '<button type="button" class="chip tchk" data-chk="' + esc(t.id) + '">' + (t.att ? 'Edit check' : 'Check') + '</button>' : '') + (DJ.me && DJ.me.hub && !t.walkin && String(t.id).charAt(0) !== 'W' ? '<button type="button" class="chip" data-tm="' + esc(t.id) + '">Actions</button>' : '') + '</div></div>' +
+          (canChk && chkOpen === t.id ? chkForm(t) : '') + (TMV.open === t.id ? trialPanel(t) : '');
       });
       h += '</div><p class="note" style="margin:26px 0 0">' + (DJ.trialsLive ? 'Straight from GHL' : 'From GHL via the hub') + (DJ.trialsAt ? ', updated ' + esc(when(DJ.trialsAt)) : '') + '. Enrolled and Rec sent come from GHL and the Enrolments tab; Attended or Absent from the after-trial check.</p>';
       box.innerHTML = h;
       Array.prototype.forEach.call(box.querySelectorAll('[data-m]'), function (b) { b.onclick = function () { trialMode = b.dataset.m; renderTrials(); }; });
       Array.prototype.forEach.call(box.querySelectorAll('[data-l]'), function (b) { b.onclick = function () { trialLoc = b.dataset.l; renderTrials(); }; });
       Array.prototype.forEach.call(box.querySelectorAll('[data-chk]'), function (b) { b.onclick = function () { chkOpen = chkOpen === b.dataset.chk ? '' : b.dataset.chk; chkPick = {}; renderTrials(); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-tm]'), function (b) { b.onclick = function () { TMV.open = TMV.open === b.dataset.tm ? '' : b.dataset.tm; renderTrials(); }; }); trialPanelBind(box);
       var f = box.querySelector('.tform'); if (f) wireChk(f);
     }
     /* Sales, Marketing and Retention (preview): the hub's tools, SOPs, scripts and system logins for each area. */
@@ -1289,6 +1290,52 @@
         hubAct({ kind: 'abslogin', rows: c.dataset.rows }).then(function (r) { if (r && r.ok) m.textContent = 'Reminder sent.'; else { b.disabled = false; m.textContent = (r && r.error) || 'Not sent.'; } }); }; });
       Array.prototype.forEach.call(el.querySelectorAll('.abtx'), function (b) { b.onclick = function () { var c = b.closest('.abc'), m = msgOf(b), t = c.querySelector('.abrt').value.trim(); if (!t) { m.textContent = 'Write the text first.'; return; } if (!confirm('Send this text to the family from the AMA number?\n\n' + t)) return; b.disabled = true; m.textContent = 'Sending…';
         hubAct({ kind: 'abstext', rows: c.dataset.rows, text: t }).then(function (r) { if (r && r.ok) { m.textContent = 'Text sent.'; c.querySelector('.abrt').value = ''; } else { b.disabled = false; m.textContent = (r && r.error) || 'Not sent.'; } }); }; });
+    }
+    /* Trial actions (preview): tap Actions on a trial for details, confirmed, the 24-hour call, change class or time, or remove. Each runs in the hub as you. */
+    var TMV = { open: '' };
+    function trialPanel(t) {
+      var ymdT = new Date(t.t).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }), tomorrow = ymdT === new Date(Date.now() + 864e5).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' });
+      return '<div class="box tmp" data-id="' + esc(t.id) + '" style="margin:4px 0 10px"><div class="chips">' + (t.cid ? '<button type="button" class="chip tma" data-a="info">See details</button><button type="button" class="chip tma" data-a="cb">Confirmed</button>' : '') +
+        (t.cid && tomorrow ? '<button type="button" class="chip tma" data-a="c24">24-hour call</button>' : '') + (!t.past ? '<button type="button" class="chip tma" data-a="move">Change class or time</button>' : '') +
+        '<button type="button" class="chip tma" data-a="book">Rebook (Book a trial)</button>' + (['mark', 'mady', 'bianca', 'sarah', 'busra'].indexOf(ME.first) > -1 ? '<button type="button" class="chip tma" data-a="rm">Remove</button>' : '') +
+        '</div><div class="tmo"></div><p class="tsum">Confirming with the full fact finding and the recommendation tool are still in the hub.</p></div>';
+    }
+    function trialPanelBind(box) {
+      Array.prototype.forEach.call(box.querySelectorAll('.tma'), function (b) { b.onclick = function () {
+        var p = b.closest('.tmp'), t = (DJ.trials || []).filter(function (x) { return String(x.id) === p.dataset.id; })[0], out = p.querySelector('.tmo'), a = b.dataset.a; if (!t) return;
+        var when = t.day + ' ' + t.time;
+        if (a === 'book') { go('book'); return; }
+        if (a === 'cb') { out.innerHTML = '<div class="bkf"><input class="tmn" placeholder="Note (optional), for example: confirmed with Mum"></div><button type="button" class="btn tmgo" style="width:auto;padding:8px 14px;margin-top:6px">Save: confirmed</button><p class="tmsg note"></p>';
+          out.querySelector('.tmgo').onclick = function () { var g = this, m = out.querySelector('.tmsg'); g.disabled = true; m.textContent = 'Saving…';
+            hubAct({ kind: 'trialcallback', cid: t.cid, id: t.id, loc: t.loc, when: when, note: out.querySelector('.tmn').value }).then(function (r) { if (r && r.ok) m.textContent = 'Saved. Note added to their contact in GHL.'; else { g.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; return; }
+        if (a === 'rm') { out.innerHTML = '<div class="bkf"><label>Why remove it?</label><select class="tmr"><option value="">Choose…</option><option>Duplicate booking</option><option>Test or spam</option><option>Booked by mistake</option></select></div><button type="button" class="btn tmgo" style="width:auto;padding:8px 14px;margin-top:6px;background:var(--err);border-color:var(--err)">Remove from GHL</button><p class="tmsg note"></p>';
+          out.querySelector('.tmgo').onclick = function () { var g = this, m = out.querySelector('.tmsg'), why = out.querySelector('.tmr').value; if (!why) { m.textContent = 'Choose why it is being removed.'; return; } if (!confirm('Remove this trial booking from GHL? It cannot be undone here.')) return; g.disabled = true; m.textContent = 'Removing…';
+            hubAct({ kind: 'trialremove', loc: t.loc, date: new Date(t.t).toLocaleDateString('en-CA', { timeZone: 'Australia/Sydney' }), id: t.id, reason: why }).then(function (r) { if (r && r.ok) { m.textContent = 'Removed.'; DJ.trials = DJ.trials.filter(function (x) { return x.id !== t.id; }); setTimeout(renderTrials, 1200); } else { g.disabled = false; m.textContent = (r && r.error) || 'Not removed.'; } }); }; return; }
+        if (a === 'move') { out.innerHTML = '<p class="note">Loading classes…</p>';
+          hubRead({ kind: 'trialopts' }, CUR, function (j) { if (!j || !j.ok) { out.innerHTML = '<p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; } if (out.querySelector('.tmc')) return;
+            var cals = (j.cals || []).filter(function (c) { return c.loc === t.loc; }), pick = {};
+            out.innerHTML = '<p class="note">Now: ' + esc(t.cls) + ', ' + esc(when) + '. It stays the same booking, so it still counts as one trial.</p><div class="bkf"><label>Class</label><select class="tmc"><option value="">Choose the class…</option>' + cals.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.cls) + '</option>'; }).join('') + '</select></div><div class="tms"></div><label style="display:block;margin:8px 0"><input type="checkbox" class="tmt" checked> Text the family the new details</label><button type="button" class="btn tmgo" style="width:auto;padding:8px 14px">Move the trial</button><p class="tmsg note"></p>';
+            out.querySelector('.tmc').onchange = function () { pick = { cal: this.value }; var s = out.querySelector('.tms'); if (!pick.cal) { s.innerHTML = ''; return; } s.innerHTML = '<p class="note">Finding free times…</p>';
+              hubAct({ kind: 'trialslots', calendarId: pick.cal }).then(function (x) { if (!x || !x.ok || !(x.days || []).length) { s.innerHTML = '<p class="note">' + esc((x && x.error) || 'No free times in the next 3 weeks.') + '</p>'; return; }
+                s.innerHTML = x.days.map(function (d) { return '<div class="tday" style="margin-top:8px">' + esc(d.label) + '</div><div class="chips">' + d.slots.map(function (z) { return '<button type="button" class="chip tmz" data-c="' + esc(z.cal || '') + '" data-s="' + esc(z.iso) + '" aria-pressed="false">' + esc(z.t) + '</button>'; }).join('') + '</div>'; }).join('');
+                Array.prototype.forEach.call(s.querySelectorAll('.tmz'), function (z) { z.onclick = function () { pick.slot = z.dataset.s; pick.slotCal = z.dataset.c; Array.prototype.forEach.call(s.querySelectorAll('.tmz'), function (q) { q.setAttribute('aria-pressed', String(q === z)); }); }; }); }); };
+            out.querySelector('.tmgo').onclick = function () { var g = this, m = out.querySelector('.tmsg'); if (!pick.cal || !pick.slot) { m.textContent = 'Choose the class and a time.'; return; } g.disabled = true; m.textContent = 'Moving…';
+              hubAct({ kind: 'trialmove', eventId: t.id, calendarId: pick.slotCal || pick.cal, slot: pick.slot, notify: out.querySelector('.tmt').checked, was: t.cls + ', ' + when }).then(function (r) {
+                if (r && r.ok) m.textContent = 'Moved to ' + r.cls + ', ' + r.when + '. ' + (r.texted === 'sent' ? 'The family has been texted the new details.' : 'No text went to the family' + (r.texted ? ' (' + r.texted + ')' : '') + '. If the day or time changed, let them know.'); else { g.disabled = false; m.textContent = (r && r.error) || 'Not moved.'; } }); };
+          }); return; }
+        out.innerHTML = '<p class="note">Loading…</p>';
+        hubAct({ kind: 'trialinfo', cid: t.cid }).then(function (r) { if (!r || !r.ok) { out.innerHTML = '<p class="msg err">' + esc((r && r.error) || 'Could not load.') + '</p>'; return; }
+          if (a === 'info') { var row = function (k, v) { return v ? '<p style="margin:6px 0"><span class="tsum" style="display:block">' + k + '</span>' + v + '</p>' : ''; };
+            out.innerHTML = row('Parent', esc(r.parent)) + row('Mobile', r.phone ? '<a href="tel:' + esc(String(r.phone).replace(/\s/g, '')) + '">' + esc(r.phone) + '</a>' : '') + row('Email', esc(r.email)) + row('Students', esc(r.kids)) + row('Why they are coming', esc(r.why)) +
+              Object.keys(r.ff || {}).filter(function (k) { return r.ff[k]; }).map(function (k) { return row(esc(k), esc(r.ff[k])); }).join('') + row('Notes for the recommendation', esc(r.rec) + (r.bookedBy ? ' <span class="tsum">(booked by ' + esc(r.bookedBy) + ')</span>' : '')) + (r.link ? '<a href="' + esc(r.link) + '" target="_blank" rel="noopener">Open in GHL &#8599;</a>' : ''); return; }
+          var adult = /\(parent\)$/.test(t.who), kid = adult ? '' : t.who.split(' & ').map(function (s) { return s.trim().split(' ')[0]; }).join(' and '), first = r.first || 'there', me = ME.name.split(' ')[0] || 'the team';
+          var script = 'Hi ' + first + ', it\'s ' + me + ' from AMA ' + t.loc + '. Just confirming ' + (adult ? 'your' : kid + '\'s') + ' free trial tomorrow at ' + t.time + '. Do you have any questions before you come? And one more thing: if ' + (adult ? 'you have' : kid + ' has') + ' a friend, brother or sister who\'d like to try it too, they\'re very welcome to come along. If they join too, you\'ll both get $50 off sign up. Would you like me to book them in?';
+          out.innerHTML = (r.phone ? '<a class="btn" style="display:block;text-align:center;margin:0 0 10px" href="tel:' + esc(String(r.phone).replace(/\s/g, '')) + '">Call ' + esc(first) + ' · ' + esc(r.phone) + '</a>' : '<p class="msg err">No mobile on this contact.</p>') + '<div class="tday">Say this</div><p class="note">' + esc(script) + '</p><div class="bkf"><input class="tmn" placeholder="Note (optional), for example: bringing her cousin"></div>' +
+            '<div class="chips" style="margin-top:6px"><button type="button" class="btn tmo2" data-o="confirmed" style="width:auto;padding:8px 14px">Confirmed</button><button type="button" class="chip tmo2" data-o="rescheduled">Rescheduled</button><button type="button" class="chip tmo2" data-o="noanswer">No answer</button></div><p class="tmsg note"></p>';
+          Array.prototype.forEach.call(out.querySelectorAll('.tmo2'), function (x) { x.onclick = function () { var m = out.querySelector('.tmsg'); x.disabled = true; m.textContent = 'Saving…';
+            hubAct({ kind: 'trialcall24', eventId: t.id, cid: t.cid, outcome: x.dataset.o, note: out.querySelector('.tmn').value, who: t.who, loc: t.loc, cls: t.cls, when: when }).then(function (z) { if (z && z.ok) m.textContent = 'Saved: ' + z.outcome + '. Note added to their contact in GHL.'; else { x.disabled = false; m.textContent = (z && z.error) || 'Not saved.'; } }); }; });
+        });
+      }; });
     }
     /* Birthday parties (preview): every party by stage, its details, stage, checklist and notes. Placing a party in a time slot stays in the hub. */
     var PT = { open: '', st: 'Open' };
