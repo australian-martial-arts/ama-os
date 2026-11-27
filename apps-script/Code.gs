@@ -3275,6 +3275,18 @@ catch (err) { return out({ ok: false, error: 'bad json' }); }
 /* 4 Nov 2026: the Pack Builder page (martialartsmentors.com) sends packs here with a one-time token instead of the hub key */ if (body.kind === 'epbprefill') { try { return out(epbPrefill_(body)); } catch (err) { return out({ ok: false }); } }
   if (body.kind === 'amaoswrite') { try { return out(amaosWrite_(body)); } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); } } /* 26 Nov 2026: AMA OS saves through the hub until switch-over */
   if (body.kind === 'epbupload') { try { return out(epbUpload_(body)); } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); } }
+  /* 27 Nov 2026: the summer camp page (train.australianmartialarts.com.au/holiday-camp/summer-2027) reads camp days and books
+     WITHOUT the hub secret, so the secret is not on a public page. Only these two camp requests are open; "website" is a spam trap. */
+  if (body.kind === 'campinfo' || body.kind === 'campbook') {
+    try {
+      if (body.kind === 'campinfo') return out(campInfo_());
+      if (String(body.website || '')) return out({ ok: false, error: 'Please try again.' });
+      const ck = CacheService.getScriptCache(), rk = 'campbk_' + String(body.mobile || '').replace(/\D/g, '').slice(-9), n = Number(ck.get(rk) || 0);
+      if (n >= 5) return out({ ok: false, error: 'Too many bookings from this mobile in a short time. Please call us on (02) 9569 1943.' });
+      ck.put(rk, String(n + 1), 600);
+      return out(campBook_(body));
+    } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); }
+  }
   if (body.secret !== HOLD.secret) {
 Logger.log('Rejected post, bad secret');
 return out({ ok: false, error: 'not authorised' });
@@ -18425,9 +18437,9 @@ const CAMP = {
   themes: { // matches the activities on australianmartialarts.com.au/school-holiday-camps
     1: { name: 'Bo Staff Day', heroes: ['Bo staff', 'Dodgeball', 'Floor is lava and indoor ball games'] },
     2: { name: 'Nunchuck Day', heroes: ['Single and double nunchucks', 'Flying side kick challenges', 'Trampolines and dodgeball'] },
-    3: { name: 'Nerf Wars Day', heroes: ['Kamas', 'Nerf wars', 'Tumble track flips and tricks'] },
+    3: { name: 'Kama Day', heroes: ['Kamas', 'Tumble track flips and tricks', 'Handstands and handstand walking'] }, // 27 Nov 2026 (Laurie/Mark): Nerf moved to Fridays
     4: { name: 'Sword and Board Breaking Day', heroes: ['Swords', 'Board breaking', 'Dodgeball'] },
-    5: { name: 'Superhero Day', heroes: ['Superhero outfit day', 'All weapons', 'Crash mats and safety falls'] }
+    5: { name: 'Superhero and Nerf Wars Day', heroes: ['Superhero outfit day', 'Nerf wars', 'All weapons'] } // 27 Nov 2026 (Laurie/Mark): Nerf is on Fridays
   },
   runSheet: [['8:30', 'Staff set up'], ['9:00', 'Arrival, free play, make friends'], ['9:15', 'Welcome and rules'], ['9:30', 'Obstacle course / Olympics'],
     ['10:00', 'Hero activity 1'], ['10:30', 'Morning tea and movie'], ['11:15', 'Game'], ['12:00', 'Hero activity 2'], ['1:00', 'Lunch and movie'],
