@@ -213,6 +213,8 @@
       <section id="tabPay" hidden></section>
       <section id="tabHolds" hidden></section>
       <section id="tabCx" hidden></section>
+      <section id="tabClose" hidden></section>
+      <section id="tabFollow" hidden></section>
       <section id="tabSec" hidden></section>
     </div>
   </div>
@@ -295,7 +297,7 @@
     function isMgmt() { return ['mark', 'sarah', 'hakan', 'ridvan'].indexOf(ME.first) > -1 || ME.role === 'owner'; }
     var I = {
       myday: { l: 'My Day', h: '#myday', os2: 'myday' }, today: { l: 'Today\'s trials', os: 'today' }, check: { l: 'After-trial check', h: '#check', os2: 'checkday' }, appr: { l: 'Approvals', h: '', os2: 'approvals' },
-      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
+      book: { l: 'Book a trial', h: '#book', os2: 'book' }, trials: { l: 'Trials', os: 'list:followup', os2: 'follow2', n: 'trials' }, close: { l: 'Close the sale', os: 'list:close', os2: 'close2' }, newmem: { l: 'New members', os: 'list:newmembers', n: 'newmem' }, referrals: { l: 'Referrals', h: '#referrals', os2: 'referrals' },
       absent: { l: 'Absent follow-up', os: 'list:absent', n: 'absent' }, requests: { l: 'Requests to log', h: '#cxlist', os2: 'requests' }, holds: { l: 'Holds', os: 'list:holds', os2: 'holds2', n: 'holds' }, cancels: { l: 'Cancels', os: 'list:cancels', os2: 'cancels2', n: 'cancels' }, absvideo: { l: 'Absentee videos', h: '#absvideo', os2: 'absvideo' },
       attendance: { l: 'Live attendance', h: '#attendance', os2: 'liveatt' }, promos: { l: 'Promotions', os: 'list:promos' }, grading: { l: 'Gradings', os: 'list:grading' }, parties: { l: 'Birthday parties', h: '#parties', os2: 'parties' }, camp: { l: 'Holiday camp', h: '#camp', os2: 'camp' }, privates: { l: 'Private lessons', h: '', os2: 'privates' }, shop: { l: 'Shop and stock', h: '#stock', os2: 'stock' },
       ihub: { l: 'Instructor Hub', h: '', os2: 'ihub' }, revcal: { l: 'My review calendar', h: '', os2: 'revcal' }, playbook: { l: 'AMA Playbook', os: 'playbook' }, clock: { l: 'Clock on (Deputy)', x: 'https://748e6a11114707.au.deputy.com' }, shifts: { l: 'Extra shifts', h: '#shifts', os2: 'shifts' }, efc: { l: 'Log into EFC', x: 'https://app.efcaquila.net' }, ghl: { l: 'Log into GHL', x: 'https://app.gohighlevel.com/' },
@@ -321,9 +323,9 @@
       $('nav').innerHTML = h;
     }
     function go(view) {
-      if (DJ && DJ.me && DJ.me.hub) { if (view === 'list:holds') view = 'holds2'; if (view === 'list:cancels') view = 'cancels2'; }
+      if (DJ && DJ.me && DJ.me.hub) { if (view === 'list:holds') view = 'holds2'; if (view === 'list:cancels') view = 'cancels2'; if (view === 'list:close') view = 'close2'; if (view === 'list:followup') view = 'follow2'; }
       CUR = view; document.body.classList.remove('menu');
-      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx'].forEach(function (t) { $(t).hidden = true; });
+      ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabHub', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow'].forEach(function (t) { $(t).hidden = true; });
       if (view === 'home' || view === 'today') { $('tabDash').hidden = false; if (view === 'today') setTimeout(function () { var b = $('osTrialsBox'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); else window.scrollTo(0, 0); }
       else if (view === 'mgmt') { $('tabMgmt').hidden = false; window.scrollTo(0, 0); }
       else if (view === 'find') { $('tabFind').hidden = false; }
@@ -336,6 +338,8 @@
       else if (view === 'pay') { $('tabPay').hidden = false; loadPay(); window.scrollTo(0, 0); }
       else if (view === 'holds2') { $('tabHolds').hidden = false; loadHolds(); window.scrollTo(0, 0); }
       else if (view === 'cancels2') { $('tabCx').hidden = false; loadCx(); window.scrollTo(0, 0); }
+      else if (view === 'close2') { $('tabClose').hidden = false; loadClose(); window.scrollTo(0, 0); }
+      else if (view === 'follow2') { $('tabFollow').hidden = false; loadFollow(); window.scrollTo(0, 0); }
       else if (view === 'ihub') { $('tabIh').hidden = false; loadIh(); window.scrollTo(0, 0); }
       else if (view === 'stock') { $('tabStock').hidden = false; loadStock(); window.scrollTo(0, 0); }
       else if (view === 'parties') { $('tabParty').hidden = false; loadParty(); window.scrollTo(0, 0); }
@@ -359,7 +363,7 @@
       navBuild();
     }
     function hubCard(id) {
-      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
+      var x = I[id]; CUR = 'hub:' + id; ['tabDash', 'tabMgmt', 'tabList', 'tabFind', 'tabConn', 'tabAuto', 'tabPk', 'tabAppr', 'tabDay', 'tabChk', 'tabReq', 'tabBook', 'tabHreq', 'tabShift', 'tabFp', 'tabStars', 'tabAv', 'tabLa', 'tabRef', 'tabParty', 'tabPv', 'tabCamp', 'tabStock', 'tabSec', 'tabPb', 'tabIh', 'tabRc', 'tabSq', 'tabEpb', 'tabPay', 'tabHolds', 'tabCx', 'tabClose', 'tabFollow'].forEach(function (t) { $(t).hidden = true; }); $('tabHub').hidden = false; document.body.classList.remove('menu');
       $('tabHub').innerHTML = '<h2 class="sec">' + esc(x.l) + '</h2><div class="box hubcard"><p>This part hasn\'t moved to AMA OS yet, so it still lives in the hub. Nothing is lost: use it in the hub as normal.</p><a class="btn" href="' + HUB_URL + (x.h || '') + '" target="_blank" rel="noopener">Open ' + esc(x.l) + ' in the hub</a></div>';
       navBuild(); window.scrollTo(0, 0);
     }
@@ -1114,6 +1118,82 @@
         if (a === 'resend' && !confirm('Email the family their signing link again?')) return; if ((a === 'withdrawn' || a === 'saved') && !confirm(a === 'saved' ? 'Mark this family as saved (staying)?' : 'Mark this cancellation as withdrawn (they changed their mind)?')) return;
         b.disabled = true; m.textContent = 'Saving through the hub…';
         hubAct({ kind: 'cxaction', id: c.dataset.id, act: a, by: (c.querySelector('.cxby') || {}).value || '', date: dt ? dt.value : '', note: (c.querySelector('.cxnote') || {}).value || '' }).then(function (r) { if (r && r.ok) { m.textContent = 'Saved.'; setTimeout(function () { loadCx(true); }, 600); } else { b.disabled = false; m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+    }
+    /* Close the sale (preview): families sent a recommendation who have not joined, and joining forms without payment set up. Same buttons as the hub. */
+    var CSV = {};
+    function loadClose(fresh) { var el = $('tabClose'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Close the sale</h2><p class="note">Loading from GHL…</p>';
+      var cb = function (j) { if (CUR !== 'close2') return; if (el.querySelector('.csc input[data-f="note"]') && Array.prototype.some.call(el.querySelectorAll('input[data-f="note"]'), function (i) { return i.value; })) return; CSV.d = j; drawClose(); };
+      if (fresh) hubAct({ kind: 'chaselist' }, true).then(cb); else hubRead({ kind: 'chaselist' }, 'close2', cb); }
+    function drawClose() {
+      var el = $('tabClose'), j = CSV.d; if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Close the sale</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
+      var due = j.items.filter(function (x) { return x.group === 'due'; }), later = j.items.filter(function (x) { return x.group !== 'due'; }), say = {}; (j.reasons || []).forEach(function (r) { say[r.k] = r.say; });
+      var rOpts = '<option value="">Why haven\'t they joined?</option>' + (j.reasons || []).map(function (r) { return '<option value="' + esc(r.k) + '">' + esc(r.t) + '</option>'; }).join('');
+      var fields = '<div class="bkf"><select data-f="reason">' + rOpts + '</select><p class="note cssay" hidden></p><label>Call back on</label><input type="date" data-f="date"><label>What they said</label><input data-f="note"></div>';
+      var B = function (a, t) { return '<button type="button" class="chip csa" data-a="' + a + '">' + t + '</button>'; };
+      var replied = function (x) { return x.replied ? '<p class="note" style="margin:6px 0"><b>They replied</b>' + (x.replied.at ? ' ' + esc(x.replied.at) : '') + ': “' + esc(x.replied.t) + '” Read it in GHL Conversations before you call.</p>' : ''; };
+      var last = function (x) { return x.lastAction ? hcRow('Last: ', esc(x.lastAction) + ' ' + esc(x.lastAt) + (x.lastBy ? ' by ' + esc(x.lastBy) : '') + (x.reason ? ' · Reason: <b>' + esc(x.reason) + '</b>' : '')) : ''; };
+      var card = function (x) { return '<div class="box csc" data-row="' + esc(x.row) + '" data-opp="' + esc(x.opp) + '" data-fam="' + esc(x.family) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.family) + (x.backlog ? ' <span class="chip">Catch-up</span>' : x.late > 0 ? ' <span class="chip" style="color:var(--err)">' + x.late + (x.late === 1 ? ' day' : ' days') + ' late</span>' : '') + (x.last ? ' <span class="chip" style="color:var(--err)">Final planned call: record an outcome</span>' : '') + (x.group !== 'due' ? ' <span class="chip">Next call ' + esc(x.dueText || '') + '</span>' : '') + '</b><span class="chip">' + esc(x.school || '') + '</span></div>' +
+          hcRow('', esc(x.students || '') + (x.weekly ? ' · $' + esc(x.weekly) + '/wk' : '') + (x.mobile ? ' · <a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : '')) + hcRow('Recommended ', esc(x.recDate) + ' (' + x.age + (x.age === 1 ? ' day' : ' days') + ' ago)' + (x.by ? ' by ' + esc(x.by) : '') + ' · Calls so far: ' + x.attempts + ' · Due ' + esc(x.dueText)) + last(x) +
+          (x.notes ? '<p class="note" style="margin:6px 0">' + esc(x.notes) + '</p>' : '') + replied(x) + fields + '<div class="chips" style="margin-top:8px">' + B('talked', 'Spoke to them') + B('noanswer', 'No answer') + B('note', 'Save note only') + B('joining', 'Joining now') + (j.resendOn ? B('resend', 'Resend joining link') : '') + B('joined', 'Already joined') + B('lost', 'Not going ahead') + '</div><p class="tmsg note"></p></div>'; };
+      var scard = function (s) { var what = s.onEnrol ? 'They are on the Enrolments sheet, so EFC is done. Only the GHL card is behind.' : /manual/i.test(s.stage) ? 'Their EFC payment link was not sent automatically. The office sets up billing in EFC, then confirm it here.' : /joining form/i.test(s.stage) ? 'GHL texted them the EFC payment link. Call and help them finish it.' : 'Waiting on the payment setup in EFC.';
+        return '<div class="box csc" data-row="' + esc(s.row) + '" data-opp="' + esc(s.key) + '" data-fam="' + esc(s.name) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(s.name) + (s.due && !s.onEnrol ? ' <span class="chip" style="color:var(--err)">Call today</span>' : '') + '</b><span class="chip">' + esc(s.stage) + '</span></div>' +
+          hcRow('', s.days + (s.days === 1 ? ' day' : ' days') + ' at this stage' + (s.mobile ? ' · <a href="tel:' + esc(s.mobile) + '">' + esc(s.mobile) + '</a>' : '') + ' · Calls so far: ' + s.attempts + (s.due ? '' : ' · Next call ' + esc(s.dueText))) + last(s) + (s.notes ? '<p class="note" style="margin:6px 0">' + esc(s.notes) + '</p>' : '') + replied(s) +
+          '<p class="note" style="margin:6px 0">' + esc(what) + '</p>' + (s.efc ? '<p class="' + (s.efcLevel === 'problem' ? 'msg err' : 'note') + '" style="margin:6px 0"><b>EFC check:</b> ' + esc(s.efc) + '</p>' : '') + (s.onEnrol ? '' : fields) + '<div class="chips" style="margin-top:8px">' +
+          (s.onEnrol ? (j.fixStageOn ? '<button type="button" class="btn csa" data-a="fixstage" style="width:auto;padding:8px 14px">Move to Enrolled in GHL</button>' : '<span class="tsum">Ask Mark or the office to move them to Enrolled in GHL.</span>') :
+            B('talked', 'Spoke to them') + B('noanswer', 'No answer') + B('note', 'Save note only') + (j.confirmOn && /manual|pending|joining form/i.test(s.stage) ? '<button type="button" class="chip csa" data-a="confirm">' + (/joining form/i.test(s.stage) ? 'Enrolled' : 'Payment set up in EFC: enrol them') + '</button>' : '')) + B('lost', 'Not going ahead') + '</div><p class="tmsg note"></p></div>'; };
+      var h = '<h2 class="sec">Close the sale</h2><p class="note">Families who were sent a recommendation but haven\'t joined. GHL texts them the link on the day and the day after. From day 2 they are yours to call: day 2, 4, 7 and 14. Record every call. They drop off when they join.</p>' +
+        '<div class="tday">Call today (' + due.length + ')</div>' + (due.length ? due.map(card).join('') : '<div class="box"><p>Nobody due today.</p></div>');
+      if ((j.setup || []).length) { var sd = j.setup.filter(function (s) { return s.due && !s.onEnrol; }).length; h += '<div class="tday" style="margin-top:12px">Joining form done, payment not set up (' + j.setup.length + (sd ? ', ' + sd + ' to call today' : '') + ')</div><p class="note">These families are the closest to joining: call them first.</p>' + j.setup.map(scard).join(''); }
+      if (later.length) h += '<div class="tday" style="margin-top:12px">Coming up (' + later.length + ')</div>' + later.map(card).join('');
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('select[data-f="reason"]'), function (s) { s.onchange = function () { var p = s.closest('.csc').querySelector('.cssay'); if (say[s.value]) { p.hidden = false; p.innerHTML = '<b>Say this:</b> ' + esc(say[s.value]); } else p.hidden = true; }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.csa'), function (b) { b.onclick = function () { var c = b.closest('.csc'), m = c.querySelector('.tmsg'), a = b.dataset.a, f = function (n) { var e = c.querySelector('[data-f="' + n + '"]'); return e ? e.value.trim() : ''; };
+        if (a === 'confirm' && !confirm('Only if this family has really enrolled: their joining form is signed AND their membership and direct debit are set up in EFC (a trial or starter pack payment does not count). This sends them the "You are enrolled" welcome text and email straight away. Enrol them now?')) return;
+        if (a === 'resend' && !confirm('Text this family their joining link again?')) return;
+        Array.prototype.forEach.call(c.querySelectorAll('.csa'), function (x) { x.disabled = true; }); m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'chaseaction', row: c.dataset.row, opp: c.dataset.opp, act: a, ok2: a === 'confirm' ? '1' : '', reason: f('reason'), date: f('date'), note: f('note'), family: c.dataset.fam }).then(function (r) {
+          if (r && r.ok) { b.style.outline = '2px solid var(--chip-on)'; m.textContent = 'Saved: ' + ({ note: 'note saved (no call recorded)', talked: 'spoke to them', noanswer: 'no answer', joining: 'joining now', joined: 'already joined', lost: 'not going ahead', resend: 'joining link resent', confirm: 'enrolled', fixstage: 'moved to Enrolled' }[a] || 'done') + '.'; setTimeout(function () { loadClose(true); }, 1500); }
+          else { Array.prototype.forEach.call(c.querySelectorAll('.csa'), function (x) { x.disabled = false; }); m.textContent = (r && r.error) || 'Not saved.'; } }); }; });
+    }
+    /* Trials follow-up (preview): reply to new enquiries, reports not in yet, attended not enrolled, absent to rebook. Same outcomes as the hub. */
+    var FUV = {};
+    function fuAgo(n) { return n == null ? '' : n === 0 ? 'today' : n === 1 ? 'yesterday' : n + ' days ago'; }
+    function loadFollow(fresh) { var el = $('tabFollow'); if (!el.innerHTML) el.innerHTML = '<h2 class="sec">Trials</h2><p class="note">Loading…</p>';
+      var busy = function () { return Array.prototype.some.call(el.querySelectorAll('input[type=text]'), function (i) { return i.value; }); };
+      var cb1 = function (j) { if (CUR !== 'follow2' || busy()) return; FUV.f = j; drawFollow(); }, cb2 = function (j) { if (CUR !== 'follow2' || busy()) return; FUV.r = j; drawFollow(); };
+      if (fresh) { hubAct({ kind: 'followups' }, true).then(cb1); hubAct({ kind: 'replylist' }, true).then(cb2); } else { hubRead({ kind: 'followups' }, 'follow2', cb1); hubRead({ kind: 'replylist' }, 'follow2', cb2); } }
+    function drawFollow() {
+      var el = $('tabFollow'), j = FUV.f, r = FUV.r, h = '<h2 class="sec">Trials</h2>';
+      if (!r) h += '<p class="note">Checking new enquiries…</p>'; else if (!r.ok) h += '<p class="msg err">Could not load new enquiries: ' + esc(r.error || '') + '</p>';
+      else { h += '<div class="tday">Reply to new enquiries (' + r.items.length + ')</div>' + (r.items.length ? r.items.map(function (x) { var junk = /^No name/.test(x.name);
+          return '<div class="box rpc" data-cid="' + esc(x.cid) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.name) + '</b><span class="chip">Waiting ' + esc(x.waited) + '</span></div>' + hcRow('Enquired ', esc(x.at) + (x.channel ? ' · ' + esc(x.channel) : '') + ' · ' + esc(x.type)) +
+            hcRow('', (x.phone ? '<a href="tel:' + esc(x.phone) + '">' + esc(x.phone) + '</a> · ' : '') + '<a href="' + esc(x.link) + '" target="_blank" rel="noopener">Open in GHL &#8599;</a>') +
+            '<div class="chips" style="margin-top:8px"><select class="rph">' + (junk ? '<option>Remove: blank or junk enquiry</option>' : '') + ['I replied from my own phone', 'Called and left a voicemail', 'Already a member', 'Booked a trial', 'Not interested / wrong number', 'Spam'].map(function (o) { return '<option>' + o + '</option>'; }).join('') + (junk ? '' : '<option>Remove: blank or junk enquiry</option>') + '</select><button type="button" class="btn rps" style="width:auto;padding:8px 14px">Save</button></div><p class="tmsg note"></p></div>'; }).join('') : '<div class="box"><p>Every new enquiry has had a reply from a person.</p></div>') +
+          '<p class="tsum">Enquiries from the last 7 days with no text, email or call from a person yet (automatic messages do not count). Reply from GHL and they drop off within 30 minutes.</p>'; }
+      if (!j) h += '<p class="note">Loading trials…</p>'; else if (!j.ok) h += '<p class="msg err">' + esc(j.error || 'Could not load.') + '</p>';
+      else {
+        if ((j.missing || []).length) h += '<div class="tday" style="margin-top:12px">Reports not in yet</div><div class="chips">' + j.missing.map(function (m) { return '<button type="button" class="chip fum" data-loc="' + esc(m.loc) + '" data-date="' + esc(m.date) + '">' + esc(m.loc) + ' · ' + esc(m.dayText) + ' (' + m.count + (m.count === 1 ? ' trial' : ' trials') + ')</button>'; }).join('') + '</div>';
+        var card = function (x) { return '<div class="box fuc" data-id="' + esc(x.id) + '" style="margin:6px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>' + esc(x.child || x.parent) + (x.num ? ' <span class="chip">' + esc(x.num) + '</span>' : '') + '</b><span class="chip">' + esc(x.loc) + '</span></div>' +
+          hcRow('Trial ', esc(x.trialDate) + ' (' + fuAgo(x.days) + ') · ' + esc(x.cls)) + hcRow('Parent: ', esc(x.parent) + (x.mobile ? ' · <a href="tel:' + esc(x.mobile) + '">' + esc(x.mobile) + '</a>' : '')) + hcRow('Recommendation sent: ', esc(x.rec || 'not recorded') + ' · Reported by ' + esc(x.by || '?')) +
+          (x.notes ? '<p class="note" style="margin:6px 0">' + esc(x.notes) + '</p>' : '') + (x.maybe ? '<p class="note" style="margin:6px 0">' + esc(x.maybe) + '. If they are already a member, choose Already a member.</p>' : '') + (x.last ? hcRow('Last time: ', esc(x.last)) : '') +
+          '<div class="bkf" style="margin-top:6px"><select class="fuo"><option value="">Outcome…</option>' + ['Enrolled', 'Already a member', 'Recommendation sent', 'Booked another trial', 'Call again', 'No answer - left message', 'Not interested', 'Contact list - not right now'].map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>' +
+          '<select class="fuw" hidden><option value="1">Tomorrow</option><option value="2" selected>In 2 days</option><option value="7">In 1 week</option><option value="14">In 2 weeks</option><option value="30">In 1 month</option><option value="date">Pick a date</option></select><input type="date" class="fud" hidden><input type="text" class="fun" placeholder="Note (optional)"></div><button type="button" class="btn fus" style="width:auto;padding:8px 14px;margin-top:8px">Save</button><p class="tmsg note"></p></div>'; };
+        var att = j.items.filter(function (x) { return x.kind === 'attended'; }), reb = j.items.filter(function (x) { return x.kind === 'rebook'; });
+        h += '<div class="tday" style="margin-top:12px">Attended, not enrolled yet (' + att.length + ')</div>' + (att.length ? att.map(card).join('') : '<div class="box"><p>Nobody waiting.</p></div>') +
+          '<div class="tday" style="margin-top:12px">Absent, rebook (' + reb.length + ')</div>' + (reb.length ? reb.map(card).join('') : '<div class="box"><p>Nobody waiting.</p></div>') +
+          '<p class="tsum">Families drop off once they enrol or once you record an outcome. "Call again" brings them back when you choose. "No answer" brings them back in 2 days. Black belt grading calls are still in the hub.</p>';
+      }
+      el.innerHTML = h;
+      Array.prototype.forEach.call(el.querySelectorAll('.fum'), function (b) { b.onclick = function () { if (typeof CK === 'object') { CK.loc = b.dataset.loc; CK.date = b.dataset.date; } go('checkday'); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.fuo'), function (s) { s.onchange = function () { var c = s.closest('.fuc'); c.querySelector('.fuw').hidden = s.value !== 'Call again'; c.querySelector('.fud').hidden = !(s.value === 'Call again' && c.querySelector('.fuw').value === 'date'); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.fuw'), function (s) { s.onchange = function () { s.closest('.fuc').querySelector('.fud').hidden = s.value !== 'date'; }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.fus'), function (b) { b.onclick = function () { var c = b.closest('.fuc'), m = c.querySelector('.tmsg'), o = c.querySelector('.fuo').value, w = c.querySelector('.fuw');
+        if (!o) { m.textContent = 'Choose an outcome.'; return; } b.disabled = true; m.textContent = 'Saving through the hub…';
+        hubAct({ kind: 'followupdone', id: c.dataset.id, outcome: o, note: c.querySelector('.fun').value, retry: o !== 'Call again' ? '' : w.value === 'date' ? c.querySelector('.fud').value : w.value }).then(function (r2) {
+          if (r2 && r2.ok) { c.style.opacity = '.45'; m.textContent = 'Saved: ' + o + '.'; } else { b.disabled = false; m.textContent = (r2 && r2.error) || 'Not saved.'; } }); }; });
+      Array.prototype.forEach.call(el.querySelectorAll('.rps'), function (b) { b.onclick = function () { var c = b.closest('.rpc'), m = c.querySelector('.tmsg'), how = c.querySelector('.rph').value; b.disabled = true; m.textContent = 'Saving…';
+        hubAct({ kind: 'replydone', cid: c.dataset.cid, how: how }).then(function (r2) { if (!(r2 && r2.ok)) { b.disabled = false; m.textContent = (r2 && r2.error) || 'Not saved.'; return; } c.style.opacity = '.45'; m.innerHTML = 'Saved. <button type="button" class="chip rpu">Undo</button>';
+          m.querySelector('.rpu').onclick = function () { var u = this; u.disabled = true; hubAct({ kind: 'replyundo', cid: c.dataset.cid, how: how }).then(function (x) { if (x && x.ok) { c.style.opacity = ''; b.disabled = false; m.textContent = 'Undone. It is back on the list.'; } else { u.disabled = false; m.textContent = (x && x.error) || 'Could not undo.'; } }); }; }); }; });
     }
     /* Birthday parties (preview): every party by stage, its details, stage, checklist and notes. Placing a party in a time slot stays in the hub. */
     var PT = { open: '', st: 'Open' };

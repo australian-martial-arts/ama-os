@@ -24,8 +24,8 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 - [ ] EFC tools: billing checks, enrolled vs paying vs attending, add a missed class - `efcchecks`, `efcuse`, `efcatt`, `efclive`
 
 ## 2. In AMA OS but view only (the buttons are still in the hub)
-- [ ] Trials / Close the sale actions - `followups`, `followupdone`, `trialff`, `trialmove`, `trialcallback`, `trialcall24`, `trialremove`, `trialinfo`, `trialinfoev`, `tcresend`, `tcabsenttext`, `winback`, `chaselist`, `chaseaction`, `reclog`, `reclast`
-- [ ] Enquiry replies inbox - `replylist`, `replydone`, `replyundo`
+- [~] Trials / Close the sale actions (27 Nov: Close the sale all buttons, Trials follow-up outcomes done; still hub: move, callback, call24, remove, resend reports, win-back) - `followups`, `followupdone`, `trialff`, `trialmove`, `trialcallback`, `trialcall24`, `trialremove`, `trialinfo`, `trialinfoev`, `tcresend`, `tcabsenttext`, `winback`, `chaselist`, `chaseaction`, `reclog`, `reclast`
+- [x] Enquiry replies inbox (27 Nov, in Trials) - `replylist`, `replydone`, `replyundo`
 - [ ] New members actions - `nmlist`, `nmaction`
 - [ ] Absent follow-up actions - `abslist`, `absaction`, `abstext`, `abslogin`, `absnsi`, `absnsilist`
 - [x] Holds and Cancels actions (27 Nov: list, resend, certificate, done in EFC, restarted, extend, cancelling instead; cancels to action and forms sent; approvals already in Approvals) - `holdlist`, `holdaction`, `holdextend`, `holdrecord`, `cxlist`, `cxaction`, `cxdone`, `cxfast`, `cxlookup`, `cxsent`, `cancel`, `reqadd`, `reqhistory`
