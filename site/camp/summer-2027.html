@@ -222,6 +222,56 @@ footer b{color:#fff}
   .mbar b{color:var(--y);font-size:18px}
   .mbar .btn{padding:10px 16px;font-size:14px}
 }
+
+/* 28 Nov 2026: Laurie's fixes (landing_fixes.css), appended as supplied */
+/* AMA Summer 2027 camp page – fixes. Append to the page styles (inside the shadow root).
+   Tested at 360px and 375px phone widths and on desktop. */
+
+/* Sun rays centred on the sun */
+.hero .rays{left:calc(38% + 130px);top:calc(16% + 130px)}
+
+/* Calendar section: AMA mint (#E4F1E8, as on the main website) instead of pale yellow */
+#days.sand{background:#E4F1E8}
+
+/* Legend swatches: thin outline so pale colours are visible */
+.legend i{box-shadow:inset 0 0 0 1px rgba(0,86,58,.25)}
+
+/* "Tap days on the calendar to start" box: AMA mint, not a yellow tint */
+.sum .nudge{background:#E4F1E8;border:0;color:#00563A;font-weight:600}
+
+/* Continue to booking: no yellow glow, neutral soft shadow */
+.sum .btn.y{box-shadow:0 6px 16px rgba(0,0,0,.18)}
+
+/* Buffer between the Who/Places cards and the blue band below */
+.ribbon{padding-bottom:40px}
+
+@media (max-width:700px){
+  /* Top strip: dates and phone on one line */
+  .strip .wrap{min-height:34px;font-size:11px;white-space:nowrap;gap:6px;padding:0 12px}
+  .strip .wrap > *{white-space:nowrap}
+
+  /* Header: name on two lines (AUSTRALIAN MARTIAL ARTS / ACADEMY), compact pill button */
+  header.nav .wrap{min-height:64px;gap:10px;padding:0 12px}
+  .brand{min-width:0;flex-shrink:1}
+  .brand img{width:40px;height:auto}
+  .brand b{font-size:11px;letter-spacing:.02em;line-height:1.15;display:block;white-space:nowrap}
+  .brand span{font-size:10px}
+  header.nav .btn.y{white-space:nowrap;padding:8px 12px;font-size:12px;border-radius:999px;width:auto;height:auto;min-width:0;flex-shrink:0}
+
+  /* Calendars and booking panel fit the screen (no sideways scroll) */
+  .cal-wrap,.months{grid-template-columns:minmax(0,1fr)}
+  .cal-wrap > *,.month,.grid > *{min-width:0}
+  .month{padding:12px}
+  .grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  .c .u{font-size:9px;padding-left:4px;padding-right:4px;white-space:nowrap}
+
+  /* Sticky "Pick your days / Book now" bar stays inside the screen */
+  .mbar{left:10px;right:10px;width:auto;max-width:calc(100vw - 20px);box-sizing:border-box}
+  .mbar .btn.y{white-space:nowrap;flex-shrink:0}
+}
+
+/* In the JS (inline colours): change "Filling up" from #fff3c2 to #FDDC6C in both the
+   legend swatch and the calendar day cells, so it's visible. */
 </style>
 </head>
 <body>
@@ -245,7 +295,7 @@ footer b{color:#fff}
       <div class="ctas"><a class="btn y" href="#days" style="border:2px solid var(--g)">Pick your days →</a><a class="btn o" href="#video">▶ Watch a day at camp</a></div>
       <div class="facts"><span>⏰ Weekdays 9am–3pm</span><span>🧒 Ages 5–13</span><span>📍 AMA Marrickville</span></div>
     </div>
-    <div class="poster"><img id="posterImg" alt="AMA Summer Holiday Camp poster: 21 Dec to 27 Jan, ages 5 to 13, $80 a day"></div>
+    <div class="poster"><img id="posterImg" alt="Kids in AMA uniforms at the beach: flying kick, bo staff and water blasters under a smiling sun"></div>
   </div></div>
   <div class="wave"><svg viewBox="0 0 1440 150" preserveAspectRatio="none"><path d="M0,70 C240,120 480,20 720,60 C960,100 1200,30 1440,70 L1440,150 L0,150 Z" fill="#3cc3dd" opacity=".55"/><path d="M0,95 C260,135 520,55 760,90 C1000,125 1220,70 1440,95 L1440,150 L0,150 Z" fill="#7fe0ee" opacity=".7"/><path d="M0,118 C300,140 600,104 900,122 C1150,136 1300,112 1440,120 L1440,150 L0,150 Z" fill="#fff"/></svg></div>
 </section>
@@ -369,7 +419,7 @@ footer b{color:#fff}
   UTM.landing_page = location.origin + location.pathname;
   Object.keys(UTM).forEach(function (k) { var el = D.querySelector('#form [name="' + k + '"]'); if (el) el.value = String(UTM[k]).slice(0, 200); });
 
-  $('posterImg').src = IMG(PH.poster, 1024);
+  $('posterImg').src = 'https://ama-os.train-ama.com/camp/img/summer27-hero-art.jpg'; // 28 Nov 2026 (Laurie): text-free art, the poster's text doubled up with the page text
   $('gal').innerHTML = PH.gal.map(function (id, i) { return '<div class="' + (i === 0 ? 'big' : '') + '" style="background-image:url(' + IMG(id, i === 0 ? 1200 : 700) + ')"></div>'; }).join('');
   $('vid').onclick = function () { this.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/Ldw2wjhfanY?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="A day at AMA holiday camp"></iframe>'; this.onclick = null; };
 
