@@ -453,8 +453,8 @@ footer b{color:#fff}
   S.picking = false;
   /* 27 Nov 2026 (Mark): came from a friend's link? Show who's booked and which days, so they can join them */
   function loadFriend() {
-    var ref = (Q.get('ref') || '').trim(); if (!ref) return;
-    post({ kind: 'campref', ref: ref }).then(function (j) {
+    if (!S.refP) return;
+    S.refP.then(function (j) {
       if (!j || !j.ok || !j.kids || !j.kids.length) return;
       var lab = {}; (S.info.days || []).forEach(function (d) { lab[d.date] = d.label; });
       var days = j.days.filter(function (d) { return lab[d]; }); if (!days.length) return;
@@ -568,6 +568,7 @@ footer b{color:#fff}
 
   ['input', 'change'].forEach(function (ev) { $('form').addEventListener(ev, function (e) { var n = e.target && e.target.name; if (n && /^(first|last|mobile|email|agree)$/.test(n)) clearErr(n, e.target); }); });
   drawSum(); drawKids();
+  S.refP = (Q.get('ref') || '').trim() ? post({ kind: 'campref', ref: Q.get('ref').trim() }) : null; // asked at the same time as the camp days, so it shows straight away
   post({ kind: 'campinfo' }).then(function (j) {
     if (!j || !j.ok) throw new Error('no');
     S.info = j; $('previewBar').hidden = !!j.live; $('refH').textContent = j.refundHours || 48;
