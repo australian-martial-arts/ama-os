@@ -28,7 +28,7 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 - [ ] Enquiry replies inbox - `replylist`, `replydone`, `replyundo`
 - [ ] New members actions - `nmlist`, `nmaction`
 - [ ] Absent follow-up actions - `abslist`, `absaction`, `abstext`, `abslogin`, `absnsi`, `absnsilist`
-- [ ] Holds and Cancels actions - `holdlist`, `holdaction`, `holdextend`, `holdrecord`, `cxlist`, `cxaction`, `cxdone`, `cxfast`, `cxlookup`, `cxsent`, `cancel`, `reqadd`, `reqhistory`
+- [x] Holds and Cancels actions (27 Nov: list, resend, certificate, done in EFC, restarted, extend, cancelling instead; cancels to action and forms sent; approvals already in Approvals) - `holdlist`, `holdaction`, `holdextend`, `holdrecord`, `cxlist`, `cxaction`, `cxdone`, `cxfast`, `cxlookup`, `cxsent`, `cancel`, `reqadd`, `reqhistory`
 - [ ] Referrals actions - `refaction`
 - [ ] Gradings actions - `gradelist`, `gradesave`, `gradesend`, `gradefix`, `gradepace`
 - [ ] Birthday parties: links, settings, suppliers - `partylinks`, `partysettings`, `partysupplier`
