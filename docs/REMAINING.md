@@ -32,7 +32,7 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 - [x] Referrals actions (27 Nov) - `refaction`
 - [x] Gradings actions (27 Nov: decisions, technique help, fix in EFC. Grading texts stay in Tate's Toolkit only) - `gradelist`, `gradesave`, `gradesend`, `gradefix`, `gradepace`
 - [ ] Birthday parties: links, settings, suppliers - `partylinks`, `partysettings`, `partysupplier`
-- [ ] Holiday camp actions - `campapprove`, `campmove`, `campswap`, `camprefund`, `campsquare`, `campupdate`
+- [~] Holiday camp actions (27 Nov: staff roster approve / remove / swap, follow-ups; still hub: moving a child's days, refunds, Square) - `campapprove`, `campmove`, `campswap`, `camprefund`, `campsquare`, `campupdate`
 - [x] Private lessons actions (27 Nov: book, paid / no show / cancel, availability; adding instructors still hub) - `pvbook`, `pvstatus`, `pvaddinst`, `pvavail`
 - [ ] Shop: sales, checkout, cancel, items - `shopsales`, `shopcheckout`, `shopcancel`, `shopstatus`, `stockitem`
 - [ ] My Day call queues and to-do list - `myday`, `todo`
