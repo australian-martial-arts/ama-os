@@ -18509,7 +18509,7 @@ const PNOPUB = {
   live: false, date: '2026-12-19', title: "Christmas Parents' Night Out", label: 'Saturday 19 December',
   start: '4:00pm', end: '7:00pm', startT: '16:00', endT: '19:00', price: 70, cap: 40, minAge: 3, maxAge: 12,
   where: 'AMA Marrickville, Studio 35/142 Addison Rd, Marrickville', school: 'Marrickville',
-  pageUrl: 'https://train.australianmartialarts.com.au/parents-night-out/christmas-2026', refundHours: 48, coordinator: 'Hakan',
+  pageUrl: 'https://train.australianmartialarts.com.au/christmas-parents-night-out', refundHours: 48, coordinator: 'Hakan', // GHL page 'Christmas Parents Night Out 2026' in the AMA Admin Hub funnel
   parentTextsOn: false, staffAlertOn: false, remindOn: false // OFF until Mark approves the wording
 };
 function pnoPubSheets_() { return { E: staffSheet_(EVT.pno.ev, EVT.evCols), P: staffSheet_(EVT.pno.pp, EVT.ppCols) }; }
