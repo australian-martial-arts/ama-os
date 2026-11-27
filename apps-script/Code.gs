@@ -18419,7 +18419,7 @@ const CAMP = {
   school: 'Marrickville', where: 'AMA Marrickville, 35/142 Addison Rd, Marrickville',
   hours: '9:00am to 3:00pm', cap: 50, ratio: 8, minAge: 5, maxAge: 13,
   first: '2026-12-21', last: '2027-01-27', // 27 Nov 2026 (Laurie): Fri 18 Dec removed
-  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp', refundHours: 48, linkTextOn: false, // linkTextOn: the admin 'send the booking link' text, OFF until Mark approves the wording
+  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp', refundHours: 48, linkTextOn: true, // linkTextOn: the admin 'send the booking link' text; wording approved by Mark 27 Nov 2026
   closed: ['2026-12-24', '2026-12-25', '2026-12-28', '2026-12-31', '2027-01-01', '2027-01-26'],
   price: { day: 80, threePlus: 80, fivePlus: 70, earlyBirdOff: 0, earlyBirdUntil: '2026-11-30', memberOff: 0 }, // 27 Nov 2026 (Laurie): $80 a day, $70 a day for 5+ days; no early bird, no referral discount
   themes: { // matches the activities on australianmartialarts.com.au/school-holiday-camps

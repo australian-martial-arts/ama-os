@@ -221,13 +221,38 @@ async function find(q: string, money: boolean) {
 async function refresh(what: string, school: string) {
   if (what === "efc") return await pullSchool(EFC_SCHOOLS.includes(school) ? school : "Marrickville");
   if (what === "hubwarm") {
-    // Keeps each preview person's Approvals, My Day and Instructor Hub ready, so they open instantly (7am to 9pm).
+    // 27 Nov 2026 (Mark: "far too slow to load"): keeps EVERY screen of each preview person ready, so it opens at once (7am to 9pm).
+    // Each run refreshes the copies that are oldest (older than 10 to 15 minutes), several at a time, for up to 100 seconds.
+    // Screens never opened yet are seeded from the list below; screens with dates or schools are kept warm once opened.
     const h = Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hourCycle: "h23" }).format(new Date()));
     if (h < 7 || h > 21) return { skipped: "night" };
-    const ppl = await sql`select name, phone from ama_os.staff where active and coalesce(phone, '') <> ''`, done: string[] = [];
-    for (const p of ppl) { const first = String(p.name).trim().split(/\s+/)[0].toLowerCase(); if (!HUB_PREVIEW.includes(first)) continue;
-      for (const kind of ["approvals", "mywork", "ihub"]) { const body = { kind }; const o = await hubCall(String(p.name), String(p.phone), body).catch(() => ({ ok: false })) as Record<string, unknown>; if (o.ok) { await hubSave(hubKey(first, body), o); done.push(first + ":" + kind); } } }
-    return { warmed: done };
+    const t0 = Date.now(), done: string[] = [], failed: string[] = [];
+    const ppl = (await sql`select name, phone from ama_os.staff where active and coalesce(phone, '') <> ''`).map((p) => ({ name: String(p.name), phone: String(p.phone), first: String(p.name).trim().split(/\s+/)[0].toLowerCase() })).filter((p) => HUB_PREVIEW.includes(p.first));
+    const can = (first: string, kind: string) => !(kind === "failpay" && !MONEY.includes(first)) && !((kind.startsWith("pay") || kind === "headleave") && !MONEY.includes(first)) && !(kind.startsWith("epb") && !MGMT.includes(first)) && !(kind === "efcuse" && !MGMT.includes(first));
+    const SEED: Record<string, unknown>[] = ["approvals", "mywork", "reqlist", "hubreq", "shifts", "failpay", "absvideo", "reflist", "partyhub", "pvlist", "camphub", "stocklist", "links", "ihub", "epblist", "holdlist", "cxlist", "chaselist", "followups", "replylist", "nmlist", "abslist", "gradelist", "printreq", "efcchecks", "efclive", "efcuse", "payleave", "paycover", "trialopts"].map((kind) => ({ kind }))
+      .concat([{ kind: "staff", act: "me" }, { kind: "stars", act: "cfg" }, { kind: "ppf", act: "mine" }, { kind: "ppf", act: "cal" }, { kind: "skills", act: "mine" }, { kind: "skills", act: "queue" }, { kind: "myavail", act: "get" }])
+      .concat(EFC_SCHOOLS.map((school) => ({ kind: "liveatt", act: "day", school })));
+    const saved = await sql`select key, at, data->'_req' as req from ama_os.cache where key like 'hub:%'`;
+    const ageOf: Record<string, number> = {}, reqOf: Record<string, Record<string, unknown>> = {};
+    for (const r of saved) { ageOf[r.key as string] = Date.now() - new Date(r.at as string).getTime(); if (r.req) reqOf[r.key as string] = r.req as Record<string, unknown>; }
+    const jobs: { p: typeof ppl[number]; body: Record<string, unknown>; key: string; age: number }[] = [];
+    for (const p of ppl) {
+      const bodies: Record<string, Record<string, unknown>> = {}, seeded = new Set<string>();
+      for (const k of Object.keys(reqOf)) if (k.startsWith("hub:" + p.first + ":")) bodies[k] = reqOf[k]; // screens opened before (dates, schools): kept warm for 3 days
+      for (const b of SEED) { const k = hubKey(p.first, b); bodies[k] = b; seeded.add(k); }
+      for (const [key, body] of Object.entries(bodies)) {
+        const kind = String(body.kind); if (!HUB_READ[kind] || !can(p.first, kind)) continue;
+        const age = ageOf[key] ?? Infinity, want = Math.max(HUB_READ[kind], ["approvals", "mywork", "abslist", "replylist"].includes(kind) ? 600 : 900) * 1000;
+        if (age > want && (seeded.has(key) || age < 3 * 86400000)) jobs.push({ p, body, key, age });
+      }
+    }
+    jobs.sort((a, b) => b.age - a.age);
+    let i = 0;
+    const worker = async () => { while (i < jobs.length && Date.now() - t0 < 100000) { const j = jobs[i++];
+      const o = await hubCall(j.p.name, j.p.phone, j.body).catch(() => ({ ok: false })) as Record<string, unknown>;
+      if (o.ok) { await hubSave(j.key, { ...o, _req: j.body }); done.push(j.key); } else failed.push(j.key); } };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    return { warmed: done.length, failed, waiting: Math.max(0, jobs.length - i), ms: Date.now() - t0 };
   }
   if (what === "efcnext") {
     // Database timer, every minute: carry on a half-done school, else refresh the school saved longest ago (if over 10 minutes old).
@@ -333,9 +358,10 @@ Deno.serve(async (req) => {
         const age = hit.length ? Date.now() - new Date(hit[0].at as string).getTime() : Infinity;
         // 27 Nov 2026: always show the saved copy at once (the screen then asks again with fresh: true and redraws if anything changed).
         if (!fresh && hit.length && age < Math.max(ttl, 86400) * 1000) {
-          return json({ ...(hit[0].data as Record<string, unknown>), cachedAt: new Date(hit[0].at as string).toISOString() });
+          const d = { ...(hit[0].data as Record<string, unknown>) }; delete d._req;
+          return json({ ...d, cachedAt: new Date(hit[0].at as string).toISOString() });
         }
-        const out = await hubCall(me.name, String(me.login ?? ""), body); if (out.ok) await hubSave(ck, out);
+        const out = await hubCall(me.name, String(me.login ?? ""), body); if (out.ok) await hubSave(ck, { ...out, _req: body }); // _req: what to ask the hub when warming this copy
         return json(out);
       }
       const out = await hubCall(me.name, String(me.login ?? ""), body);
