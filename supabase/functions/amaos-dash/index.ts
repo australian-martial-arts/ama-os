@@ -26,8 +26,8 @@ async function hubSave(ck: string, data: Record<string, unknown>) {
   await sql`insert into ama_os.cache (key, data, at) values (${ck}, ${sql.json(data as never)}, now()) on conflict (key) do update set data = excluded.data, at = now()`;
 }
 const HUB_EXEC = "https://script.google.com/macros/s/AKfycby0ZH6268IMypMEv7gjQFRdBxZ0L1jxe7LB780wEya8XRjiOAKf4pbO6MOFOrJVO35J/exec";
-const MGMT = ["mark", "sarah", "hakan", "ridvan"];
-const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra"]; // 26 Nov 2026 (Mark): Busra added
+const MGMT = ["mark", "sarah", "hakan", "ridvan", "tate"];
+const MONEY = ["mark", "sarah", "hakan", "ridvan", "busra", "tate"]; // 26 Nov 2026 (Mark): Busra added
 const SCHOOLS = ["Marrickville", "Concord", "Sydenham", "Auburn", "Sylvania"];
 type Row = Record<string, unknown>;
 
@@ -347,10 +347,10 @@ Deno.serve(async (req) => {
       const body = (b as { body?: Record<string, unknown> }).body ?? {}, kind = String(body.kind ?? ""), fresh = !!(b as { fresh?: boolean }).fresh;
       if (!HUB_KINDS.includes(kind)) return json({ ok: false, error: "Not available in AMA OS yet." });
       if (kind === "failpay" && !MONEY.includes(me.first)) return json({ ok: false, error: "Only Mark, Sarah, Hakan, Ridvan and Busra see payments." }, 403);
-      if ((kind.startsWith("pay") || kind === "headleave") && !["mark", "sarah", "hakan", "ridvan", "busra"].includes(me.first)) return json({ ok: false, error: "Roster, leave and pay is for Mark, Sarah, Hakan, Ridvan and Busra." }, 403);
-      if (kind.startsWith("epb") && !["mark", "sarah", "hakan", "ridvan"].includes(me.first)) return json({ ok: false, error: "Employment packs are for Mark, Sarah, Hakan and Ridvan." }, 403);
+      if ((kind.startsWith("pay") || kind === "headleave") && !["mark", "sarah", "hakan", "ridvan", "busra", "tate"].includes(me.first)) return json({ ok: false, error: "Roster, leave and pay is for Mark, Sarah, Hakan, Ridvan and Busra." }, 403);
+      if (kind.startsWith("epb") && !["mark", "sarah", "hakan", "ridvan", "tate"].includes(me.first)) return json({ ok: false, error: "Employment packs are for Mark, Sarah, Hakan and Ridvan." }, 403);
       if (kind.startsWith("efc") && (body.run || body.sync)) return json({ ok: false, error: "Running the EFC checks again is still done in the hub. The checks run every night." }); // heavy jobs stay in the hub
-      if (kind === "efcuse" && !["mark", "sarah", "hakan", "ridvan"].includes(me.first)) return json({ ok: false, error: "Enrolled vs paying is for Mark, Sarah, Hakan and Ridvan." }, 403);
+      if (kind === "efcuse" && !["mark", "sarah", "hakan", "ridvan", "tate"].includes(me.first)) return json({ ok: false, error: "Enrolled vs paying is for Mark, Sarah, Hakan and Ridvan." }, 403);
       if (kind === "staff" && body.act !== "me") return json({ ok: false, error: "Staff management is still in the hub." }); // AMA OS only reads your own profile
       const ttl = body.act && body.act !== "list" && !(HUB_READ_ACTS[kind] ?? []).includes(String(body.act)) ? 0 : HUB_READ[kind];
       if (ttl) {
