@@ -19192,7 +19192,7 @@ function efcAttRoute_(who, b) {
 // a week (paying; Kickstarter = 2 a week per Mark), and classes attended in the last 4 and 12 weeks (EFC day registers).
 // Subscriptions are cached on the "EFC subs cache" tab and refreshed 400 members an hour; the report is rebuilt once a day after 3am.
 // EFC report: Mark, Sarah, Hakan and Ridvan only.
-var EFCUSE = { tab: 'Enrolled vs attending', cache: 'EFC subs cache', perHour: 400, buildHour: 3, headers: ['School', 'Family', 'Mobile', 'Students', 'Programmes', 'Paying for', 'Weekly $', 'Classes/wk paid', 'Attended 4 wks', 'Per wk (4 wks)', 'Attended 12 wks', 'Per wk (12 wks)', 'Flags', 'Built at'] };
+var EFCUSE = { tab: 'Enrolled vs attending', cache: 'EFC subs cache', perHour: 100, /* 27 Nov 2026: was 400 an hour (9,600 outside calls a day); 100 still refreshes every member at least daily */ buildHour: 3, headers: ['School', 'Family', 'Mobile', 'Students', 'Programmes', 'Paying for', 'Weekly $', 'Classes/wk paid', 'Attended 4 wks', 'Per wk (4 wks)', 'Attended 12 wks', 'Per wk (12 wks)', 'Flags', 'Built at'] };
 function efcUsePerWeek_(desc, amt) {
   // 10 Nov 2026 (Mark): Kickstarter 2/wk; Online Sign Up at $53/$59 = Kickstarter, at $35 = 1/wk; Gold 3/wk; Prestige and Unlimited no cap;
   // BBC (Black Belt Club) and MC (Masters Club) are upgrade programs (1-2 extra classes, counted as 2); BJJ, JXT, Tricking and Sparring are
