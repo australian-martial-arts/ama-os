@@ -3770,6 +3770,7 @@ function hubRouteIn_(body, who) {
     if (body.kind === 'camprefund') return campRefund_(who, body);
     if (body.kind === 'camplink') return campLink_(who, body); // 27 Nov 2026: send the booking link by text
     if (body.kind === 'campcash') return campCash_(who, body); // 27 Nov 2026: cash for walk-ins
+    if (body.kind === 'camptexts') return campTexts_(who); // 27 Nov 2026: preview the camp texts
     if (body.kind === 'stucard') return stuCard_(who, body);
     if (body.kind === 'execnote') return execNote_(who, body);
     if (body.kind === 'reqhistory') return reqHistory_(who, body);
@@ -10491,6 +10492,7 @@ function previewNewMembers() {
 const MYDAY = { sundayCalls: 20, customerFrom: 16 * 60, perHourBefore: 10, perHourAfter: 3, reach: 0.5, winsPerHours: 3, minWins: 2, cacheKey: 'myday_q4', cacheSecs: 900 };
 // Every 10 minutes from 7am to 9pm the list is rebuilt in the background, so My day opens quickly.
 function mydayWarm() {
+  try { campRemindTick_(); } catch (e) { Logger.log('campRemindTick_ ' + e); } // 27 Nov 2026: camp day-before reminders (off until Mark approves)
   try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { amaosTrialsPush_(); } catch (e) { Logger.log('amaosTrialsPush_ ' + e); } /* 26 Nov 2026: GHL trials to AMA OS */ try { amaosLiveTick_(); } catch (e) { Logger.log('amaosLiveTick_ ' + e); } /* 26 Nov 2026: hub records to AMA OS through the day */ try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
 
 function mydayShift_(name, d) {
@@ -18431,7 +18433,7 @@ const CAMP = {
   school: 'Marrickville', where: 'AMA Marrickville, 35/142 Addison Rd, Marrickville',
   hours: '9:00am to 3:00pm', cap: 50, ratio: 8, minAge: 5, maxAge: 13,
   first: '2026-12-21', last: '2027-01-27', // 27 Nov 2026 (Laurie): Fri 18 Dec removed
-  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp', refundHours: 48, linkTextOn: true, // linkTextOn: the admin 'send the booking link' text; wording approved by Mark 27 Nov 2026
+  pageUrl: 'https://train.australianmartialarts.com.au/holiday-camp', refundHours: 48, parentTextsOn: false, staffAlertOn: false, remindOn: false, // 27 Nov 2026: camp texts, OFF until Mark approves the wording linkTextOn: true, // linkTextOn: the admin 'send the booking link' text; wording approved by Mark 27 Nov 2026
   closed: ['2026-12-24', '2026-12-25', '2026-12-28', '2026-12-31', '2027-01-01', '2027-01-26'],
   price: { day: 80, threePlus: 80, fivePlus: 70, earlyBirdOff: 0, earlyBirdUntil: '2026-11-30', memberOff: 0 }, // 27 Nov 2026 (Laurie): $80 a day, $70 a day for 5+ days; no early bird, no referral discount
   themes: { // matches the activities on australianmartialarts.com.au/school-holiday-camps
@@ -18493,7 +18495,7 @@ function campInfo_() {
 function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? 'Filling up' : 'Book now'; }
 /* 27 Nov 2026 (Laurie): where the booking came from: UTM tags on the page link, or the admin text link */
 function campSrc_(b) {
-  const u = (b && b.utm) || {}, keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'gclid', 'fbclid'];
+  const u = (b && b.utm) || {}, keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'gclid', 'fbclid', 'referrer'];
   const parts = keys.filter(function (k) { return u[k]; }).map(function (k) { return k + '=' + String(u[k]).replace(/[<>|]/g, '').slice(0, 60); });
   return 'Camp page' + (parts.length ? ' | ' + parts.join(', ') : '');
 }
@@ -18530,6 +18532,7 @@ function campBook_(b) {
         'Emergency contact': s(b.emergency, 200), 'Photo OK': b.photos ? 'Yes' : 'No', 'Heard about': refBy ? 'Referred by ' + refBy : s(b.heard, 120), 'Notes': (b.marketing === false ? '[No marketing] ' : '') + (k.stay ? '[Staying for class: ' + k.stay + '] ' : '') + s(b.notes, 400), 'Trial offered': k.trial ? 'Asked for a free trial before camp' : '', 'Source': campSrc_(b) };
       sh.appendRow(H.map(function (h) { return o[h] == null ? '' : o[h]; }));
     });
+    try { if (CAMP.live || /@australianmartialarts\.com\.au$/i.test(email)) campGhl_(first, last, mobile, email, b); } catch (e) { Logger.log('campGhl_ ' + e); }
     return { ok: true, id: id, total: total, live: CAMP.live, share: campShareUrl_(id), pay: CAMP.live ? campPaySafe_(id, total, email, mobile) : '',
       message: CAMP.live ? 'Your places are held for 30 minutes while you pay.' : 'Test booking saved. Payment is not connected yet, so no money was taken and nothing was sent.' };
   } finally { lock.releaseLock(); }
@@ -18596,7 +18599,8 @@ function campCheckPaid_() {
     const due = o.net_amount_due_money ? o.net_amount_due_money.amount : null;
     if (o.state === 'COMPLETED' || (o.tenders && o.tenders.length && due === 0)) paid[o.id] = 1;
   });
-  let n = 0; open.forEach(function (i) { if (paid[String(v[i][cRef])]) { sh.getRange(i + 1, cSt + 1).setValue('paid'); sh.getRange(i + 1, cPaid + 1).setValue(new Date()); n++; } });
+  let n = 0; const doneIds = {}; open.forEach(function (i) { if (paid[String(v[i][cRef])]) { sh.getRange(i + 1, cSt + 1).setValue('paid'); sh.getRange(i + 1, cPaid + 1).setValue(new Date()); n++; doneIds[String(v[i][H.indexOf('Booking ID')])] = 1; } });
+  Object.keys(doneIds).forEach(function (id) { try { campAfterPaid_(id); } catch (e) { Logger.log('campAfterPaid_ ' + e); } });
   return n;
 }
 function campPaySafe_(id, total, email, mobile) { try { return campPayUrl_(id, total, email, mobile); } catch (e) { Logger.log('campPayUrl_ ' + e); return ''; } }
@@ -18777,8 +18781,72 @@ function campCash_(who, b) {
       sh.getRange(i + 1, c('Status') + 1).setValue('paid'); sh.getRange(i + 1, c('Paid at') + 1).setValue(new Date()); sh.getRange(i + 1, c('Payment ref') + 1).setValue('Cash, taken by ' + who.name); n++; });
     if (!n) return { ok: false, error: bad ? 'That booking is already ' + bad + '.' : 'Booking not found.' };
     try { actRow_(who.name, 'Holiday camp', 'Cash payment', id, n + ' child' + (n > 1 ? 'ren' : '')); } catch (e) { }
+    try { campAfterPaid_(id); } catch (e) { Logger.log('campAfterPaid_ ' + e); }
     return { ok: true, children: n };
   } finally { lock.releaseLock(); }
+}
+/* 27 Nov 2026 (Laurie/Mark): the family's GHL contact gets the same tracking and consent fields as the old
+   "School Holiday Camp Registration" form (utm_source, utm_medium, utm_campaign, utm_term, google_click_id, marketing and photo consent). */
+function campGhl_(first, last, mobile, email, b) {
+  const u = (b && b.utm) || {}, cf = [], put = function (id, v) { if (v) cf.push({ id: id, field_value: String(v).slice(0, 200) }); };
+  put('moKJKbk1FJKAuJAfwghM', u.utm_source); put('FBiZd4E6FUFaCzKY5ucy', u.utm_medium); put('WhcWyM6wUmMwIe0s2hFe', u.utm_campaign); put('DpBXLGVE1QXISeIAWkuT', u.utm_term); put('qVLXWkxiHSxuM6BVWKlT', u.gclid);
+  cf.push({ id: 'vNV52sCafezzChPAoQhi', field_value: b.marketing === false ? 'No thank you' : 'Yes - Please keep me updated about AMA programs and events via SMS and email' });
+  cf.push({ id: 'eZFgyHNPh2U5Us0PBoNq', field_value: b.photos ? 'Yes - happy for photos of these students to be shared' : 'No thank you' });
+  const r = ghlPost_('/contacts/upsert', { locationId: CONFIG.locationId, firstName: first, lastName: last, email: email || undefined, phone: normalisePhone_(mobile) || undefined,
+    tags: ['holiday camp', 'summer camp 2027'].concat(CAMP.live ? [] : ['camp test']), source: 'Summer camp page' + (u.utm_source ? ' (' + String(u.utm_source).slice(0, 40) + ')' : ''), customFields: cf });
+  if (r.code >= 300) Logger.log('campGhl_ ' + r.code + ' ' + String(r.body).slice(0, 200));
+  return r.code < 300;
+}
+/* 27 Nov 2026 (Mark: "super friendly and easy"): camp texts. Each is OFF until Mark approves the wording (CAMP.parentTextsOn, staffAlertOn, remindOn). */
+function campLabels_(days) { const m = {}; campDays_().forEach(function (d) { m[d.date] = d; }); return String(days || '').split(/\s*,\s*/).filter(Boolean).map(function (d) { return m[d] ? m[d].label : d; }); }
+function campConfirmText_(rs) {
+  const r0 = rs[0], first = String(r0['Parent first'] || '').trim();
+  const lines = rs.map(function (r) { return String(r.Child).trim() + ': ' + campLabels_(r.Days).join(', '); }).join('\n');
+  const trial = rs.filter(function (r) { return r.Member === 'No' || /free trial/i.test(String(r['Trial offered'] || '')); }).map(function (r) { return String(r.Child).trim().split(' ')[0]; });
+  return 'Hi ' + first + '! 🎉 You\'re all booked for AMA Summer Holiday Camp.\n' + lines + '\n\n' +
+    'Drop-off from 9am, pick-up at 3pm (come at 2:55 to catch the show!) at AMA Marrickville, Studio 35/142 Addison Rd.\n' +
+    'Pack lunch, snacks and a water bottle (no nuts please). Fridays are superhero dress-up day 🦸\n\n' +
+    (trial.length ? 'New to AMA? We\'ll give you a call to book ' + trial.join(' and ') + ' a free trial class before camp, so they can meet the instructors first.\n\n' : '') +
+    'Camp is even better with a mate! Share this link with a friend: ' + campShareUrl_(r0['Booking ID']) + '\n\nAny questions, just reply or call (02) 9569 1943. See you soon! AMA';
+}
+function campRemindText_(first, kids, d) {
+  const fri = new Date(d.date + 'T12:00:00').getDay() === 5;
+  return 'Hi ' + first + '! ☀️ See ' + kids.join(' and ') + ' at Summer Camp tomorrow: ' + d.label + ', ' + d.theme + '!\n' +
+    'Drop-off from 9am at AMA Marrickville, pick-up at 3pm after the show. Pack lunch, snacks and a water bottle' + (fri ? ', and a superhero costume!' : '.') + '\n' +
+    'Need to change days? Just reply or call (02) 9569 1943. AMA';
+}
+function campStaffText_(rs) {
+  const r0 = rs[0], tot = rs.reduce(function (a, r) { return a + (Number(r.Total) || 0); }, 0);
+  return 'New camp booking 🎉 ' + String(r0['Parent first'] + ' ' + r0['Parent last']).trim() + ' (' + r0.Mobile + ')\n' +
+    rs.map(function (r) { return '• ' + r.Child + (r.Age ? ', ' + r.Age : '') + (r.Member === 'No' ? ', new to AMA' : ', member') + ': ' + campLabels_(r.Days).join(', ') +
+      (r.Medical || r.Allergies || r.Medication ? '\n  ⚠️ ' + [r.Medical, r.Allergies && 'Allergies: ' + r.Allergies, r.Medication && 'Medication: ' + r.Medication].filter(Boolean).join(' · ') : '') +
+      (/free trial/i.test(String(r['Trial offered'] || '')) ? '\n  Wants a free trial before camp: please call to book it.' : ''); }).join('\n') +
+    '\n$' + tot + ' paid. Full list in the hub: Classes & events > Holiday camp.';
+}
+function campAfterPaid_(id) {
+  const rs = campRows_().filter(function (r) { return String(r['Booking ID']) === String(id); }); if (!rs.length) return;
+  if (rs.some(function (r) { return /confirm sent/i.test(String(r.Texts || '')); })) return;
+  const sent = [];
+  if (CAMP.parentTextsOn) { const e = normalisePhone_(String(rs[0].Mobile || '')); if (e && sendSms_(e, campConfirmText_(rs))) sent.push('confirm sent'); }
+  if (CAMP.staffAlertOn) { const m = payPersonMobile_(String(CAMP.coordinator).toLowerCase()); if (m && sendSms_(m, campStaffText_(rs))) sent.push('staff alerted'); }
+  if (sent.length) { const sh = campSheet_(), H = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), c = H.indexOf('Texts');
+    rs.forEach(function (r) { sh.getRange(r._row, c + 1).setValue(String(r.Texts || '') + ' [' + Utilities.formatDate(new Date(), CONFIG.timezone, 'd MMM') + ' ' + sent.join(', ') + ']'); }); }
+}
+/* day-before reminder, from the 10-minute run: once a day after 4pm */
+function campRemindTick_() {
+  if (!CAMP.remindOn) return;
+  const tz = CONFIG.timezone, now = new Date(); if (Number(Utilities.formatDate(now, tz, 'H')) < 16) return;
+  const P = PropertiesService.getScriptProperties(), k = 'camp_remind_' + Utilities.formatDate(now, tz, 'yyyyMMdd'); if (P.getProperty(k)) return; P.setProperty(k, '1');
+  const tm = new Date(now.getTime() + 864e5), ymd = Utilities.formatDate(tm, tz, 'yyyy-MM-dd'), d = campDays_().filter(function (x) { return x.date === ymd; })[0]; if (!d) return;
+  const fam = {}; campRows_().forEach(function (r) { if (!/^paid/i.test(String(r.Status)) || String(r.Days).indexOf(ymd) < 0) return; const m = normalisePhone_(String(r.Mobile || '')); if (!m) return; (fam[m] = fam[m] || { first: String(r['Parent first'] || '').trim(), kids: [] }).kids.push(String(r.Child).trim().split(' ')[0]); });
+  Object.keys(fam).forEach(function (m) { try { sendSms_(m, campRemindText_(fam[m].first, fam[m].kids, d)); } catch (e) { Logger.log('camp remind ' + e); } });
+}
+/* management: see the camp texts exactly as families and staff will get them */
+function campTexts_(who) {
+  if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' };
+  const ex = [{ 'Booking ID': 'HC1127EXAMPLE', 'Parent first': 'Sarah', 'Parent last': 'Smith', Mobile: '0400 000 000', Child: 'Leo Smith', Age: 7, Member: 'No', Days: '2027-01-04, 2027-01-05, 2027-01-08', Medical: '', Allergies: 'Peanuts', Medication: '', 'Trial offered': 'Asked for a free trial before camp', Total: 240 }];
+  const d = campDays_().filter(function (x) { return new Date(x.date + 'T12:00:00').getDay() === 5; })[0];
+  return { ok: true, on: { parent: CAMP.parentTextsOn, staff: CAMP.staffAlertOn, remind: CAMP.remindOn }, confirm: campConfirmText_(ex), remind: campRemindText_('Sarah', ['Leo'], d), staff: campStaffText_(ex) };
 }
 function campRefund_(who, b) {
   if (!mgmtCanSee_(who) || mgmtNoMoney_(who)) return { ok: false, error: 'Only management with money access can do refunds.' };
@@ -23907,7 +23975,7 @@ function amaosWrite_(b) {
   }
   return { ok: false, error: 'Not available from AMA OS yet.' };
 }
-const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq']; // 27 Nov 2026: grows one feature at a time
+const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq', 'camptexts']; // 27 Nov 2026: grows one feature at a time
 function amaosLiveNow() { Logger.log(JSON.stringify(amaosLiveTick_())); }
 function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
 function amaosSyncTab_(tab) {
