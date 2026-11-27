@@ -3277,9 +3277,10 @@ catch (err) { return out({ ok: false, error: 'bad json' }); }
   if (body.kind === 'epbupload') { try { return out(epbUpload_(body)); } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); } }
   /* 27 Nov 2026: the summer camp page (train.australianmartialarts.com.au/holiday-camp/summer-2027) reads camp days and books
      WITHOUT the hub secret, so the secret is not on a public page. Only these two camp requests are open; "website" is a spam trap. */
-  if (body.kind === 'campinfo' || body.kind === 'campbook') {
+  if (body.kind === 'campinfo' || body.kind === 'campbook' || body.kind === 'campref') {
     try {
       if (body.kind === 'campinfo') return out(campInfo_());
+      if (body.kind === 'campref') return out(campRef_(body.ref));
       if (String(body.website || '')) return out({ ok: false, error: 'Please try again.' });
       const ck = CacheService.getScriptCache(), rk = 'campbk_' + String(body.mobile || '').replace(/\D/g, '').slice(-9), n = Number(ck.get(rk) || 0);
       if (n >= 5) return out({ ok: false, error: 'Too many bookings from this mobile in a short time. Please call us on (02) 9569 1943.' });
@@ -18464,7 +18465,8 @@ function campDays_() {
 function campSheet_(which) { return which === 'staff' ? stockSheetOf_(CAMP.staffTab, ['Emp ID', 'Name', 'Day', 'Available', 'Updated at']) : stockSheetOf_(CAMP.tab, CAMP.headers); }
 function campRows_() {
   const sh = campSheet_(), v = sh.getDataRange().getValues(), H = v[0].map(String);
-  return v.slice(1).map(function (r, i) { const o = { _row: i + 2 }; H.forEach(function (h, j) { o[h] = r[j]; }); return o; });
+  // 27 Nov 2026: Sheets can turn a single day (2027-01-12) into a date; read it back as text so every check sees the same days
+  return v.slice(1).map(function (r, i) { const o = { _row: i + 2 }; H.forEach(function (h, j) { o[h] = (h === 'Days' && r[j] instanceof Date) ? campYmd_(r[j]) : r[j]; }); return o; });
 }
 /* places taken per day: paid bookings, plus unpaid ones made in the last 30 minutes (someone at the checkout) */
 function campTaken_(rows) {
@@ -18494,6 +18496,20 @@ function campInfo_() {
 }
 /* 27 Nov 2026 (Laurie): message on each calendar day, from places booked that day */
 function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? 'Filling up' : 'Book now'; }
+/* 27 Nov 2026 (Mark): a friend's bring-a-friend link shows who invited them and which days they're booked, so they can pick the same days.
+   Public, so it only gives the children's first names and days, only for paid bookings (any booking while in test mode), and only for the new random codes. */
+function campRef_(ref) {
+  ref = String(ref || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!/^HC\d{4}[A-Z2-9]{5}$/.test(ref)) return { ok: false };
+  const kids = [], days = {};
+  campRows_().forEach(function (r) {
+    if (String(r['Booking ID']) !== ref) return;
+    const st = String(r.Status || ''); if (!(/^paid/i.test(st) || (!CAMP.live && /^TEST/i.test(st)))) return;
+    const name = String(r.Child || '').trim().split(/\s+/)[0]; if (name && kids.indexOf(name) < 0) kids.push(name);
+    String(r.Days || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (d) { days[d] = 1; });
+  });
+  return kids.length ? { ok: true, kids: kids.slice(0, 4), days: Object.keys(days).sort() } : { ok: false };
+}
 /* 27 Nov 2026 (Laurie): where the booking came from: UTM tags on the page link, or the admin text link */
 function campSrc_(b) {
   const u = (b && b.utm) || {}, keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'src', 'gclid', 'fbclid', 'referrer'];
