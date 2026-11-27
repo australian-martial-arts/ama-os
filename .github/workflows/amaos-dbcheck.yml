@@ -25,6 +25,8 @@ jobs:
           psql -c "select jobid, schedule, jobname, username, active from cron.job" || true
           if [ "${{ github.event.inputs.timers }}" = "pause" ]; then psql -c "select cron.unschedule(jobname) from cron.job where jobname like 'amaos-%'"; fi
           if [ "${{ github.event.inputs.timers }}" = "start" ]; then psql -c "select ama_os.start_timers()"; fi
+          echo "== Recent hub actions from AMA OS =="
+          psql -c "select at, actor, action, left(detail::text, 220) d from ama_os.audit where action like 'hub %' order by at desc limit 8" || true
           echo "== Busy database sessions =="
           psql -c "select pid, state, wait_event_type, wait_event, now()-query_start as running, left(query,120) q from pg_stat_activity where state <> 'idle' and pid <> pg_backend_pid() order by query_start" || true
           if [ -n "${{ github.event.inputs.test }}" ]; then
