@@ -26,10 +26,10 @@ texts, notes and logs apply, and the hub stays up to date. Reads show the last s
 ## 2. In AMA OS but view only (the buttons are still in the hub)
 - [~] Trials / Close the sale actions (27 Nov: Close the sale all buttons, Trials follow-up outcomes done; still hub: move, callback, call24, remove, resend reports, win-back) - `followups`, `followupdone`, `trialff`, `trialmove`, `trialcallback`, `trialcall24`, `trialremove`, `trialinfo`, `trialinfoev`, `tcresend`, `tcabsenttext`, `winback`, `chaselist`, `chaseaction`, `reclog`, `reclast`
 - [x] Enquiry replies inbox (27 Nov, in Trials) - `replylist`, `replydone`, `replyundo`
-- [ ] New members actions - `nmlist`, `nmaction`
-- [ ] Absent follow-up actions - `abslist`, `absaction`, `abstext`, `abslogin`, `absnsi`, `absnsilist`
+- [x] New members actions (27 Nov) - `nmlist`, `nmaction`
+- [x] Absent follow-up actions (27 Nov: all stages, outcomes, sign-in reminder, reply by text, training-not-signing-in) - `abslist`, `absaction`, `abstext`, `abslogin`, `absnsi`, `absnsilist`
 - [x] Holds and Cancels actions (27 Nov: list, resend, certificate, done in EFC, restarted, extend, cancelling instead; cancels to action and forms sent; approvals already in Approvals) - `holdlist`, `holdaction`, `holdextend`, `holdrecord`, `cxlist`, `cxaction`, `cxdone`, `cxfast`, `cxlookup`, `cxsent`, `cancel`, `reqadd`, `reqhistory`
-- [ ] Referrals actions - `refaction`
+- [x] Referrals actions (27 Nov) - `refaction`
 - [ ] Gradings actions - `gradelist`, `gradesave`, `gradesend`, `gradefix`, `gradepace`
 - [ ] Birthday parties: links, settings, suppliers - `partylinks`, `partysettings`, `partysupplier`
 - [ ] Holiday camp actions - `campapprove`, `campmove`, `campswap`, `camprefund`, `campsquare`, `campupdate`
