@@ -3277,15 +3277,17 @@ catch (err) { return out({ ok: false, error: 'bad json' }); }
   if (body.kind === 'epbupload') { try { return out(epbUpload_(body)); } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); } }
   /* 27 Nov 2026: the summer camp page (train.australianmartialarts.com.au/holiday-camp/summer-2027) reads camp days and books
      WITHOUT the hub secret, so the secret is not on a public page. Only these two camp requests are open; "website" is a spam trap. */
-  if (body.kind === 'campinfo' || body.kind === 'campbook' || body.kind === 'campref') {
+  if (body.kind === 'campinfo' || body.kind === 'campbook' || body.kind === 'campref' || body.kind === 'pnoinfo' || body.kind === 'pnobook' || body.kind === 'pnoref') {
     try {
       if (body.kind === 'campinfo') return out(campInfo_());
       if (body.kind === 'campref') return out(campRef_(body.ref));
+      if (body.kind === 'pnoinfo') return out(pnoPubInfo_()); // 27 Nov 2026: Christmas Parents' Night Out page
+      if (body.kind === 'pnoref') return out(pnoPubRef_(body.ref));
       if (String(body.website || '')) return out({ ok: false, error: 'Please try again.' });
       const ck = CacheService.getScriptCache(), rk = 'campbk_' + String(body.mobile || '').replace(/\D/g, '').slice(-9), n = Number(ck.get(rk) || 0);
       if (n >= 5) return out({ ok: false, error: 'Too many bookings from this mobile in a short time. Please call us on (02) 9569 1943.' });
       ck.put(rk, String(n + 1), 600);
-      return out(campBook_(body));
+      return out(body.kind === 'pnobook' ? pnoPubBook_(body) : campBook_(body));
     } catch (err) { return out({ ok: false, error: String(err && err.message || err).slice(0, 200) }); }
   }
   if (body.secret !== HOLD.secret) {
@@ -3772,6 +3774,7 @@ function hubRouteIn_(body, who) {
     if (body.kind === 'camplink') return campLink_(who, body); // 27 Nov 2026: send the booking link by text
     if (body.kind === 'campcash') return campCash_(who, body); // 27 Nov 2026: cash for walk-ins
     if (body.kind === 'camptexts') return campTexts_(who); // 27 Nov 2026: preview the camp texts
+    if (body.kind === 'pnotexts') return pnoPubTexts_(who); // 27 Nov 2026: preview the Parents' Night Out texts
     if (body.kind === 'stucard') return stuCard_(who, body);
     if (body.kind === 'execnote') return execNote_(who, body);
     if (body.kind === 'reqhistory') return reqHistory_(who, body);
@@ -10493,7 +10496,8 @@ function previewNewMembers() {
 const MYDAY = { sundayCalls: 20, customerFrom: 16 * 60, perHourBefore: 10, perHourAfter: 3, reach: 0.5, winsPerHours: 3, minWins: 2, cacheKey: 'myday_q4', cacheSecs: 900 };
 // Every 10 minutes from 7am to 9pm the list is rebuilt in the background, so My day opens quickly.
 function mydayWarm() {
-  if (CAMP.live) try { campCheckPaid_(); } catch (e) { Logger.log('campCheckPaid_ ' + e); } // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
+  if (CAMP.live) try { campCheckPaid_(); } catch (e) { Logger.log('campCheckPaid_ ' + e); }
+  if (PNOPUB.live) try { pnoPubCheckPaid_(); pnoPubRemindTick_(); } catch (e) { Logger.log('pnoPub ' + e); } // 27 Nov 2026: Parents' Night Out payments and reminder // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
   try { campRemindTick_(); } catch (e) { Logger.log('campRemindTick_ ' + e); } // 27 Nov 2026: camp day-before reminders (off until Mark approves)
   try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { amaosTrialsPush_(); } catch (e) { Logger.log('amaosTrialsPush_ ' + e); } /* 26 Nov 2026: GHL trials to AMA OS */ try { amaosLiveTick_(); } catch (e) { Logger.log('amaosLiveTick_ ' + e); } /* 26 Nov 2026: hub records to AMA OS through the day */ try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
 
@@ -18497,6 +18501,175 @@ function campInfo_() {
 }
 /* 27 Nov 2026 (Laurie): message on each calendar day, from places booked that day */
 function campUrgency_(n) { return n >= 15 ? 'Only a few spots left' : n >= 9 ? 'Filling up' : 'Book now'; }
+/* 27 Nov 2026 (Mark): public booking page for Parents' Night Out, copied from the summer camp system.
+   Bookings go straight into the hub's own 'PNO bookings' list (one row per child), so the PNO screen in the hub
+   (bookings, check-in, run sheet, results) shows them with no double entry. Test mode until Mark says go live:
+   bookings are marked TEST, no payment is taken and nothing is sent. Texts stay off until Mark approves the wording. */
+const PNOPUB = {
+  live: false, date: '2026-12-19', title: "Christmas Parents' Night Out", label: 'Saturday 19 December',
+  start: '4:00pm', end: '7:00pm', startT: '16:00', endT: '19:00', price: 70, cap: 40, minAge: 3, maxAge: 12,
+  where: 'AMA Marrickville, Studio 35/142 Addison Rd, Marrickville', school: 'Marrickville',
+  pageUrl: 'https://train.australianmartialarts.com.au/parents-night-out/christmas-2026', refundHours: 48, coordinator: 'Hakan',
+  parentTextsOn: false, staffAlertOn: false, remindOn: false // OFF until Mark approves the wording
+};
+function pnoPubSheets_() { return { E: staffSheet_(EVT.pno.ev, EVT.evCols), P: staffSheet_(EVT.pno.pp, EVT.ppCols) }; }
+function pnoPubJ_(s) { try { const o = JSON.parse(s || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+/* the event row for this night in the hub's PNO events (made once, so the hub screen shows it) */
+function pnoPubEvent_() {
+  const S = pnoPubSheets_(), tz = CONFIG.timezone, v = S.E.getDataRange().getValues();
+  for (let i = 1; i < v.length; i++) {
+    const d = v[i][1] instanceof Date ? Utilities.formatDate(v[i][1], tz, 'yyyy-MM-dd') : String(v[i][1] || '').replace(/^'/, '').slice(0, 10);
+    if (v[i][0] && d === PNOPUB.date) return { row: i + 1, id: String(v[i][0]), data: pnoPubJ_(v[i][4]) };
+  }
+  const id = 'PN' + Date.now().toString(36).toUpperCase(), data = { start: PNOPUB.startT, end: PNOPUB.endT, length: '3 hours', price: PNOPUB.price, cap: PNOPUB.cap, ages: PNOPUB.minAge + ' to ' + PNOPUB.maxAge,
+    freq: 'One-off', friends: 'Yes', nonm: 'Yes', obj: 'New trials', growth: 'Public booking page with a bring-a-friend link: ' + PNOPUB.pageUrl };
+  S.E.appendRow([id, "'" + PNOPUB.date, PNOPUB.school, PNOPUB.title, JSON.stringify(data), 'Booking page', new Date()]);
+  return { row: S.E.getLastRow(), id: id, data: data };
+}
+function pnoPubRows_(eid) {
+  const P = pnoPubSheets_().P, v = P.getDataRange().getValues();
+  return v.slice(1).map(function (r, i) { return { row: i + 2, id: String(r[0]), eid: String(r[1]), name: String(r[2]), mobile: String(r[3]), type: String(r[4]), status: String(r[5]), data: pnoPubJ_(r[6]), at: r[8] }; })
+    .filter(function (x) { return x.id && (!eid || x.eid === eid); });
+}
+/* places taken: everyone booked by the office or paid online, plus online bookings at the checkout in the last 30 minutes */
+function pnoPubTaken_(rows) {
+  const now = Date.now();
+  return rows.filter(function (r) {
+    if (/^(cancelled|test)/i.test(r.status)) return false;
+    if (/^awaiting/i.test(r.status)) return r.at instanceof Date && now - r.at.getTime() < 30 * 60000;
+    return true;
+  }).length;
+}
+function pnoPubUrgency_(n) { const c = PNOPUB.cap; return n >= c ? 'Full' : n >= c * 0.85 ? 'Only a few spots left' : n >= c * 0.5 ? 'Filling up' : 'Book now'; }
+/* public: everything the page needs. Never the number of places or bookings (Ticketek style) */
+function pnoPubInfo_() {
+  try { pnoPubCheckPaid_(); } catch (e) { }
+  const ev = pnoPubEvent_(), n = pnoPubTaken_(pnoPubRows_(ev.id));
+  return { ok: true, live: PNOPUB.live, title: PNOPUB.title, date: PNOPUB.date, label: PNOPUB.label, start: PNOPUB.start, end: PNOPUB.end, price: PNOPUB.price,
+    ages: PNOPUB.minAge + ' to ' + PNOPUB.maxAge, minAge: PNOPUB.minAge, maxAge: PNOPUB.maxAge, where: PNOPUB.where, full: n >= PNOPUB.cap, urgency: pnoPubUrgency_(n), refundHours: PNOPUB.refundHours };
+}
+function pnoPubShare_(id) { return PNOPUB.pageUrl + '?ref=' + encodeURIComponent(id); }
+function pnoPubBook_(b) {
+  const s = function (x, n) { return String(x == null ? '' : x).replace(/[<>]/g, '').trim().slice(0, n || 200); };
+  const first = s(b.first, 60), last = s(b.last, 60), mobile = s(b.mobile, 20), email = s(b.email, 120).toLowerCase();
+  if (!first || !last) return { ok: false, error: 'Please add your first and last name.' };
+  const mob = String(mobile).replace(/\D/g, '').replace(/^61(?=4)/, '0');
+  if (!/^04\d{8}$/.test(mob)) return { ok: false, error: 'Please enter an Australian mobile number, like 0412 345 678.' };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'Please add a valid email.' };
+  const emergency = s(b.emergency, 200), collectors = s(b.collectors, 300);
+  if (!emergency) return { ok: false, error: 'Please add an emergency contact and phone number.' };
+  const kids = (b.kids || []).slice(0, 6).map(function (k) {
+    return { name: s(k.name, 80), age: Number(k.age) || '', member: /^y/i.test(k.member) ? 'Yes' : /^n/i.test(k.member) ? 'No' : 'Not sure', medical: s(k.medical, 400), allergies: s(k.allergies, 300) };
+  }).filter(function (k) { return k.name; });
+  if (!kids.length) return { ok: false, error: 'Please add at least one child.' };
+  const badAge = kids.filter(function (k) { return !(k.age >= PNOPUB.minAge && k.age <= PNOPUB.maxAge && Math.floor(k.age) === k.age); })[0];
+  if (badAge) return { ok: false, error: "Parents' Night Out is for ages " + PNOPUB.minAge + ' to ' + PNOPUB.maxAge + '. Please check ' + badAge.name + '\'s age, or call us on (02) 9569 1943.' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const ev = pnoPubEvent_(), rows = pnoPubRows_(ev.id), P = pnoPubSheets_().P;
+    if (PNOPUB.live && pnoPubTaken_(rows) + kids.length > PNOPUB.cap) return { ok: false, full: true, error: 'Sorry, there aren\'t enough places left for ' + kids.length + (kids.length > 1 ? ' children' : ' child') + '. Please call us on (02) 9569 1943.' };
+    const AB = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', have = {}; rows.forEach(function (r) { have[String(r.data.bookingId || '')] = 1; });
+    let id = ''; do { id = 'PX' + Utilities.formatDate(new Date(), CONFIG.timezone, 'MMdd'); for (let q = 0; q < 5; q++) id += AB.charAt(Math.floor(Math.random() * AB.length)); } while (have[id]);
+    const ref = String(b.ref || '').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 12); let refBy = '';
+    if (ref) { const rr = rows.filter(function (r) { return r.data.bookingId === ref; })[0]; if (rr) refBy = String(rr.data.parent || '').trim() + ' (' + ref + ')'; }
+    const total = PNOPUB.price * kids.length, now = new Date(), status = PNOPUB.live ? 'Awaiting payment' : 'TEST (payment not connected)';
+    const src = campSrc_(b).replace(/^Camp page/, 'PNO page');
+    kids.forEach(function (k) {
+      const med = [k.medical && !/^(none|nil|no|n\/a)$/i.test(k.medical) ? k.medical : '', k.allergies && !/^(none|nil|no|n\/a)$/i.test(k.allergies) ? 'Allergies: ' + k.allergies : ''].filter(Boolean).join('. ') || 'None';
+      const data = { age: k.age, parent: first + ' ' + last, email: email, medical: med, emergency: emergency, collectors: collectors || (first + ' ' + last),
+        photos: b.photos ? 'Yes' : 'No', marketing: b.marketing ? 'Yes' : 'No', paid: 'Not paid yet', price: PNOPUB.price, bookingId: id, broughtBy: refBy,
+        source: refBy ? 'Brought by a member' : (b.utm && (b.utm.utm_source || b.utm.fbclid)) ? 'Facebook or Instagram' : 'Booking page', track: src, notes: s(b.notes, 400) };
+      P.appendRow(['EP' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random() * 90 + 10), ev.id, k.name, mobile,
+        refBy ? 'Friend of a member' : k.member === 'Yes' ? 'Member' : 'Non-member', status, JSON.stringify(data), 'Booking page', now]);
+    });
+    try { if (PNOPUB.live || /@australianmartialarts\.com\.au$/i.test(email)) pnoPubGhl_(first, last, mobile, email, b); } catch (e) { Logger.log('pnoPubGhl_ ' + e); }
+    return { ok: true, id: id, total: total, live: PNOPUB.live, share: pnoPubShare_(id), pay: PNOPUB.live ? pnoPubPaySafe_(id, total, email, mobile) : '',
+      message: PNOPUB.live ? '' : 'This was a test booking. Bookings open soon, so no payment was taken and nothing was sent.' };
+  } finally { lock.releaseLock(); }
+}
+function pnoPubGhl_(first, last, mobile, email, b) {
+  const u = (b && b.utm) || {}, cf = [], put = function (id, v) { if (v) cf.push({ id: id, field_value: String(v).slice(0, 200) }); };
+  put('moKJKbk1FJKAuJAfwghM', u.utm_source); put('FBiZd4E6FUFaCzKY5ucy', u.utm_medium); put('WhcWyM6wUmMwIe0s2hFe', u.utm_campaign); put('DpBXLGVE1QXISeIAWkuT', u.utm_term); put('qVLXWkxiHSxuM6BVWKlT', u.gclid);
+  cf.push({ id: 'vNV52sCafezzChPAoQhi', field_value: b.marketing ? 'Yes - Please keep me updated about AMA programs and events via SMS and email' : 'No thank you' });
+  cf.push({ id: 'eZFgyHNPh2U5Us0PBoNq', field_value: b.photos ? 'Yes - happy for photos of these students to be shared' : 'No thank you' });
+  const r = ghlPost_('/contacts/upsert', { locationId: CONFIG.locationId, firstName: first, lastName: last, email: email || undefined, phone: normalisePhone_(mobile) || undefined,
+    tags: ['parents night out', 'pno christmas 2026'].concat(PNOPUB.live ? [] : ['pno test']), source: "Parents' Night Out page" + (u.utm_source ? ' (' + String(u.utm_source).slice(0, 40) + ')' : ''), customFields: cf });
+  if (r.code >= 300) Logger.log('pnoPubGhl_ ' + r.code + ' ' + String(r.body).slice(0, 200));
+  return r.code < 300;
+}
+function pnoPubPaySafe_(id, total, email, mobile) { try { return pnoPubPayUrl_(id, total, email, mobile); } catch (e) { Logger.log('pnoPubPayUrl_ ' + e); return ''; } }
+function pnoPubPayUrl_(id, total, email, mobile) {
+  if (!sqReady_() || !(total > 0)) return '';
+  const m9 = String(mobile || '').replace(/\D/g, '').slice(-9);
+  const body = { idempotency_key: 'pno-' + id, description: "AMA Parents' Night Out " + id, payment_note: "Parents' Night Out booking " + id,
+    quick_pay: { name: PNOPUB.title + ' (booking ' + id + ')', price_money: { amount: Math.round(total * 100), currency: 'AUD' }, location_id: sqLocation_() },
+    checkout_options: { redirect_url: PNOPUB.pageUrl + '?paid=' + encodeURIComponent(id), ask_for_shipping_address: false }, pre_populated_data: {} };
+  if (email) body.pre_populated_data.buyer_email = email;
+  if (m9.length === 9 && m9[0] === '4') body.pre_populated_data.buyer_phone_number = '+61' + m9;
+  const link = sq_('/online-checkout/payment-links', body).payment_link || {};
+  const P = pnoPubSheets_().P; pnoPubRows_().forEach(function (r) { if (r.data.bookingId === id) { r.data.payRef = link.order_id || ''; P.getRange(r.row, 7).setValue(JSON.stringify(r.data)); } });
+  return link.url || '';
+}
+/* Square: mark paid bookings, and let go of checkouts nobody finished after a day */
+function pnoPubCheckPaid_() {
+  if (!PNOPUB.live || !sqReady_()) return 0;
+  const P = pnoPubSheets_().P, rows = pnoPubRows_().filter(function (r) { return /^awaiting/i.test(r.status); }); if (!rows.length) return 0;
+  const ids = rows.map(function (r) { return r.data.payRef; }).filter(function (x, k, a) { return x && a.indexOf(x) === k; });
+  const paid = {}; if (ids.length) (sq_('/orders/batch-retrieve', { location_id: sqLocation_(), order_ids: ids.slice(0, 100) }).orders || []).forEach(function (o) {
+    const due = o.net_amount_due_money ? o.net_amount_due_money.amount : null; if (o.state === 'COMPLETED' || (o.tenders && o.tenders.length && due === 0)) paid[o.id] = 1; });
+  const done = {}, now = new Date(), stamp = Utilities.formatDate(now, CONFIG.timezone, 'd MMM h:mm a');
+  rows.forEach(function (r) {
+    if (r.data.payRef && paid[r.data.payRef]) { r.data.paid = 'Paid'; r.data.paidAt = stamp; P.getRange(r.row, 6, 1, 4).setValues([['Booked', JSON.stringify(r.data), 'Square', now]]); done[r.data.bookingId] = 1; }
+    else if (r.at instanceof Date && now - r.at.getTime() > 864e5) { r.data.note = 'Online payment not finished'; P.getRange(r.row, 6, 1, 4).setValues([['Cancelled', JSON.stringify(r.data), 'Booking page', now]]); }
+  });
+  Object.keys(done).forEach(function (id) { try { pnoPubAfterPaid_(id); } catch (e) { Logger.log('pnoPubAfterPaid_ ' + e); } });
+  return Object.keys(done).length;
+}
+function pnoPubFamily_(id) { return pnoPubRows_().filter(function (r) { return r.data.bookingId === id && !/^cancelled/i.test(r.status); }); }
+function pnoPubAfterPaid_(id) {
+  const rs = pnoPubFamily_(id); if (!rs.length || rs.some(function (r) { return r.data.texts; })) return;
+  const sent = [];
+  if (PNOPUB.parentTextsOn) { const e = normalisePhone_(rs[0].mobile); if (e && sendSms_(e, pnoPubConfirmText_(rs))) sent.push('confirm sent'); }
+  if (PNOPUB.staffAlertOn) { const m = payPersonMobile_(String(PNOPUB.coordinator).toLowerCase()); if (m && sendSms_(m, pnoPubStaffText_(rs))) sent.push('staff alerted'); }
+  if (sent.length) { const P = pnoPubSheets_().P; rs.forEach(function (r) { r.data.texts = sent.join(', '); P.getRange(r.row, 7).setValue(JSON.stringify(r.data)); }); }
+}
+function pnoPubKids_(rs) { const n = rs.map(function (r) { return String(r.name).trim().split(/\s+/)[0]; }); return n.length < 2 ? n[0] : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1]; }
+function pnoPubConfirmText_(rs) {
+  const first = String(rs[0].data.parent || '').trim().split(/\s+/)[0];
+  return 'Hi ' + first + '! 🎄 ' + pnoPubKids_(rs) + (rs.length > 1 ? ' are' : ' is') + ' booked for AMA\'s ' + PNOPUB.title + ' on ' + PNOPUB.label + '.\n' +
+    'Drop-off ' + PNOPUB.start + ', pick-up ' + PNOPUB.end + ' at AMA Marrickville, Studio 35/142 Addison Rd. Dinner and snacks are included. Christmas outfits and Santa hats welcome! 🎅\n\n' +
+    'Got a friend who\'d love a night off too? Send them this link to save their spot: ' + pnoPubShare_(rs[0].data.bookingId) + '\n\nAny questions, just reply or call (02) 9569 1943. Enjoy your night! AMA';
+}
+function pnoPubRemindText_(first, kids) {
+  return 'Hi ' + first + '! 🎄 See ' + kids + ' tomorrow for our ' + PNOPUB.title + ', ' + PNOPUB.start + ' to ' + PNOPUB.end + ' at AMA Marrickville. Dinner is on us, and Christmas outfits are welcome! ' +
+    'Please let us know about any changes to medical details or who is picking up. Enjoy your night off! AMA';
+}
+function pnoPubStaffText_(rs) {
+  return "New Parents' Night Out booking 🎄 " + String(rs[0].data.parent || '').trim() + ' (' + rs[0].mobile + ')\n' +
+    rs.map(function (r) { return '• ' + r.name + (r.data.age ? ', ' + r.data.age : '') + ', ' + r.type.toLowerCase() + (r.data.medical && r.data.medical !== 'None' ? '\n  ⚠️ ' + r.data.medical : ''); }).join('\n') +
+    '\n$' + rs.length * PNOPUB.price + ' paid. Full list in the hub: Business > Parents\' Night Out.';
+}
+function pnoPubRemindTick_() {
+  if (!PNOPUB.remindOn) return;
+  const tz = CONFIG.timezone, now = new Date(); if (Number(Utilities.formatDate(now, tz, 'H')) < 10) return;
+  if (Utilities.formatDate(new Date(now.getTime() + 864e5), tz, 'yyyy-MM-dd') !== PNOPUB.date) return;
+  const Pp = PropertiesService.getScriptProperties(), k = 'pno_remind_' + PNOPUB.date; if (Pp.getProperty(k)) return; Pp.setProperty(k, '1');
+  const fam = {}; pnoPubRows_(pnoPubEvent_().id).forEach(function (r) { if (!/^booked/i.test(r.status)) return; const m = normalisePhone_(r.mobile); if (!m) return; (fam[m] = fam[m] || { first: String(r.data.parent || '').trim().split(/\s+/)[0], rs: [] }).rs.push(r); });
+  Object.keys(fam).forEach(function (m) { try { sendSms_(m, pnoPubRemindText_(fam[m].first, pnoPubKids_(fam[m].rs))); } catch (e) { Logger.log('pno remind ' + e); } });
+}
+/* public: a friend's link shows who's coming (first names only; paid bookings only once live) */
+function pnoPubRef_(ref) {
+  ref = String(ref || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (!/^PX\d{4}[A-Z2-9]{5}$/.test(ref)) return { ok: false };
+  const rs = pnoPubRows_().filter(function (r) { return r.data.bookingId === ref && (/^booked/i.test(r.status) || (!PNOPUB.live && /^TEST/i.test(r.status))); });
+  return rs.length ? { ok: true, kids: rs.map(function (r) { return String(r.name).trim().split(/\s+/)[0]; }).filter(function (x, i, a) { return x && a.indexOf(x) === i; }).slice(0, 4) } : { ok: false };
+}
+/* management: the exact texts, for approval */
+function pnoPubTexts_(who) {
+  if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' };
+  const ex = [{ name: 'Leo Smith', mobile: '0400 000 000', type: 'Non-member', data: { parent: 'Sarah Smith', age: 7, medical: 'Allergies: peanuts', bookingId: 'PX1127EXAMP' } }];
+  return { ok: true, on: { parent: PNOPUB.parentTextsOn, staff: PNOPUB.staffAlertOn, remind: PNOPUB.remindOn }, confirm: pnoPubConfirmText_(ex), remind: pnoPubRemindText_('Sarah', 'Leo'), staff: pnoPubStaffText_(ex) };
+}
+function pnoPubTestRun27Nov() { Logger.log(JSON.stringify(pnoPubInfo_())); Logger.log(JSON.stringify(pnoPubTexts_({ name: 'Mark' }))); }
 /* 27 Nov 2026 (Mark): before going live, clear the test camp bookings and Mark's and Tate's test staff availability.
    Rows are MOVED to the 'Camp test archive' tab (not deleted). Run campTestsList27Nov first to see what will move. */
 function campTestPick27Nov_() {
@@ -24023,7 +24196,7 @@ function amaosWrite_(b) {
   }
   return { ok: false, error: 'Not available from AMA OS yet.' };
 }
-const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq', 'camptexts']; // 27 Nov 2026: grows one feature at a time
+const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq', 'camptexts', 'pnotexts']; // 27 Nov 2026: grows one feature at a time
 function amaosLiveNow() { Logger.log(JSON.stringify(amaosLiveTick_())); }
 function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
 function amaosSyncTab_(tab) {
