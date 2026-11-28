@@ -141,6 +141,20 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (act === "admin_gen") {
+      const days = Array.isArray(body.days) ? body.days as Array<Record<string, unknown>> : [];
+      let added = 0, skipped = 0, i = 0;
+      for (const d of days) {
+        const date = String(d.slot_date ?? "").slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+        const label = String(d.label ?? "") || null;
+        const ex = await sql`select 1 from ama_os.camp_helper_slots where slot_date = ${date} and session = 'all'`;
+        if (ex.length) { skipped++; i++; continue; }
+        await sql`insert into ama_os.camp_helper_slots (slot_date, session, label, cap, is_open, sort) values (${date}, 'all', ${label}, 6, true, ${i})`;
+        added++; i++;
+      }
+      return json({ ok: true, added, skipped });
+    }
     return json({ ok: false, error: "Unknown action." }, 400);
   } catch (e) {
     return json({ ok: false, error: "Something went wrong. Please try again.", detail: String((e as Error).message ?? e).slice(0, 200) }, 500);
