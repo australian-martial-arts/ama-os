@@ -10498,7 +10498,7 @@ const MYDAY = { sundayCalls: 20, customerFrom: 16 * 60, perHourBefore: 10, perHo
 // Every 10 minutes from 7am to 9pm the list is rebuilt in the background, so My day opens quickly.
 function mydayWarm() {
   if (CAMP.live) try { campCheckPaid_(); } catch (e) { Logger.log('campCheckPaid_ ' + e); }
-  if (PNOPUB.live) try { pnoPubCheckPaid_(); pnoPubRemindTick_(); } catch (e) { Logger.log('pnoPub ' + e); } // 27 Nov 2026: Parents' Night Out payments and reminder // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
+  if (PNOPUB.live) try { pnoPubCheckPaid_(); pnoPubRemindTick_(); } catch (e) { Logger.log('pnoPub ' + e); } try { movesQueueRun_(); } catch (e) { Logger.log('moves queue ' + e); } // 28 Nov 2026: upgrades and downgrades queued from Done in EFC // 27 Nov 2026: Parents' Night Out payments and reminder // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
   try { campRemindTick_(); } catch (e) { Logger.log('campRemindTick_ ' + e); } // 27 Nov 2026: camp day-before reminders (off until Mark approves)
   try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { amaosTrialsPush_(); } catch (e) { Logger.log('amaosTrialsPush_ ' + e); } /* 26 Nov 2026: GHL trials to AMA OS */ try { amaosLiveTick_(); } catch (e) { Logger.log('amaosLiveTick_ ' + e); } /* 26 Nov 2026: hub records to AMA OS through the day */ try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
 
@@ -17064,7 +17064,7 @@ function mcDone_(who, b) {
   if (b.withdraw) { f.sh.getRange(f.row, C['Status'] + 1).setValue('withdrawn'); return { ok: true }; }
   f.sh.getRange(f.row, C['Status'] + 1).setValue('done in EFC');
   f.sh.getRange(f.row, C['EFC actioned at'] + 1, 1, 2).setValues([[new Date(), who.name]]);
-  try { movesCheckFamily_(f.sh.getRange(f.row, C['Mobile'] + 1).getValue()); } catch (e) { Logger.log('moves check: ' + e); } // 28 Nov 2026: spot the upgrade or downgrade straight away
+  try { movesQueue_(f.sh.getRange(f.row, C['Mobile'] + 1).getValue()); } catch (e) { Logger.log('moves queue: ' + e); } // 28 Nov 2026: spot the upgrade or downgrade within 10 minutes (queued so Done stays quick)
   try { CacheService.getScriptCache().remove('mywork_' + myFirst_(who)); } catch (e) { }
   return { ok: true };
 }
@@ -19682,7 +19682,10 @@ function movesSpot_(found) {
   try { CacheService.getScriptCache().remove('moves_list'); } catch (e) { }
   return rows.length;
 }
-// Check one family's memberships in EFC now (after a membership change is done in EFC, or from the Upgrades screen)
+// Families to check on the next 10-minute run (a check takes about a minute, too slow to make staff wait on Done)
+function movesQueue_(mobile) { const m9 = famM9_(mobile); if (!m9) return; const P = PropertiesService.getScriptProperties(); let q = []; try { q = JSON.parse(P.getProperty('MOVES_Q') || '[]'); } catch (e) { } if (q.indexOf(m9) < 0) q.push(m9); P.setProperty('MOVES_Q', JSON.stringify(q.slice(-30))); }
+function movesQueueRun_() { const P = PropertiesService.getScriptProperties(); let q = []; try { q = JSON.parse(P.getProperty('MOVES_Q') || '[]'); } catch (e) { } if (!q.length) return; const now = q.slice(0, 3); P.setProperty('MOVES_Q', JSON.stringify(q.slice(3))); now.forEach(function (m) { try { movesCheckFamily_(m); } catch (e) { Logger.log('moves check ' + e); } }); }
+// Check one family's memberships in EFC now (queued after a membership change is done in EFC, or Check EFC now on the Upgrades screen)
 function movesCheckFamily_(mobile) {
   const m9 = famM9_(mobile); if (!m9) return 0;
   const ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
