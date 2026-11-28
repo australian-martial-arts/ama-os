@@ -3733,6 +3733,7 @@ function hubRouteIn_(body, who) {
   if (body.kind === 'mcstart') return mcStart_(who, body);
   if (body.kind === 'mcdone') return mcDone_(who, body);
   if (body.kind === 'mclist') return mcList_(who, body);
+  if (body.kind === 'moves') return moves_(who, body); // 28 Nov 2026: upgrades and downgrades from EFC
   if (body.kind === 'trainmine') return trainMine_(who);
   if (body.kind === 'traindecide') return trainDecide_(who, body);
   if (body.kind === 'holdrecord') return holdRecord_(who, body);
@@ -10497,7 +10498,7 @@ const MYDAY = { sundayCalls: 20, customerFrom: 16 * 60, perHourBefore: 10, perHo
 // Every 10 minutes from 7am to 9pm the list is rebuilt in the background, so My day opens quickly.
 function mydayWarm() {
   if (CAMP.live) try { campCheckPaid_(); } catch (e) { Logger.log('campCheckPaid_ ' + e); }
-  if (PNOPUB.live) try { pnoPubCheckPaid_(); pnoPubRemindTick_(); } catch (e) { Logger.log('pnoPub ' + e); } // 27 Nov 2026: Parents' Night Out payments and reminder // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
+  if (PNOPUB.live) try { pnoPubCheckPaid_(); pnoPubRemindTick_(); } catch (e) { Logger.log('pnoPub ' + e); } try { movesQueueRun_(); } catch (e) { Logger.log('moves queue ' + e); } // 28 Nov 2026: upgrades and downgrades queued from Done in EFC // 27 Nov 2026: Parents' Night Out payments and reminder // 27 Nov 2026: camp Square payments every 10 min (no spare trigger for campPaidTick)
   try { campRemindTick_(); } catch (e) { Logger.log('campRemindTick_ ' + e); } // 27 Nov 2026: camp day-before reminders (off until Mark approves)
   try { famSrcWarm_(); } catch (e) { Logger.log('famSrcWarm_ ' + e); } try { staffQueueFlush(); } catch (e) { Logger.log('staffQueueFlush: ' + e); } try { bbcfPull_(); } catch (e) { Logger.log('bbcfPull_ ' + e); } try { ldgAskTick_(); } catch (e) { Logger.log('ldgAskTick_ ' + e); } try { shopSweep_(); } catch (e) { Logger.log('shopSweep_ ' + e); } try { shopWebTick_(); } catch (e) { Logger.log('shopWebTick_ ' + e); } try { hubBackupTick_(); } catch (e) { Logger.log('hubBackupTick_ ' + e); } try { deputyTick_(); } catch (e) { Logger.log('deputyTick_ ' + e); } try { geoTick_(); } catch (e) { Logger.log('geoTick_ ' + e); } try { photoTick_(); } catch (e) { Logger.log('photoTick_ ' + e); } try { trimTick_(); } catch (e) { Logger.log('trimTick_ ' + e); } try { efcSyncMorningTick_(); } catch (e) { Logger.log('efcSyncMorningTick_ ' + e); } try { spkTick_(); } catch (e) { Logger.log('spkTick_ ' + e); } const h = Number(Utilities.formatDate(new Date(), CONFIG.timezone, 'H')); if (h < 7 || h > 20) return; mydayQueues_(true); try { amaosTrialsPush_(); } catch (e) { Logger.log('amaosTrialsPush_ ' + e); } /* 26 Nov 2026: GHL trials to AMA OS */ try { amaosLiveTick_(); } catch (e) { Logger.log('amaosLiveTick_ ' + e); } /* 26 Nov 2026: hub records to AMA OS through the day */ try { CacheService.getScriptCache().put('home_allappr', JSON.stringify(approvalsList_({ name: 'Mark', role: 'admin' })), 720); ALERT_V_ = null; CacheService.getScriptCache().remove('alert_vals_v1'); alertTabVals_(); } catch (e) { Logger.log('warm home ' + e); } }
 
@@ -17063,6 +17064,7 @@ function mcDone_(who, b) {
   if (b.withdraw) { f.sh.getRange(f.row, C['Status'] + 1).setValue('withdrawn'); return { ok: true }; }
   f.sh.getRange(f.row, C['Status'] + 1).setValue('done in EFC');
   f.sh.getRange(f.row, C['EFC actioned at'] + 1, 1, 2).setValues([[new Date(), who.name]]);
+  try { movesQueue_(f.sh.getRange(f.row, C['Mobile'] + 1).getValue()); } catch (e) { Logger.log('moves queue: ' + e); } // 28 Nov 2026: spot the upgrade or downgrade within 10 minutes (queued so Done stays quick)
   try { CacheService.getScriptCache().remove('mywork_' + myFirst_(who)); } catch (e) { }
   return { ok: true };
 }
@@ -18452,8 +18454,8 @@ const CAMP = {
     5: { name: 'Superhero and Nerf Wars Day', heroes: ['Superhero outfit day', 'Nerf wars', 'All weapons'] } // 27 Nov 2026 (Mark): Nerf wars on Wednesdays and Fridays
   },
   runSheet: [['8:30', 'Staff set up'], ['9:00', 'Arrival, free play, make friends'], ['9:15', 'Welcome and rules'], ['9:30', 'Obstacle course / Olympics'],
-    ['10:00', 'Hero activity 1'], ['10:30', 'Morning tea and movie'], ['11:15', 'Game'], ['12:00', 'Hero activity 2'], ['1:00', 'Lunch and movie'],
-    ['1:45', 'Hero activity 3'], ['2:15', 'Game / challenge'], ['2:45', 'Prepare showcase'], ['2:55', 'Parent showcase / performance'], ['3:00', 'Pickup']],
+    ['10:00', 'Theme activity 1: the first of the day\'s headline activities (see Daily themes)'], ['10:30', 'Morning tea and movie'], ['11:15', 'Game'], ['12:00', 'Theme activity 2: the second headline activity'], ['1:00', 'Lunch and movie'],
+    ['1:45', 'Theme activity 3: the third headline activity'], ['2:15', 'Game / challenge'], ['2:45', 'Prepare showcase'], ['2:55', 'Parent showcase / performance'], ['3:00', 'Pickup']],
   headers: ['Booking ID', 'At', 'Status', 'Parent first', 'Parent last', 'Mobile', 'Email', 'Child', 'Age', 'Member', 'Days', 'Day count', 'Price per day', 'Total',
     'Paid at', 'Payment ref', 'Medical', 'Allergies', 'Medication', 'Pickup people', 'Emergency contact', 'Photo OK', 'Heard about', 'Notes',
     'Trial offered', 'Trial booked', 'Instructor notes', 'Follow-up stage', 'Texts', 'Source']
@@ -19590,11 +19592,13 @@ function efcUseCacheSheet_() {
   if (!sh) { sh = ss.insertSheet(EFCUSE.cache); sh.appendRow(['Member ID', 'School', 'Subscriptions', 'Updated']); sh.setFrozenRows(1); sh.hideSheet(); }
   return sh;
 }
-function efcUseRefreshSubs_(max) {
+function efcUseRefreshSubs_(max, only) { // 28 Nov 2026: 'only' = these member IDs now (Upgrades and downgrades); each refresh is compared with the last copy
   var ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
+  var WHO = {}; live.rows.forEach(function (r) { WHO[String(r[L['Member ID']])] = { student: String(r[L['Student']] || ''), parent: String(r[L['Parent']] || ''), mobile: String(r[L['Mobile']] || '') }; });
+  var found = [];
   var sh = efcUseCacheSheet_(), last = sh.getLastRow(), cur = last > 1 ? sh.getRange(2, 1, last - 1, 4).getValues() : [], at = {};
   cur.forEach(function (r, i) { at[String(r[0])] = { row: i + 2, t: r[3] ? new Date(r[3]).getTime() : 0 }; });
-  var todo = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]) }; }).filter(function (x) { return x.id && efcKey_(x.school); });
+  var todo = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]) }; }).filter(function (x) { return x.id && efcKey_(x.school) && (!only || only.indexOf(x.id) > -1); });
   todo.sort(function (a, b) { return ((at[a.id] || {}).t || 0) - ((at[b.id] || {}).t || 0); });
   todo = todo.slice(0, max);
   var bySchool = {}; todo.forEach(function (x) { (bySchool[x.school] = bySchool[x.school] || []).push(x); });
@@ -19605,11 +19609,144 @@ function efcUseRefreshSubs_(max) {
       if (res[i] == null) return;
       var act = (res[i] || []).filter(function (sb) { return !sb.cancelled && (!sb.endDate || String(sb.endDate).slice(0, 10) >= Utilities.formatDate(stamp, CONFIG.timezone, 'yyyy-MM-dd')); }).map(function (sb) { return { i: sb.id, d: String(sb.description || '').trim(), f: sb.frequency, a: sb.followingPaymentAmount }; });
       var v = [x.id, s, JSON.stringify(act), stamp];
+      var was = at[x.id] ? movesParse_(cur[at[x.id].row - 2][2]) : null;
+      if (only) found.push({ id: x.id, school: s, old: was, neu: act }); // family check: compared together below
+      else if (was && movesKey_(was) !== movesKey_(act) && famM9_((WHO[x.id] || {}).mobile)) { try { movesQueue_((WHO[x.id] || {}).mobile); } catch (e) { } return; } // changed: keep the old copy, check the whole family on the next 10-minute run
       if (at[x.id]) sh.getRange(at[x.id].row, 1, 1, 4).setValues([v]); else appendRows.push(v);
     });
   });
   if (appendRows.length) sh.getRange(sh.getLastRow() + 1, 1, appendRows.length, 4).setValues(appendRows);
+  try {
+    var P = PropertiesService.getScriptProperties(); if (!P.getProperty('MOVES_SINCE')) P.setProperty('MOVES_SINCE', String(Date.now()));
+    // 28 Nov 2026: compare the whole family (same mobile), so splitting one shared membership into one per child is not a downgrade.
+    // Students with no earlier copy at all are new joins and are left out.
+    var fam = found.filter(function (f) { return f.old; });
+    if (fam.length) { var o = [], n = [], names = []; fam.forEach(function (f) { o = o.concat(f.old); n = n.concat(f.neu); var w = WHO[f.id] || {}; if (w.student && names.indexOf(w.student) < 0) names.push(w.student); });
+      var w0 = WHO[fam[0].id] || {}; movesSpot_([{ id: fam.map(function (f) { return f.id; }).sort().join('+'), school: fam[0].school, student: names.join(' & '), parent: w0.parent, mobile: w0.mobile, old: o, neu: n }]); }
+  } catch (e) { Logger.log('moves: ' + e); }
   return todo.length;
+}
+/* 28 Nov 2026 (Mark): UPGRADES AND DOWNGRADES, spotted from EFC with no form needed.
+   Every time the hub refreshes a member's memberships from EFC (the hourly sweep in efcUseRefreshSubs_, which reaches every
+   member at least once a day, or straight after a membership change is marked "done in EFC") it compares them with the last copy.
+   More dollars a week (or more classes a week) = Upgrade, fewer = Downgrade, same money but a different plan = Switch.
+   Starting or stopping paying altogether is left to joins and cancellations. Each move is matched to a signed Membership changes
+   form for the same family mobile (last 45 days); if there isn't one it shows as "No signed agreement" to follow up.
+   Downgrades get a one-tap reason. Management only (kind 'moves'). Sends nothing to families. */
+const MOVES = { tab: 'Membership moves', formDays: 45,
+  reasons: ['Cost', 'Time or schedule', 'Too many activities', 'Injury or health', 'Losing interest', 'Moving away', 'Other'],
+  headers: ['Move ID', 'Spotted at', 'School', 'Member ID', 'Student', 'Parent', 'Mobile', 'Type', 'From', 'To', 'Weekly $ before', 'Weekly $ after',
+    'Weekly $ change', 'Classes/wk before', 'Classes/wk after', 'Form', 'Agreement', 'Reason', 'Reason by', 'Reason at', 'Checked by', 'Checked at', 'Notes'] };
+function movesSheet_() {
+  const ss = SpreadsheetApp.openById(HOLD.sheetId); let sh = ss.getSheetByName(MOVES.tab);
+  if (!sh) { sh = ss.insertSheet(MOVES.tab); sh.getRange(1, 1, 1, MOVES.headers.length).setValues([MOVES.headers]).setFontWeight('bold'); sh.setFrozenRows(1); }
+  return sh;
+}
+function movesCols_() { const C = {}; MOVES.headers.forEach(function (h, i) { C[h] = i; }); return C; }
+function movesParse_(j) { try { const a = JSON.parse(String(j || '[]')); return Array.isArray(a) ? a : null; } catch (e) { return null; } }
+function movesKey_(subs) { return subs.map(function (s) { return [String(s.d || '').trim().toLowerCase(), String(s.f || ''), Number(s.a || 0)].join('|'); }).sort().join(';'); }
+function movesWk_(subs) { // dollars a week and classes a week for a set of EFC subscriptions
+  let wk = 0, n = 0, unl = false;
+  subs.forEach(function (sb) {
+    const e = efcUsePerWeek_(sb.d, sb.a); if (e.skip) return;
+    const a = Number(sb.a || 0), f = String(sb.f || '');
+    wk += f === 'week' ? a : f === 'twoWeeks' ? a / 2 : f === 'fourWeeks' ? a / 4 : f === 'month' ? a * 12 / 52 : f === 'year' ? a / 52 : 0;
+    n += e.n; if (e.unl) unl = true;
+  });
+  return { wk: Math.round(wk * 100) / 100, n: unl ? 99 : n };
+}
+function movesLabel_(subs) {
+  return subs.map(function (s) { const f = String(s.f || ''); return String(s.d || '').trim() + ' ($' + Number(s.a || 0) + (f === 'week' ? '/wk' : f === 'twoWeeks' ? '/fortnight' : f === 'month' ? '/month' : f ? '/' + f : '') + ')'; }).join(' + ');
+}
+// found: [{ id, school, old: [subs], neu: [subs], student, parent, mobile }]
+function movesDesc_(subs) { return subs.map(function (s) { return String(s.d || '').trim().toLowerCase().replace(/\s+/g, ' '); }).sort().join(';'); }
+// Which plan types a family has (Kickstarter, Gold, BBC...), ignoring how many children and names. Same set before and after = a child joined or left, or a price change: not an upgrade or downgrade.
+function movesPlans_(subs) {
+  const K = [['kickstarter', /kick ?starter|(^|[^a-z])ks([^a-z]|$)/], ['gold', /gold/], ['unlimited', /unlimited/], ['prestige', /prestige/], ['bbc', /(^|[^a-z])bbc([^a-z]|$)|black belt club/], ['mc', /(^|[^a-z])mc([^a-z]|$)|masters? club/],
+    ['bjj', /bjj|jiu/], ['jxt', /jxt/], ['tricking', /tricking/], ['sparring', /sparring/], ['online', /online/], ['ninja', /ninja/], ['once', /once|one class|1\s*x?\s*\/?\s*(pw|wk|week)|1\s*x?\s*(tkd|adults)/], ['twice', /twice/]];
+  const o = {}; subs.forEach(function (sb) { const d = String(sb.d || '').toLowerCase(); K.forEach(function (k) { if (k[1].test(d)) o[k[0]] = 1; }); });
+  return Object.keys(o).sort().join(',');
+}
+function movesSpot_(found, note) {
+  const out = [], tz = CONFIG.timezone;
+  const sh0 = movesSheet_(), C0 = movesCols_(), l0 = sh0.getLastRow(), seen = {};
+  if (l0 > 1) sh0.getRange(2, 1, l0 - 1, MOVES.headers.length).getValues().forEach(function (r) { seen[String(r[C0['Member ID']]) + '|' + String(r[C0['To']])] = 1; });
+  found.forEach(function (x) {
+    if (!x.old.length || !x.neu.length) return; // joined or stopped paying: not an upgrade or downgrade
+    if (movesKey_(x.old) === movesKey_(x.neu)) return;
+    if (movesDesc_(x.old) === movesDesc_(x.neu)) return; // same membership, only the price moved (e.g. the yearly increase): not an upgrade or downgrade
+    if (movesPlans_(x.old) === movesPlans_(x.neu)) return; // same plan types, only the number of children changed (a child joined or left): joins and cancellations, not here
+    if (seen[x.id + '|' + movesLabel_(x.neu)]) return; // already logged
+    const b = movesWk_(x.old), a = movesWk_(x.neu), d = Math.round((a.wk - b.wk) * 100) / 100;
+    const type = Math.abs(d) >= 1 ? (d > 0 ? 'Upgrade' : 'Downgrade') : a.n > b.n ? 'Upgrade' : a.n < b.n ? 'Downgrade' : 'Switch';
+    out.push({ x: x, type: type, b: b, a: a, d: d });
+  });
+  if (!out.length) return 0;
+  // match to a Membership changes form for the same family mobile in the last 45 days
+  let forms = [];
+  try {
+    const ms = mcSheet_(), MC_ = mcCols_(), last = ms.getLastRow(), since = Date.now() - 120 * 864e5;
+    if (last > 1) forms = ms.getRange(2, 1, last - 1, MC.headers.length).getValues().filter(function (r) { const t = r[MC_['Logged at']]; return t && new Date(t).getTime() >= since && !/withdrawn/i.test(String(r[MC_['Status']])); })
+      .map(function (r) { return { id: String(r[MC_['Request ID']]), m9: famM9_(r[MC_['Mobile']]), signed: !!r[MC_['Signed at']], t: new Date(r[MC_['Logged at']]).getTime() }; });
+  } catch (e) { Logger.log('moves forms: ' + e); }
+  const sh = movesSheet_(), now = new Date(), rows = out.map(function (m, i) {
+    const when = m.x.day ? Utilities.parseDate(m.x.day, tz, 'yyyy-MM-dd') : now, wt = when.getTime();
+    const m9 = famM9_(m.x.mobile), f = forms.filter(function (z) { return m9 && z.m9 === m9 && z.t <= wt + 15 * 864e5 && z.t >= wt - MOVES.formDays * 864e5; }), sg = f.filter(function (z) { return z.signed; })[0], any = f[0];
+    const agr = sg ? 'Signed' : any ? 'Sent, not signed' : 'No signed agreement';
+    const r = MOVES.headers.map(function () { return ''; }), C = movesCols_();
+    r[C['Move ID']] = 'MV' + Utilities.formatDate(now, CONFIG.timezone, 'yyMMddHHmm') + i; r[C['Spotted at']] = when; if (note) r[C['Notes']] = note; r[C['School']] = m.x.school; r[C['Member ID']] = m.x.id;
+    r[C['Student']] = m.x.student || ''; r[C['Parent']] = m.x.parent || ''; r[C['Mobile']] = m.x.mobile || ''; r[C['Type']] = m.type;
+    r[C['From']] = movesLabel_(m.x.old); r[C['To']] = movesLabel_(m.x.neu); r[C['Weekly $ before']] = m.b.wk; r[C['Weekly $ after']] = m.a.wk; r[C['Weekly $ change']] = m.d;
+    r[C['Classes/wk before']] = m.b.n === 99 ? 'Unlimited' : m.b.n; r[C['Classes/wk after']] = m.a.n === 99 ? 'Unlimited' : m.a.n;
+    r[C['Form']] = (sg || any || {}).id || ''; r[C['Agreement']] = agr;
+    return r;
+  });
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, MOVES.headers.length).setValues(rows);
+  try { CacheService.getScriptCache().remove('moves_list'); } catch (e) { }
+  return rows.length;
+}
+// Families to check on the next 10-minute run (a check takes about a minute, too slow to make staff wait on Done)
+function movesQueue_(mobile) { const m9 = famM9_(mobile); if (!m9) return; const P = PropertiesService.getScriptProperties(); let q = []; try { q = JSON.parse(P.getProperty('MOVES_Q') || '[]'); } catch (e) { } if (q.indexOf(m9) < 0) q.push(m9); P.setProperty('MOVES_Q', JSON.stringify(q.slice(-30))); }
+function movesQueueRun_() { const P = PropertiesService.getScriptProperties(); let q = []; try { q = JSON.parse(P.getProperty('MOVES_Q') || '[]'); } catch (e) { } if (!q.length) return; const now = q.slice(0, 3); P.setProperty('MOVES_Q', JSON.stringify(q.slice(3))); now.forEach(function (m) { try { movesCheckFamily_(m); } catch (e) { Logger.log('moves check ' + e); } }); }
+// Check one family's memberships in EFC now (queued after a membership change is done in EFC, or Check EFC now on the Upgrades screen)
+function movesCheckFamily_(mobile) {
+  const m9 = famM9_(mobile); if (!m9) return 0;
+  const ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
+  const ids = live.rows.filter(function (r) { return famM9_(r[L['Mobile']]) === m9; }).map(function (r) { return String(r[L['Member ID']]); }).filter(String);
+  if (!ids.length) return 0;
+  efcUseRefreshSubs_(ids.length, ids);
+  return ids.length;
+}
+function moves_(who, b) {
+  if (!mgmtCanSee_(who)) return { ok: false, error: 'Management only.' };
+  const act = String(b.act || 'list'), sh = movesSheet_(), C = movesCols_();
+  const find = function (id) { const last = sh.getLastRow(); if (last < 2) return 0; const ids = sh.getRange(2, 1, last - 1, 1).getValues(); for (let i = ids.length - 1; i >= 0; i--) if (String(ids[i][0]) === String(id)) return i + 2; return 0; };
+  if (act === 'reason') {
+    const row = find(b.id); if (!row) return { ok: false, error: 'Not found.' };
+    const why = String(b.reason || '').slice(0, 40), note = String(b.note || '').trim().slice(0, 300);
+    sh.getRange(row, C['Reason'] + 1, 1, 3).setValues([[why, who.name, why ? new Date() : '']]);
+    if (note) { const old = String(sh.getRange(row, C['Notes'] + 1).getValue() || ''); sh.getRange(row, C['Notes'] + 1).setValue((old ? old + '\n' : '') + note + ' (' + payFirst_(who.name) + ')'); }
+    return { ok: true };
+  }
+  if (act === 'checked') {
+    const row = find(b.id); if (!row) return { ok: false, error: 'Not found.' };
+    const note = String(b.note || '').trim().slice(0, 300);
+    sh.getRange(row, C['Checked by'] + 1, 1, 2).setValues(b.undo ? [['', '']] : [[who.name, new Date()]]);
+    if (note) { const old = String(sh.getRange(row, C['Notes'] + 1).getValue() || ''); sh.getRange(row, C['Notes'] + 1).setValue((old ? old + '\n' : '') + note + ' (' + payFirst_(who.name) + ')'); }
+    return { ok: true };
+  }
+  if (act === 'recheck') { const n = movesCheckFamily_(b.mobile); return { ok: true, checked: n }; }
+  const last = sh.getLastRow(), tz = CONFIG.timezone;
+  const v = last > 1 ? sh.getRange(2, 1, last - 1, MOVES.headers.length).getValues() : [];
+  const items = v.filter(function (r) { return r[C['Move ID']]; }).map(function (r) {
+    const at = r[C['Spotted at']] ? new Date(r[C['Spotted at']]) : null;
+    return { id: String(r[C['Move ID']]), at: at ? at.getTime() : 0, when: at ? Utilities.formatDate(at, tz, 'EEE d MMM') : '', school: String(r[C['School']]), student: String(r[C['Student']]), parent: String(r[C['Parent']]),
+      mobile: String(r[C['Mobile']]), type: String(r[C['Type']]), from: String(r[C['From']]), to: String(r[C['To']]), before: Number(r[C['Weekly $ before']] || 0), after: Number(r[C['Weekly $ after']] || 0),
+      change: Number(r[C['Weekly $ change']] || 0), cb: String(r[C['Classes/wk before']]), ca: String(r[C['Classes/wk after']]), form: String(r[C['Form']]), agreement: String(r[C['Agreement']]),
+      reason: String(r[C['Reason']]), reasonBy: String(r[C['Reason by']]), checkedBy: String(r[C['Checked by']]), notes: String(r[C['Notes']]) };
+  }).reverse();
+  let since = ''; try { const s = PropertiesService.getScriptProperties().getProperty('MOVES_SINCE'); since = s ? Utilities.formatDate(new Date(+s), tz, 'd MMM yyyy') : ''; } catch (e) { }
+  return { ok: true, items: items, reasons: MOVES.reasons, schools: Object.keys(CONFIG.locations), since: since };
 }
 function efcUseBuild_() {
   var ss = SpreadsheetApp.openById(HOLD.sheetId), tz = CONFIG.timezone, now = new Date(), DAY = 864e5;
@@ -24206,7 +24343,7 @@ function amaosWrite_(b) {
   }
   return { ok: false, error: 'Not available from AMA OS yet.' };
 }
-const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq', 'camptexts', 'pnotexts']; // 27 Nov 2026: grows one feature at a time
+const AMAOS_ROUTE = ['approvals', 'apprhold', 'cxapprove', 'traindecide', 'mywork', 'mwtick', 'partyupdate', 'check', 'checksave', 'reqlist', 'reqact', 'trialopts', 'trialslots', 'trialbook', 'hubreq', 'shifts', 'failpay', 'stars', 'absvideo', 'liveatt', 'reflist', 'partyhub', 'pvlist', 'camphub', 'stocklist', 'stockmove', 'links', 'ihub', 'staff', 'trainreq', 'ppf', 'skills', 'myavail', 'epblist', 'epbtoken', 'epbnewstaff', 'epbsave', 'payroster', 'payshift', 'payshiftdel', 'payextra', 'payweek', 'payleave', 'payleaveact', 'paycover', 'paycoverset', 'paystaff', 'payclosed', 'headleave', 'holdlist', 'holdaction', 'holdextend', 'cxlist', 'cxsent', 'cxaction', 'chaselist', 'chaseaction', 'followups', 'followupdone', 'replylist', 'replydone', 'replyundo', 'nmlist', 'nmaction', 'abslist', 'absaction', 'abstext', 'abslogin', 'absnsi', 'absnsilist', 'refaction', 'trialinfo', 'trialcallback', 'trialcall24', 'trialmove', 'trialremove', 'gradelist', 'gradesave', 'gradefix', 'pvbook', 'pvstatus', 'pvavail', 'campupdate', 'campapprove', 'campswap', 'campmove', 'efcatt', 'efcchecks', 'efclive', 'efcuse', 'partylinks', 'partysettings', 'partysupplier', 'shopsales', 'shopcheckout', 'shopcancel', 'shopstatus', 'stockitem', 'trialff', 'winback', 'myday', 'todo', 'promo', 'tcresend', 'reclog', 'reclast', 'trialinfoev', 'tcabsenttext', 'camplink', 'campcash', 'printreq', 'camptexts', 'pnotexts', 'moves']; // 27 Nov 2026: grows one feature at a time
 function amaosLiveNow() { Logger.log(JSON.stringify(amaosLiveTick_())); }
 function amaosTrialsNow() { const d = hubDashboard_({ name: 'AMA OS', role: 'admin' }); CacheService.getScriptCache().remove('amaos_trh'); Logger.log(JSON.stringify(amaosTrialsPush_()) + ' | trials in hub: ' + (d.trials || []).length); }
 function amaosSyncTab_(tab) {
@@ -24340,4 +24477,63 @@ function conn_(who, b) {
     return { ok: true };
   }
   return { ok: true, list: Object.keys(CONN.keys).map(function (k) { let s = null; try { s = JSON.parse(P.getProperty(k + '_SET') || 'null'); } catch (e) { } return { name: k, label: CONN.keys[k], set: !!P.getProperty(k), at: s ? s.at : '', by: s ? s.by : '' }; }) };
+}
+
+/* 28 Nov 2026 (Mark): BACKFILL upgrades and downgrades from EFC membership history (each membership's start and end dates), from 1 Nov 2026
+   to yesterday. Run movesBackfill28Nov from the editor until the log says DONE (it picks up where it left off). Read only in EFC.
+   Changes within 14 days of each other count as one move (old membership ends, new one starts); a gap of up to 30 days between
+   memberships still counts as a change, not a cancel and rejoin. Rows are dated the day of the change and noted 'From EFC history'. */
+function movesHistory_(all, fromYmd, toYmd) {
+  const addD = function (ymd, n) { const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const subs = (all || []).map(function (sb) { const st = String(sb.startDate || '').slice(0, 10); let en = String(sb.endDate || '').slice(0, 10); if (!en && sb.cancelled && sb.cancelledOn) en = String(sb.cancelledOn).slice(0, 10); return { d: sb.description, f: sb.frequency, a: sb.followingPaymentAmount, s: st, e: en }; })
+    .filter(function (x) { return x.s && (!x.e || x.e > x.s); });
+  const at = function (day) { return subs.filter(function (x) { return x.s <= day && (!x.e || day <= x.e); }); };
+  let dates = [];
+  subs.forEach(function (x) { if (x.s >= fromYmd && x.s <= toYmd) dates.push(x.s); if (x.e) { const n = addD(x.e, 1); if (n >= fromYmd && n <= toYmd) dates.push(n); } });
+  dates = dates.filter(function (v, i, a) { return a.indexOf(v) === i; }).sort();
+  const groups = []; dates.forEach(function (d) { const g = groups[groups.length - 1]; if (g && d <= addD(g.b, 14)) g.b = d; else groups.push({ a: d, b: d }); });
+  const out = []; let lastNE = at(addD(fromYmd, -1)), lastDay = addD(fromYmd, -1);
+  groups.forEach(function (g) {
+    let before = at(addD(g.a, -1)); const after = at(g.b);
+    if (!before.length && lastNE.length && g.a <= addD(lastDay, 30)) before = lastNE;
+    if (after.length) { if (before.length) out.push({ day: g.b, old: before, neu: after }); lastNE = after; lastDay = g.b; }
+    else if (before.length) { lastNE = before; lastDay = addD(g.a, -1); }
+  });
+  return out;
+}
+function movesBackfill28Nov() {
+  const P = PropertiesService.getScriptProperties(), tz = CONFIG.timezone, t0 = Date.now();
+  const from = '2026-11-01', to = Utilities.formatDate(new Date(Date.now() - 864e5), tz, 'yyyy-MM-dd');
+  const ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
+  const mem = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]), student: String(r[L['Student']] || ''), parent: String(r[L['Parent']] || ''), mobile: String(r[L['Mobile']] || '') }; })
+    .filter(function (x) { return x.id && efcKey_(x.school); });
+  // whole families (same school and mobile), so a shared membership split into one per child is not a downgrade
+  const fams = {}, all = []; mem.forEach(function (x) { const k = x.school + '|' + (famM9_(x.mobile) || x.id); if (!fams[k]) { fams[k] = { school: x.school, parent: x.parent, mobile: x.mobile, kids: [] }; all.push(fams[k]); } fams[k].kids.push(x); });
+  let cur = +(P.getProperty('MOVES_BF_CURSOR') || 0), added = 0;
+  while (cur < all.length && Date.now() - t0 < 270000) {
+    const batch = all.slice(cur, cur + 25), by = {}, list = [];
+    batch.forEach(function (f) { (by[f.school] = by[f.school] || []).push(f); });
+    Object.keys(by).forEach(function (sc) {
+      const loc = efcLoc_(sc), fs = by[sc], ks = []; fs.forEach(function (f) { f.kids.forEach(function (k) { ks.push(k); }); });
+      const res = efcFetchMany_(sc, ks.map(function (k) { return '/version/1/locations/' + loc + '/members/' + k.id + '/subscriptions'; })), got = {};
+      ks.forEach(function (k, i) { got[k.id] = res[i]; });
+      fs.forEach(function (f) {
+        if (f.kids.some(function (k) { return !got[k.id]; })) return; // EFC did not answer for one of them: skip rather than guess
+        let subs = []; f.kids.forEach(function (k) { subs = subs.concat(got[k.id]); });
+        movesHistory_(subs, from, to).forEach(function (h) { list.push({ id: f.kids.map(function (k) { return k.id; }).sort().join('+'), school: sc, student: f.kids.map(function (k) { return k.student; }).filter(String).join(' & '), parent: f.parent, mobile: f.mobile, old: h.old, neu: h.neu, day: h.day }); });
+      });
+    });
+    if (list.length) added += movesSpot_(list, 'From EFC history (backfill)');
+    cur += batch.length; P.setProperty('MOVES_BF_CURSOR', String(cur));
+  }
+  Logger.log((cur >= all.length ? 'DONE ' : 'Progress ') + cur + ' of ' + all.length + ' families checked, ' + added + ' moves added this run');
+}
+/* 28 Nov 2026: the first backfill compared each child on their own. Move those rows to 'Membership moves archive' (kept, not deleted) and start again by family. */
+function movesBackfillReset28Nov() {
+  const sh = movesSheet_(), C = movesCols_(), last = sh.getLastRow(); if (last < 2) { PropertiesService.getScriptProperties().deleteProperty('MOVES_BF_CURSOR'); Logger.log('nothing to move'); return; }
+  const ss = SpreadsheetApp.openById(HOLD.sheetId); let arc = ss.getSheetByName('Membership moves archive'); if (!arc) { arc = ss.insertSheet('Membership moves archive'); arc.appendRow(['Moved at'].concat(MOVES.headers)); }
+  const v = sh.getRange(2, 1, last - 1, MOVES.headers.length).getValues(); let moved = 0;
+  for (let i = v.length - 1; i >= 0; i--) if (/From EFC history/.test(String(v[i][C['Notes']])) && !v[i][C['Reason']] && !v[i][C['Checked by']]) { arc.appendRow([new Date()].concat(v[i])); sh.deleteRow(i + 2); moved++; }
+  PropertiesService.getScriptProperties().deleteProperty('MOVES_BF_CURSOR');
+  Logger.log('Moved ' + moved + ' rows to the archive tab; backfill will start again from the first family');
 }

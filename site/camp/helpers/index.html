@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holiday Camp Helpers · AMA</title>
+<script src="/config.js"></script>
+<style>
+  :root { --g:#1b5e20; --g2:#2e7d32; --gold:#f9a825; --ink:#1b2320; --mut:#5b6660; --line:#e2e7e3; --bg:#f4f6f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--g); color:#fff; padding:18px 20px; }
+  header h1 { margin:0; font-size:19px; font-weight:600; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.85; }
+  main { max-width:620px; margin:0 auto; padding:20px 16px 48px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin:14px 0; }
+  .note { color:var(--mut); font-size:13px; margin:6px 0 0; }
+  input[type=search],input[type=text] { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px; font-size:16px; }
+  .names button { display:block; width:100%; text-align:left; padding:12px; border:1px solid var(--line); background:#fff; border-radius:10px; margin:8px 0; font-size:15px; cursor:pointer; }
+  .names button:hover { border-color:var(--g2); }
+  .hi { font-size:17px; font-weight:600; margin:0 0 2px; }
+  .slot { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); border-radius:12px; margin:10px 0; }
+  .slot.on { border-color:var(--g2); background:#f1f8f2; }
+  .slot .box { width:22px; height:22px; border:2px solid var(--mut); border-radius:6px; flex:0 0 auto; display:grid; place-items:center; color:#fff; font-size:14px; }
+  .slot.on .box { background:var(--g2); border-color:var(--g2); }
+  .slot.full .box { border-color:var(--line); }
+  .slot .d { font-weight:600; font-size:15px; }
+  .slot .s { color:var(--mut); font-size:13px; margin-top:2px; }
+  .slot .cap { margin-left:auto; color:var(--mut); font-size:13px; text-align:right; flex:0 0 auto; }
+  .slot.full { opacity:.7; }
+  .slot[disabled] { pointer-events:none; }
+  .muted { color:var(--mut); font-size:13px; }
+  .err { color:#c62828; font-size:14px; }
+  .btn { display:inline-block; background:var(--g); color:#fff; border:0; border-radius:10px; padding:11px 16px; font-size:15px; cursor:pointer; }
+  .link { color:var(--g2); background:none; border:0; padding:0; font-size:14px; cursor:pointer; text-decoration:underline; }
+  .saving { font-size:12px; color:var(--mut); }
+</style>
+</head>
+<body>
+<header><h1>Holiday Camp — Helper availability</h1><p>Tick the camp slots you can help at.</p></header>
+<main id="app"><p class="muted">Loading…</p></main>
+<script>
+(function () {
+  var C = window.AMAOS_CONFIG || {};
+  var FN = C.supabaseUrl + '/functions/v1/amaos-camphelp';
+  var app = document.getElementById('app');
+  function api(body) {
+    return fetch(FN, { method:'POST', headers:{ 'content-type':'application/json', apikey:C.supabaseAnonKey }, body:JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function(){ return { ok:false, error:'Network error' }; }); });
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmtDate(d){ try { return new Date(d+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}); } catch(e){ return d; } }
+  function sessLabel(s){ return s==='am'?'Morning':s==='pm'?'Afternoon':s==='all'?'':s; }
+
+  var rawHash = decodeURIComponent((location.hash||'').replace(/^#/,''));
+  var isToken = /^[A-Za-z0-9_-]{8,72}$/.test(rawHash) && rawHash !== 'join';
+  var token = isToken ? rawHash : '';
+
+  function showSearch(msg) {
+    app.innerHTML = '<div class="card"><p class="hi">Find your name</p>'
+      + '<p class="note">Start typing your name to pick the camp slots you can help at.</p>'
+      + '<input id="q" type="search" autocomplete="off" placeholder="Your name">'
+      + (msg?'<p class="err">'+esc(msg)+'</p>':'')
+      + '<div class="names" id="names"></div></div>';
+    var q = document.getElementById('q'), names = document.getElementById('names'), t;
+    q.focus();
+    q.addEventListener('input', function () {
+      clearTimeout(t); var v = q.value.trim();
+      if (v.length < 2) { names.innerHTML = ''; return; }
+      t = setTimeout(function () {
+        api({ act:'find', q:v }).then(function (j) {
+          var list = (j && j.list) || [];
+          if (!list.length) { names.innerHTML = '<p class="muted">No match. Check the spelling, or ask for your personal link.</p>'; return; }
+          names.innerHTML = list.map(function (h) { return '<button data-id="'+h.helper_id+'">'+esc(h.full_name)+'</button>'; }).join('');
+          Array.prototype.forEach.call(names.querySelectorAll('button'), function (b) {
+            b.onclick = function () {
+              api({ act:'link', helper_id:b.getAttribute('data-id') }).then(function (r) {
+                if (r && r.ok && r.token) { token = r.token; location.hash = r.token; loadMe(); }
+                else showSearch('Could not open that. Try again.');
+              });
+            };
+          });
+        });
+      }, 220);
+    });
+  }
+
+  function loadMe() {
+    app.innerHTML = '<p class="muted">Loading…</p>';
+    api({ act:'me', token:token }).then(function (j) {
+      if (!j || !j.ok) { token=''; location.hash=''; showSearch(j && j.error); return; }
+      render(j);
+    });
+  }
+
+  function render(j) {
+    var slots = j.slots || [];
+    var head = '<div class="card"><p class="hi">Hi '+esc(j.name)+'</p>'
+      + '<p class="note">Tap a slot to put your hand up. Tap again to take it back. Saved automatically. '
+      + '<button class="link" id="notme">Not you?</button></p></div>';
+    var body;
+    if (!slots.length) { body = '<div class="card"><p class="muted">No camp slots are open yet. Check back soon.</p></div>'; }
+    else {
+      body = '<div class="card">' + slots.map(function (s) {
+        var full = !s.booked && s.count >= s.cap;
+        var cls = 'slot' + (s.booked?' on':'') + (full?' full':'');
+        var sub = [sessLabel(s.session), s.location].filter(Boolean).join(' · ');
+        return '<div class="'+cls+'" data-id="'+s.slot_id+'"'+(full?' data-full="1"':'')+'>'
+          + '<div class="box">'+(s.booked?'&#10003;':'')+'</div>'
+          + '<div><div class="d">'+(s.label?esc(s.label):fmtDate(s.slot_date))+'</div>'+(sub?'<div class="s">'+esc(sub)+'</div>':'')+'</div>'
+          + '<div class="cap">'+(full&&!s.booked?'Full':(s.count+'/'+s.cap))+'</div></div>';
+      }).join('') + '</div>';
+    }
+    app.innerHTML = head + body + '<p class="saving" id="save"></p>';
+    document.getElementById('notme').onclick = function(){ token=''; location.hash=''; showSearch(); };
+    Array.prototype.forEach.call(app.querySelectorAll('.slot'), function (el) {
+      el.onclick = function () {
+        var id = el.getAttribute('data-id'); var on = el.classList.contains('on');
+        if (!on && el.getAttribute('data-full')) return;
+        var save = document.getElementById('save'); save.textContent = 'Saving…';
+        api({ act: on?'unbook':'book', token:token, slot_id:id }).then(function (r) {
+          if (r && r.ok) { save.textContent='Saved'; setTimeout(function(){ save.textContent=''; },900); loadMe(); }
+          else { save.textContent=''; alert((r&&r.error)||'Could not save'); loadMe(); }
+        });
+      };
+    });
+  }
+
+  if (!C.supabaseUrl) { app.innerHTML = '<p class="err">Config missing.</p>'; return; }
+  if (token) loadMe(); else showSearch();
+  window.addEventListener('hashchange', function(){ var h=decodeURIComponent((location.hash||'').replace(/^#/,'')); if(/^[A-Za-z0-9_-]{8,72}$/.test(h)&&h!=='join'){ token=h; loadMe(); } });
+})();
+</script>
+</body>
+</html>
