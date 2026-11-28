@@ -19660,6 +19660,13 @@ function movesLabel_(subs) {
 }
 // found: [{ id, school, old: [subs], neu: [subs], student, parent, mobile }]
 function movesDesc_(subs) { return subs.map(function (s) { return String(s.d || '').trim().toLowerCase().replace(/\s+/g, ' '); }).sort().join(';'); }
+// Which plan types a family has (Kickstarter, Gold, BBC...), ignoring how many children and names. Same set before and after = a child joined or left, or a price change: not an upgrade or downgrade.
+function movesPlans_(subs) {
+  const K = [['kickstarter', /kick ?starter|(^|[^a-z])ks([^a-z]|$)/], ['gold', /gold/], ['unlimited', /unlimited/], ['prestige', /prestige/], ['bbc', /(^|[^a-z])bbc([^a-z]|$)|black belt club/], ['mc', /(^|[^a-z])mc([^a-z]|$)|masters? club/],
+    ['bjj', /bjj|jiu/], ['jxt', /jxt/], ['tricking', /tricking/], ['sparring', /sparring/], ['online', /online/], ['ninja', /ninja/], ['once', /once|one class|1\s*x?\s*\/?\s*(pw|wk|week)|1\s*x?\s*(tkd|adults)/], ['twice', /twice/]];
+  const o = {}; subs.forEach(function (sb) { const d = String(sb.d || '').toLowerCase(); K.forEach(function (k) { if (k[1].test(d)) o[k[0]] = 1; }); });
+  return Object.keys(o).sort().join(',');
+}
 function movesSpot_(found, note) {
   const out = [], tz = CONFIG.timezone;
   const sh0 = movesSheet_(), C0 = movesCols_(), l0 = sh0.getLastRow(), seen = {};
@@ -19668,6 +19675,7 @@ function movesSpot_(found, note) {
     if (!x.old.length || !x.neu.length) return; // joined or stopped paying: not an upgrade or downgrade
     if (movesKey_(x.old) === movesKey_(x.neu)) return;
     if (movesDesc_(x.old) === movesDesc_(x.neu)) return; // same membership, only the price moved (e.g. the yearly increase): not an upgrade or downgrade
+    if (movesPlans_(x.old) === movesPlans_(x.neu)) return; // same plan types, only the number of children changed (a child joined or left): joins and cancellations, not here
     if (seen[x.id + '|' + movesLabel_(x.neu)]) return; // already logged
     const b = movesWk_(x.old), a = movesWk_(x.neu), d = Math.round((a.wk - b.wk) * 100) / 100;
     const type = Math.abs(d) >= 1 ? (d > 0 ? 'Upgrade' : 'Downgrade') : a.n > b.n ? 'Upgrade' : a.n < b.n ? 'Downgrade' : 'Switch';
