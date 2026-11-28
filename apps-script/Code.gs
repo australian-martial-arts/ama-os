@@ -19609,12 +19609,21 @@ function efcUseRefreshSubs_(max, only) { // 28 Nov 2026: 'only' = these member I
       if (res[i] == null) return;
       var act = (res[i] || []).filter(function (sb) { return !sb.cancelled && (!sb.endDate || String(sb.endDate).slice(0, 10) >= Utilities.formatDate(stamp, CONFIG.timezone, 'yyyy-MM-dd')); }).map(function (sb) { return { i: sb.id, d: String(sb.description || '').trim(), f: sb.frequency, a: sb.followingPaymentAmount }; });
       var v = [x.id, s, JSON.stringify(act), stamp];
-      if (at[x.id]) { var was = movesParse_(cur[at[x.id].row - 2][2]); if (was) found.push({ id: x.id, school: s, old: was, neu: act, student: (WHO[x.id] || {}).student, parent: (WHO[x.id] || {}).parent, mobile: (WHO[x.id] || {}).mobile }); }
+      var was = at[x.id] ? movesParse_(cur[at[x.id].row - 2][2]) : null;
+      if (only) found.push({ id: x.id, school: s, old: was, neu: act }); // family check: compared together below
+      else if (was && movesKey_(was) !== movesKey_(act) && famM9_((WHO[x.id] || {}).mobile)) { try { movesQueue_((WHO[x.id] || {}).mobile); } catch (e) { } return; } // changed: keep the old copy, check the whole family on the next 10-minute run
       if (at[x.id]) sh.getRange(at[x.id].row, 1, 1, 4).setValues([v]); else appendRows.push(v);
     });
   });
   if (appendRows.length) sh.getRange(sh.getLastRow() + 1, 1, appendRows.length, 4).setValues(appendRows);
-  try { var P = PropertiesService.getScriptProperties(); if (!P.getProperty('MOVES_SINCE')) P.setProperty('MOVES_SINCE', String(Date.now())); if (found.length) movesSpot_(found); } catch (e) { Logger.log('moves: ' + e); }
+  try {
+    var P = PropertiesService.getScriptProperties(); if (!P.getProperty('MOVES_SINCE')) P.setProperty('MOVES_SINCE', String(Date.now()));
+    // 28 Nov 2026: compare the whole family (same mobile), so splitting one shared membership into one per child is not a downgrade.
+    // Students with no earlier copy at all are new joins and are left out.
+    var fam = found.filter(function (f) { return f.old; });
+    if (fam.length) { var o = [], n = [], names = []; fam.forEach(function (f) { o = o.concat(f.old); n = n.concat(f.neu); var w = WHO[f.id] || {}; if (w.student && names.indexOf(w.student) < 0) names.push(w.student); });
+      var w0 = WHO[fam[0].id] || {}; movesSpot_([{ id: fam.map(function (f) { return f.id; }).sort().join('+'), school: fam[0].school, student: names.join(' & '), parent: w0.parent, mobile: w0.mobile, old: o, neu: n }]); }
+  } catch (e) { Logger.log('moves: ' + e); }
   return todo.length;
 }
 /* 28 Nov 2026 (Mark): UPGRADES AND DOWNGRADES, spotted from EFC with no form needed.
@@ -24488,18 +24497,35 @@ function movesBackfill28Nov() {
   const P = PropertiesService.getScriptProperties(), tz = CONFIG.timezone, t0 = Date.now();
   const from = '2026-11-01', to = Utilities.formatDate(new Date(Date.now() - 864e5), tz, 'yyyy-MM-dd');
   const ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
-  const all = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]), student: String(r[L['Student']] || ''), parent: String(r[L['Parent']] || ''), mobile: String(r[L['Mobile']] || '') }; })
+  const mem = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]), student: String(r[L['Student']] || ''), parent: String(r[L['Parent']] || ''), mobile: String(r[L['Mobile']] || '') }; })
     .filter(function (x) { return x.id && efcKey_(x.school); });
+  // whole families (same school and mobile), so a shared membership split into one per child is not a downgrade
+  const fams = {}, all = []; mem.forEach(function (x) { const k = x.school + '|' + (famM9_(x.mobile) || x.id); if (!fams[k]) { fams[k] = { school: x.school, parent: x.parent, mobile: x.mobile, kids: [] }; all.push(fams[k]); } fams[k].kids.push(x); });
   let cur = +(P.getProperty('MOVES_BF_CURSOR') || 0), added = 0;
   while (cur < all.length && Date.now() - t0 < 270000) {
-    const batch = all.slice(cur, cur + 50), by = {}, list = [];
-    batch.forEach(function (x) { (by[x.school] = by[x.school] || []).push(x); });
+    const batch = all.slice(cur, cur + 25), by = {}, list = [];
+    batch.forEach(function (f) { (by[f.school] = by[f.school] || []).push(f); });
     Object.keys(by).forEach(function (sc) {
-      const loc = efcLoc_(sc), xs = by[sc], res = efcFetchMany_(sc, xs.map(function (x) { return '/version/1/locations/' + loc + '/members/' + x.id + '/subscriptions'; }));
-      xs.forEach(function (x, i) { if (!res[i]) return; movesHistory_(res[i], from, to).forEach(function (h) { list.push({ id: x.id, school: sc, student: x.student, parent: x.parent, mobile: x.mobile, old: h.old, neu: h.neu, day: h.day }); }); });
+      const loc = efcLoc_(sc), fs = by[sc], ks = []; fs.forEach(function (f) { f.kids.forEach(function (k) { ks.push(k); }); });
+      const res = efcFetchMany_(sc, ks.map(function (k) { return '/version/1/locations/' + loc + '/members/' + k.id + '/subscriptions'; })), got = {};
+      ks.forEach(function (k, i) { got[k.id] = res[i]; });
+      fs.forEach(function (f) {
+        if (f.kids.some(function (k) { return !got[k.id]; })) return; // EFC did not answer for one of them: skip rather than guess
+        let subs = []; f.kids.forEach(function (k) { subs = subs.concat(got[k.id]); });
+        movesHistory_(subs, from, to).forEach(function (h) { list.push({ id: f.kids.map(function (k) { return k.id; }).sort().join('+'), school: sc, student: f.kids.map(function (k) { return k.student; }).filter(String).join(' & '), parent: f.parent, mobile: f.mobile, old: h.old, neu: h.neu, day: h.day }); });
+      });
     });
     if (list.length) added += movesSpot_(list, 'From EFC history (backfill)');
     cur += batch.length; P.setProperty('MOVES_BF_CURSOR', String(cur));
   }
-  Logger.log((cur >= all.length ? 'DONE ' : 'Progress ') + cur + ' of ' + all.length + ' members checked, ' + added + ' moves added this run');
+  Logger.log((cur >= all.length ? 'DONE ' : 'Progress ') + cur + ' of ' + all.length + ' families checked, ' + added + ' moves added this run');
+}
+/* 28 Nov 2026: the first backfill compared each child on their own. Move those rows to 'Membership moves archive' (kept, not deleted) and start again by family. */
+function movesBackfillReset28Nov() {
+  const sh = movesSheet_(), C = movesCols_(), last = sh.getLastRow(); if (last < 2) { PropertiesService.getScriptProperties().deleteProperty('MOVES_BF_CURSOR'); Logger.log('nothing to move'); return; }
+  const ss = SpreadsheetApp.openById(HOLD.sheetId); let arc = ss.getSheetByName('Membership moves archive'); if (!arc) { arc = ss.insertSheet('Membership moves archive'); arc.appendRow(['Moved at'].concat(MOVES.headers)); }
+  const v = sh.getRange(2, 1, last - 1, MOVES.headers.length).getValues(); let moved = 0;
+  for (let i = v.length - 1; i >= 0; i--) if (/From EFC history/.test(String(v[i][C['Notes']])) && !v[i][C['Reason']] && !v[i][C['Checked by']]) { arc.appendRow([new Date()].concat(v[i])); sh.deleteRow(i + 2); moved++; }
+  PropertiesService.getScriptProperties().deleteProperty('MOVES_BF_CURSOR');
+  Logger.log('Moved ' + moved + ' rows to the archive tab; backfill will start again from the first family');
 }
