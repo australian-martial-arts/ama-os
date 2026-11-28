@@ -731,7 +731,7 @@
     function drawCamp() {
       var el = $('tabCamp'), j = CPV.d; if (!j || !j.ok) { el.innerHTML = '<h2 class="sec">Holiday camp</h2><p class="msg err">' + esc((j && j.error) || 'Could not load.') + '</p>'; return; }
       var T = j.totals || {}, h = '<h2 class="sec">Holiday camp</h2><p class="note">' + (j.live ? '' : 'Test mode: bookings shown are tests and parents are not sent anything. ') + (T.children || 0) + ' children, ' + (T.paid || 0) + ' paid, ' + (T.nonMembers || 0) + ' non-members · ' + (T.places || 0) + ' of ' + (T.capacity || 0) + ' child-days booked. Moving bookings, money and refunds: <a href="' + HUB_URL + '#camp" target="_blank" rel="noopener">hub &#8599;</a></p>' +
-        '<div class="chips">' + [['days', 'Days'], ['book', 'Bookings'], ['link', 'Booking link'], ['roster', 'Staff roster'], ['follow', 'Follow-ups']].map(function (t) { return '<button type="button" class="chip" data-cpt="' + t[0] + '" aria-pressed="' + (CPV.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>';
+        '<div class="chips">' + [['days', 'Days'], ['book', 'Bookings'], ['link', 'Booking link'], ['roster', 'Staff roster'], ['follow', 'Follow-ups'], ['helpers', 'Helpers']].map(function (t) { return '<button type="button" class="chip" data-cpt="' + t[0] + '" aria-pressed="' + (CPV.tab === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>';
       if (CPV.tab === 'days') h += (j.days || []).map(function (d) {
         return '<details class="row"><summary><span class="a">' + esc(d.label || d.date) + (d.theme ? ' · ' + esc(d.theme) : '') + '</span><span class="b">' + d.count + ' booked · ' + d.left + ' left · staff ' + (d.staffAvailable || []).length + '/' + d.staffNeeded + (d.gap ? ' (need ' + d.gap + ' more)' : '') + '</span>' + (d.alerts ? '<span class="c st" style="color:var(--err)">' + d.alerts + ' medical</span>' : '') + '</summary>' +
           (d.kids || []).map(function (k) { return '<div style="padding:8px 0;border-top:1px solid var(--line)"><b>' + esc(k.child) + '</b> <span class="tsum">' + esc([k.age ? 'age ' + k.age : '', k.member === 'No' ? 'not a member' : 'member', k.status].filter(Boolean).join(' · ')) + '</span>' +
@@ -752,6 +752,7 @@
             g.staff.map(function (s) { return '<tr><td style="white-space:nowrap' + (s.replied ? '' : ';opacity:.55') + '">' + esc(s.name) + (s.replied ? '' : ' (no reply)') + '</td><td>' + s.count + '</td>' + s.days.map(function (v, di) { return '<td style="text-align:center' + (j.rosterAdmin ? ';cursor:pointer' : '') + (v === 2 ? ';background:var(--chip-on);color:#111;font-weight:700' : '') + '" data-cpa="' + s.id + '|' + g.days[di].date + '|' + v + '">' + (v === 2 ? '★' : v ? '✓' : '·') + '</td>'; }).join('') + '</tr>'; }).join('') +
             [['Kids booked', function (d) { return (info[d.date] || {}).count || 0; }], ['Staff needed', function (d) { return (info[d.date] || {}).staffNeeded || 0; }], ['Approved', function (d) { return apN[d.date] || 0; }], ['Gap', function (d) { var gp = ((info[d.date] || {}).staffNeeded || 0) - (apN[d.date] || 0); return gp > 0 ? '<b style="color:var(--err)">-' + gp + '</b>' : '✓'; }]].map(function (r) { return '<tr><td><b>' + r[0] + '</b></td><td></td>' + g.days.map(function (d) { return '<td style="text-align:center">' + r[1](d) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div><div id="cpSw"></div><p class="tmsg note" id="cpMsg"></p>' +
             ((j.rosterLog || []).length ? '<div class="tday" style="margin-top:12px">Roster changes</div><p class="note">' + (j.staffTextsOn ? 'Staff are texted automatically when you change the roster.' : 'Automatic texts to staff are off until Mark approves the wording.') + '</p>' + j.rosterLog.slice(0, 20).map(function (x) { return '<p class="tsum" style="margin:4px 0">' + esc(x.at) + ' · ' + esc(x.by) + ': ' + esc(x.change) + (x.other ? ' (' + esc(x.other) + ')' : '') + ' · ' + esc(x.staff) + ' · ' + esc(x.day) + '</p>'; }).join('') : ''); } }
+      else if (CPV.tab === 'helpers') { h += '<div id="cphWrap"><p class="note">Loading\u2026</p></div>'; }
       else { var seen = {}, list = []; (j.days || []).forEach(function (d) { (d.kids || []).forEach(function (k) { if (seen[k.row]) return; seen[k.row] = 1; list.push(k); }); });
         var stages = ['', 'Same day: showcase chat', 'Next day: call/text', 'Trial booked', 'Trial done', 'Joined', '14-touch nurture', 'Not interested'];
         h += '<p class="note">Non-members first. After each camp day the instructor adds a note about the child, then the front desk follows the stages: same day, next day, trial, join.</p>' + list.sort(function (a, b) { return (a.member === 'No' ? 0 : 1) - (b.member === 'No' ? 0 : 1); }).map(function (k) {
@@ -759,6 +760,7 @@
             '<div class="bkf"><label>Instructor notes</label><textarea rows="2" data-f="Instructor notes">' + esc(k.instructor || '') + '</textarea><label>Trial offered (date)</label><input data-f="Trial offered" value="' + esc(k.trialOffered || '') + '"><label>Trial booked (date and class)</label><input data-f="Trial booked" value="' + esc(k.trial || '') + '"><label>Stage</label><select data-f="Follow-up stage">' + stages.map(function (s) { return '<option' + (s === (k.stage || '') ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div><button type="button" class="chip cps" style="margin-top:6px">Save</button><p class="tmsg note"></p></div>'; }).join('') || '<div class="box"><p>No bookings yet.</p></div>'; }
       el.innerHTML = h;
       Array.prototype.forEach.call(el.querySelectorAll('[data-cpt]'), function (b) { b.onclick = function () { CPV.tab = b.dataset.cpt; drawCamp(); }; });
+      if (CPV.tab === 'helpers') loadCampHelpers();
       Array.prototype.forEach.call(el.querySelectorAll('.cps'), function (b) { b.onclick = function () { var c = b.closest('.cpf'), m = c.querySelector('.tmsg'), set = {}; Array.prototype.forEach.call(c.querySelectorAll('[data-f]'), function (i) { set[i.dataset.f] = i.value; }); b.disabled = true; m.textContent = 'Saving…';
         hubAct({ kind: 'campupdate', row: +c.dataset.row, set: set }).then(function (r) { b.disabled = false; m.textContent = r && r.ok ? 'Saved.' : ((r && r.error) || 'Not saved.'); }); }; });
       Array.prototype.forEach.call(el.querySelectorAll('.cpcash'), function (b) { b.onclick = function () { if (!confirm('Mark booking ' + b.dataset.id + ' as paid in cash?')) return; var m = b.nextElementSibling; b.disabled = true; m.textContent = 'Saving…';
@@ -781,6 +783,43 @@
         $('cpRm').onclick = function () { if (!confirm('Remove ' + me.name + ' from ' + lbl + '?')) return; hubAct({ kind: 'campapprove', emp: emp, day: day, on: false }).then(done); };
         $('cpSwGo').onclick = function () { var to = +$('cpIn').value; if (!to) return; hubAct({ kind: 'campswap', out: emp, 'in': to, day: day }).then(done); };
       }; });
+    }
+    /* Camp helpers (preview; management): helpers book which camp days they can do, via a personal link or the shared link. Backend amaos-camphelp. */
+    var CPH = { slots: [], helpers: [] };
+    function cphLink(suffix){ return location.origin + '/camp/helpers/' + (suffix||''); }
+    function loadCampHelpers(){
+      var wrap = $('cphWrap'); if (!wrap) return;
+      Promise.all([ api('amaos-camphelp',{act:'admin_slots'}), api('amaos-camphelp',{act:'admin_helpers'}) ]).then(function(res){
+        var sj=res[0], hj=res[1];
+        if (!sj || !sj.ok){ wrap.innerHTML = '<p class="msg err">'+esc((sj&&sj.error)||'Could not load helpers.')+'</p>'; return; }
+        CPH.slots = sj.slots||[]; CPH.helpers = (hj&&hj.helpers)||[]; drawCampHelpers();
+      });
+    }
+    function drawCampHelpers(){
+      var wrap=$('cphWrap'); if(!wrap) return;
+      var days=(CPV.d&&CPV.d.days)||[];
+      var h='<p class="note">Helpers tick the camp days they can help at. Shared link: <a href="'+esc(cphLink('#join'))+'" target="_blank" rel="noopener">'+esc(cphLink('#join'))+'</a></p>';
+      h+='<button type="button" class="btn" id="cphGen" style="width:auto;padding:8px 14px">Generate slots from the '+days.length+' camp day'+(days.length===1?'':'s')+'</button> <span id="cphGenMsg" class="tsum"></span>';
+      h+='<div class="tday" style="margin-top:12px">Slots</div>';
+      h+= CPH.slots.length ? CPH.slots.map(function(s){
+          return '<div class="box" style="margin:6px 0" data-sid="'+s.slot_id+'"><b>'+esc(s.label||nice(s.slot_date))+'</b> <span class="tsum">'+esc(s.session==='all'?'':s.session)+' \u00b7 '+s.count+'/'+s.cap+'</span> '
+            +'<button type="button" class="chip cphTg">'+(s.is_open?'Close':'Open')+'</button> <button type="button" class="chip cphDel">Delete</button></div>';
+        }).join('') : '<p class="tsum">No slots yet \u2014 use Generate, or add them on the camp days.</p>';
+      h+='<div class="tday" style="margin-top:12px">Helpers</div>';
+      h+='<div class="bkf"><input id="cphName" placeholder="Add helper name"><input id="cphMob" placeholder="Mobile (optional)"><button type="button" class="btn" id="cphAdd" style="width:auto;padding:8px 14px">Add</button></div>';
+      h+= CPH.helpers.map(function(x){
+          return '<div class="box" style="margin:6px 0" data-hid="'+x.helper_id+'"><b>'+esc(x.full_name)+'</b> <span class="tsum">'+x.slots+' slot'+(x.slots===1?'':'s')+(x.active?'':' \u00b7 off')+'</span> '
+            +'<button type="button" class="chip cphCopy" data-tok="'+esc(x.token)+'">Copy link</button></div>';
+        }).join('');
+      wrap.innerHTML=h;
+      $('cphGen').onclick=function(){ var dd=(CPV.d&&CPV.d.days)||[]; if(!dd.length){ $('cphGenMsg').textContent='No camp days loaded.'; return; }
+        $('cphGen').disabled=true; $('cphGenMsg').textContent='Working\u2026';
+        api('amaos-camphelp',{act:'admin_gen', days: dd.map(function(d){ return { slot_date:d.date, label:(d.theme||d.label||'') }; })}).then(function(r){
+          $('cphGen').disabled=false; $('cphGenMsg').textContent = r&&r.ok ? ('Added '+r.added+(r.skipped?(', '+r.skipped+' already there'):'')) : ((r&&r.error)||'Failed'); if(r&&r.ok) loadCampHelpers(); }); };
+      $('cphAdd').onclick=function(){ var n=$('cphName').value.trim(); if(!n) return; api('amaos-camphelp',{act:'admin_helper_set', full_name:n, mobile:$('cphMob').value.trim()}).then(function(r){ if(r&&r.ok) loadCampHelpers(); }); };
+      Array.prototype.forEach.call(wrap.querySelectorAll('.cphCopy'),function(bn){ bn.onclick=function(){ try{ navigator.clipboard.writeText(cphLink('#'+bn.dataset.tok)); bn.textContent='Copied'; setTimeout(function(){bn.textContent='Copy link';},1000);}catch(e){} }; });
+      Array.prototype.forEach.call(wrap.querySelectorAll('.cphTg'),function(bn){ bn.onclick=function(){ var id=bn.closest('[data-sid]').dataset.sid, s=CPH.slots.filter(function(x){return x.slot_id===id;})[0]; api('amaos-camphelp',{act:'admin_slot_set',slot_id:id,slot_date:s.slot_date,session:s.session,location:s.location,label:s.label,cap:s.cap,is_open:!s.is_open,sort:s.sort}).then(function(r){ if(r&&r.ok) loadCampHelpers(); }); }; });
+      Array.prototype.forEach.call(wrap.querySelectorAll('.cphDel'),function(bn){ bn.onclick=function(){ var id=bn.closest('[data-sid]').dataset.sid; if(!confirm('Delete this slot and its sign-ups?')) return; api('amaos-camphelp',{act:'admin_slot_del',slot_id:id}).then(function(r){ if(r&&r.ok) loadCampHelpers(); }); }; });
     }
     /* Shop and stock (preview): stock at each school, low items flagged; record sold, received, moved or counted (the hub's stock log). */
     var SK = { loc: 'Marrickville' };
