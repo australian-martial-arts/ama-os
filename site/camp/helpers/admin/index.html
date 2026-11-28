@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camp Helpers · Admin · AMA OS</title>
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+<style>
+  :root { --g:#1b5e20; --g2:#2e7d32; --gold:#f9a825; --ink:#1b2320; --mut:#5b6660; --line:#e2e7e3; --bg:#f4f6f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--g); color:#fff; padding:16px 20px; display:flex; align-items:center; gap:10px; }
+  header h1 { margin:0; font-size:17px; font-weight:600; }
+  main { max-width:860px; margin:0 auto; padding:18px 16px 56px; }
+  .tabs { display:flex; gap:8px; margin:0 0 14px; flex-wrap:wrap; }
+  .tabs button { padding:8px 14px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:14px; cursor:pointer; }
+  .tabs button.on { background:var(--g); color:#fff; border-color:var(--g); }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin:12px 0; }
+  h2.sec { font-size:16px; margin:0 0 4px; }
+  .note { color:var(--mut); font-size:13px; margin:2px 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { text-align:left; padding:8px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--mut); font-weight:600; font-size:12px; text-transform:none; }
+  input,select { padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
+  input[type=number]{ width:64px; }
+  .btn { background:var(--g); color:#fff; border:0; border-radius:9px; padding:8px 13px; font-size:14px; cursor:pointer; }
+  .btn.sm { padding:5px 10px; font-size:13px; }
+  .btn.ghost { background:#fff; color:var(--g); border:1px solid var(--g2); }
+  .btn.warn { background:#fff; color:#c62828; border:1px solid #e0b4b4; }
+  .pill { font-size:12px; padding:2px 8px; border-radius:999px; background:#eef2ef; color:var(--mut); }
+  .pill.open { background:#e7f3e9; color:var(--g); }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .muted { color:var(--mut); font-size:13px; }
+  .share { display:flex; gap:8px; align-items:center; background:#f1f8f2; border:1px solid #cfe3d3; border-radius:10px; padding:10px 12px; font-size:13px; }
+  .share code { font-family:ui-monospace,Menlo,monospace; font-size:12px; word-break:break-all; }
+  .err { color:#c62828; }
+  .ok { color:var(--g); font-size:12px; }
+  .hide { display:none; }
+</style>
+</head>
+<body>
+<header><h1>Camp Helpers — Admin</h1></header>
+<main id="app"><p class="muted">Checking your sign-in…</p></main>
+<script>
+(function () {
+  var C = window.AMAOS_CONFIG || {};
+  var FN = C.supabaseUrl + '/functions/v1/amaos-camphelp';
+  var BASE = location.origin + '/camp/helpers/';
+  var app = document.getElementById('app');
+  var sb = window.supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth:{ persistSession:true, detectSessionInUrl:true } });
+  var TOKEN = '';
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmtDate(d){ try { return new Date(d+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}); } catch(e){ return d; } }
+  function sessName(s){ return s==='am'?'Morning':s==='pm'?'Afternoon':s==='all'?'Whole day':s; }
+  function api(body){
+    return fetch(FN,{ method:'POST', headers:{ 'content-type':'application/json', apikey:C.supabaseAnonKey, Authorization:'Bearer '+TOKEN }, body:JSON.stringify(body) })
+      .then(function(r){ return r.json().catch(function(){ return {ok:false,error:'Network error'}; }); });
+  }
+  function copy(text, el){ navigator.clipboard.writeText(text).then(function(){ if(el){ var o=el.textContent; el.textContent='Copied'; setTimeout(function(){el.textContent=o;},1000);} }); }
+
+  var tab = 'slots';
+  function shell(){
+    app.innerHTML =
+      '<div class="share">Shared link: <code>'+esc(BASE)+'#join</code> <button class="btn sm ghost" id="cpShare">Copy</button>'
+      + '<span class="muted">— helpers search their name here</span></div>'
+      + '<div class="tabs">'
+      + '<button data-t="slots" class="'+(tab==='slots'?'on':'')+'">Slots</button>'
+      + '<button data-t="roster" class="'+(tab==='roster'?'on':'')+'">Roster</button>'
+      + '<button data-t="helpers" class="'+(tab==='helpers'?'on':'')+'">Helpers</button>'
+      + '</div><div id="body"><p class="muted">Loading…</p></div>';
+    document.getElementById('cpShare').onclick=function(){ copy(BASE+'#join', this); };
+    Array.prototype.forEach.call(app.querySelectorAll('.tabs button'), function(b){ b.onclick=function(){ tab=b.getAttribute('data-t'); shell(); draw(); }; });
+    draw();
+  }
+  function draw(){ if(tab==='slots') drawSlots(); else if(tab==='roster') drawRoster(); else drawHelpers(); }
+
+  // ---------- Slots ----------
+  function drawSlots(){
+    var body=document.getElementById('body');
+    api({act:'admin_slots'}).then(function(j){
+      var slots=(j&&j.slots)||[];
+      var rows=slots.map(function(s){
+        return '<tr data-id="'+s.slot_id+'">'
+          +'<td><b>'+(s.label?esc(s.label):fmtDate(s.slot_date))+'</b></td>'
+          +'<td>'+esc(sessName(s.session))+'</td><td>'+esc(s.location||'')+'</td>'
+          +'<td>'+s.count+' / '+s.cap+'</td>'
+          +'<td><span class="pill '+(s.is_open?'open':'')+'">'+(s.is_open?'Open':'Closed')+'</span></td>'
+          +'<td class="row"><button class="btn sm ghost tg">'+(s.is_open?'Close':'Open')+'</button>'
+          +'<button class="btn sm warn del">Delete</button></td></tr>';
+      }).join('');
+      body.innerHTML='<div class="card"><h2 class="sec">Camp slots</h2>'
+        +'<p class="note">Each open slot is something helpers can put their hand up for. Set how many you want (cap).</p>'
+        +'<table><thead><tr><th>Day</th><th>Session</th><th>Location</th><th>Helpers</th><th></th><th></th></tr></thead>'
+        +'<tbody>'+(rows||'<tr><td colspan="6" class="muted">No slots yet.</td></tr>')+'</tbody></table></div>'
+        +'<div class="card"><h2 class="sec">Add a slot</h2><div class="row">'
+        +'<input id="nDate" type="date"> '
+        +'<select id="nSess"><option value="all">Whole day</option><option value="am">Morning</option><option value="pm">Afternoon</option></select> '
+        +'<input id="nLoc" placeholder="Location (optional)"> '
+        +'<label class="muted">Cap <input id="nCap" type="number" value="6" min="1" max="99"></label> '
+        +'<button class="btn" id="add">Add slot</button><span class="ok" id="addMsg"></span></div></div>';
+      Array.prototype.forEach.call(body.querySelectorAll('tr[data-id]'), function(tr){
+        var id=tr.getAttribute('data-id'); var s=slots.filter(function(x){return x.slot_id===id;})[0];
+        tr.querySelector('.tg').onclick=function(){ api({act:'admin_slot_set', slot_id:id, slot_date:s.slot_date, session:s.session, location:s.location, label:s.label, cap:s.cap, is_open:!s.is_open, sort:s.sort}).then(drawSlots); };
+        tr.querySelector('.del').onclick=function(){ if(confirm('Delete this slot and its sign-ups?')) api({act:'admin_slot_del', slot_id:id}).then(drawSlots); };
+      });
+      document.getElementById('add').onclick=function(){
+        var d=document.getElementById('nDate').value; if(!d){ document.getElementById('addMsg').innerHTML='<span class="err">Pick a date</span>'; return; }
+        api({act:'admin_slot_set', slot_date:d, session:document.getElementById('nSess').value, location:document.getElementById('nLoc').value, cap:Number(document.getElementById('nCap').value)||6, sort:slots.length}).then(function(r){ if(r&&r.ok) drawSlots(); });
+      };
+    });
+  }
+
+  // ---------- Roster ----------
+  function drawRoster(){
+    var body=document.getElementById('body');
+    api({act:'admin_roster'}).then(function(j){
+      var r=(j&&j.roster)||[];
+      body.innerHTML='<div class="card"><h2 class="sec">Who put their hand up</h2>'+ (r.length?'':'<p class="muted">No slots yet.</p>')
+        + r.map(function(s){
+            var hs=(s.helpers||[]); var sub=[sessName(s.session), s.location].filter(Boolean).join(' · ');
+            return '<div style="margin:10px 0"><b>'+(s.label?esc(s.label):fmtDate(s.slot_date))+'</b> '
+              +'<span class="muted">'+esc(sub)+'</span> — '+hs.length+' / '+s.cap+'<br>'
+              +(hs.length? hs.map(function(h){return '<span class="pill" style="margin:3px 4px 0 0;display:inline-block">'+esc(h.name)+'</span>';}).join('') : '<span class="muted">nobody yet</span>')+'</div>';
+          }).join('')
+        +'</div>';
+    });
+  }
+
+  // ---------- Helpers ----------
+  function drawHelpers(){
+    var body=document.getElementById('body');
+    api({act:'admin_helpers'}).then(function(j){
+      var hs=(j&&j.helpers)||[];
+      var rows=hs.map(function(h){
+        return '<tr data-id="'+h.helper_id+'">'
+          +'<td><b>'+esc(h.full_name)+'</b>'+(h.active?'':' <span class="pill">off</span>')+'</td>'
+          +'<td>'+esc(h.mobile||'')+'</td><td>'+h.slots+'</td>'
+          +'<td class="row"><button class="btn sm ghost cp">Copy link</button>'
+          +'<button class="btn sm ghost tg">'+(h.active?'Turn off':'Turn on')+'</button></td></tr>';
+      }).join('');
+      body.innerHTML='<div class="card"><h2 class="sec">Helpers</h2>'
+        +'<p class="note">Everyone here shows in the shared-link name search. "Copy link" gives their personal link to text them.</p>'
+        +'<table><thead><tr><th>Name</th><th>Mobile</th><th>Slots</th><th></th></tr></thead>'
+        +'<tbody>'+(rows||'<tr><td colspan="4" class="muted">No helpers yet.</td></tr>')+'</tbody></table></div>'
+        +'<div class="card"><h2 class="sec">Add a helper</h2><div class="row">'
+        +'<input id="hName" placeholder="Full name"> <input id="hMob" placeholder="Mobile (optional)"> '
+        +'<button class="btn" id="hAdd">Add</button></div></div>';
+      Array.prototype.forEach.call(body.querySelectorAll('tr[data-id]'), function(tr){
+        var id=tr.getAttribute('data-id'); var h=hs.filter(function(x){return x.helper_id===id;})[0];
+        tr.querySelector('.cp').onclick=function(){ copy(BASE+'#'+h.token, this); };
+        tr.querySelector('.tg').onclick=function(){ api({act:'admin_helper_set', helper_id:id, full_name:h.full_name, mobile:h.mobile, email:h.email, active:!h.active, is_extra:h.is_extra}).then(drawHelpers); };
+      });
+      document.getElementById('hAdd').onclick=function(){
+        var n=document.getElementById('hName').value.trim(); if(!n) return;
+        api({act:'admin_helper_set', full_name:n, mobile:document.getElementById('hMob').value.trim()}).then(function(r){ if(r&&r.ok) drawHelpers(); });
+      };
+    });
+  }
+
+  if(!C.supabaseUrl){ app.innerHTML='<p class="err">Config missing.</p>'; return; }
+  sb.auth.getSession().then(function(r){
+    var s=r&&r.data&&r.data.session;
+    if(!s){ app.innerHTML='<div class="card"><h2 class="sec">Please sign in</h2><p class="note">Open <a href="/">AMA OS</a>, sign in, then come back to this page.</p></div>'; return; }
+    TOKEN=s.access_token;
+    // quick check this user is allowed (admin_slots is staff-gated)
+    api({act:'admin_slots'}).then(function(j){
+      if(j&&j.ok){ shell(); }
+      else { app.innerHTML='<div class="card"><h2 class="sec">'+esc((j&&j.error)||'Not allowed')+'</h2><p class="note">This screen is for management. If you just signed in, confirm it\'s you in <a href="/">AMA OS</a> first.</p></div>'; }
+    });
+  });
+})();
+</script>
+</body>
+</html>
