@@ -449,13 +449,14 @@ font-family:Inter,-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif;co
     mgmtd:{l:'Management dashboard',s:'Growth, revenue, funnel, retention',h:'#mgmt',k:'management dashboard numbers',can:mgmt},
     sales:{l:'Sales',s:'Enquiries, trials, conversions',h:'#sales',k:'sales enquiries conversions',can:mgmt},
     marketing:{l:'Marketing',s:'Social, reviews, referrals',h:'#marketing',k:'marketing social reviews',can:mgmt},
-    retention:{l:'Retention',s:'Holds, cancellations, attendance',h:'#retention',k:'retention churn',can:mgmt}
+    retention:{l:'Retention',s:'Holds, cancellations, attendance',h:'#retention',k:'retention churn',can:mgmt},
+    moves:{l:'Upgrades and downgrades',s:'Membership changes spotted in EFC',fn:'AMA_MOVES_OPEN',h:'#moves',k:'upgrade upgrades downgrade downgrades membership change switch',can:function(){ return me()==='mark'; }} // 28 Nov 2026: preview on Mark's login first
   };
   var MENUS = [
     {n:'Families', g:[['Join',['book','trials','close','newmem','referrals']],['Keep',['absent','requests','holds','cancels','absvideo']]], badge:['requests','holds','cancels','close']},
     {n:'Classes & events', g:[['',['attendance','promos','grading','parties','camp','privates','shop']]]},
     {n:'Team', g:[['',['amaos','ihub','revcal','playbook','clock','shifts','efc','ghl','pay','epb','hubreq','printreq','toolkit']]]},
-    {n:'Business', g:[['',['mgmtd','staffm','skillq','staffcfg','sales','marketing','mediaopt','partners','pno','cgd','retention','failpay','stars','mhub','conns','playbook']]], can:mgmt}
+    {n:'Business', g:[['',['mgmtd','staffm','skillq','staffcfg','sales','marketing','mediaopt','partners','pno','cgd','retention','failpay','stars','moves','mhub','conns','playbook']]], can:mgmt}
   ];
   var ROLES = {
     sales:{t:'Sales',who:['bianca','mady'],i:['book','trials','close','newmem','absent','myday']},
@@ -7194,6 +7195,73 @@ body.pf-saving #pfWrap button,body.pf-saving #pfSheet button{opacity:.45;pointer
   if (location.hash === '#hubreq') (function wait(){ if (window.AMA_HUB_USER && window.AMA_HUB_POST) list(); else setTimeout(wait, 700); })();
 })();
 </script>
+<!-- 28 Nov 2026 (Mark): UPGRADES AND DOWNGRADES. Business > Upgrades and downgrades (or #moves). Spotted from EFC by the hub, no form needed.
+     Each card: type, student, school, from -> to, $ a week change, classes a week, signed agreement status, one-tap downgrade reason,
+     Mark checked (for changes with no signed agreement), Open family, Check EFC now. Preview: Mark only until approved. Sends nothing. -->
+<style>
+.mv-k{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0}.mv-k div{border:1px solid #3a4a40;border-radius:12px;padding:8px 10px}.mv-k b{display:block;font-size:20px}.mv-k span{font-size:12px;color:#9fb3a6}
+.mv-t{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:6px}.mv-t.Upgrade{background:#1f7a3f;color:#fff}.mv-t.Downgrade{background:#b4361b;color:#fff}.mv-t.Switch{background:#3a4a40;color:#fff}
+.mv-a{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #3a4a40}.mv-a.ok{border-color:#1f7a3f;color:#8fe3a8}.mv-a.warn{border-color:#b4361b;color:#ffb4a8}
+.mv-up{color:#8fe3a8;font-weight:800}.mv-dn{color:#ffb4a8;font-weight:800}.mv-ft{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}.mv-ft .hr-b.on{background:#ffd200;color:#111;border-color:#ffd200;font-weight:700}
+.mv-ft select{background:#0e1410;border:1px solid #2f3c33;color:#e8efe9;border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
+</style>
+<script>
+(function(){ if (window.__hbMoves) return; window.__hbMoves = 1;
+  function E(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function P(b){ b.kind = 'moves'; return window.AMA_HUB_POST(b); }
+  var D = null, F = { per: '4w', school: '', type: 'all' };
+  function money(n){ n = Number(n || 0); return (n < 0 ? '-' : '+') + '$' + Math.abs(n).toFixed(Math.abs(n) % 1 ? 2 : 0); }
+  function shell(inner){ var w = E('mvWrap'); if (!w) { w = document.createElement('div'); w.id = 'mvWrap'; w.className = 'hr-wrap'; document.body.appendChild(w); } w.innerHTML = '<div class="hr-box" style="max-width:900px">' + inner + '</div>'; return w; }
+  function close(){ var w = E('mvWrap'); if (w) w.remove(); if (location.hash === '#moves') history.replaceState(null, '', location.pathname); }
+  function top(){ return '<div class="hr-top"><h2>Upgrades and downgrades</h2><div><button type="button" class="hr-b" data-mvref>Refresh</button> <button type="button" class="hr-b" data-mvx>Close</button></div></div>'; }
+  function load(){ shell(top() + '<p class="hr-m">Loading...</p>'); P({ act: 'list' }).then(function(j){ if (!j || !j.ok) { shell(top() + '<p>' + esc((j && j.error) || 'Could not load.') + '</p>'); return; } D = j; draw(); }).catch(function(){ shell(top() + '<p>Could not load.</p>'); }); }
+  function inPer(m){ var days = F.per === '1w' ? 7 : F.per === '4w' ? 28 : F.per === '12w' ? 84 : 99999; return m.at >= Date.now() - days * 864e5; }
+  function draw(){
+    var all = D.items.filter(function(m){ return inPer(m) && (!F.school || m.school === F.school); });
+    var ups = all.filter(function(m){ return m.type === 'Upgrade'; }), dns = all.filter(function(m){ return m.type === 'Downgrade'; });
+    var net = all.reduce(function(t, m){ return t + m.change; }, 0), nosign = all.filter(function(m){ return m.agreement !== 'Signed' && !m.checkedBy; }), noreason = dns.filter(function(m){ return !m.reason; });
+    var L = all.filter(function(m){ return F.type === 'all' || (F.type === 'follow' ? (m.agreement !== 'Signed' && !m.checkedBy) || (m.type === 'Downgrade' && !m.reason) : m.type === F.type); });
+    var seg = function(k, v, l){ return '<button type="button" class="hr-b' + (F[k] === v ? ' on' : '') + '" data-mvf="' + k + '" data-v="' + v + '">' + l + '</button>'; };
+    var h = top() + '<div class="hr-m" style="margin-top:6px">Spotted automatically from EFC, no form needed. The hub compares every family\'s memberships at least once a day, and straight away when a membership change is marked done in EFC.' + (D.since ? ' Tracking since ' + esc(D.since) + '.' : '') + '</div>' +
+      '<div class="mv-ft">' + seg('per', '1w', 'This week') + seg('per', '4w', 'Last 4 weeks') + seg('per', '12w', 'Last 12 weeks') + seg('per', 'all', 'All') +
+      ' <select data-mvschool><option value="">All schools</option>' + D.schools.map(function(s){ return '<option' + (F.school === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="mv-k"><div><b class="mv-up">' + ups.length + '</b><span>Upgrades</span></div><div><b class="mv-dn">' + dns.length + '</b><span>Downgrades</span></div>' +
+      '<div><b class="' + (net >= 0 ? 'mv-up' : 'mv-dn') + '">' + money(net) + '</b><span>Net change a week</span></div><div><b>' + nosign.length + '</b><span>No signed agreement</span></div><div><b>' + noreason.length + '</b><span>Downgrades with no reason</span></div></div>' +
+      '<div class="mv-ft">' + seg('type', 'all', 'All') + seg('type', 'Upgrade', 'Upgrades') + seg('type', 'Downgrade', 'Downgrades') + seg('type', 'Switch', 'Switches') + seg('type', 'follow', 'Needs follow-up') + '</div>';
+    h += L.length ? L.map(card).join('') : '<div class="hr-card hr-m">' + (D.items.length ? 'Nothing here for these filters.' : 'Nothing spotted yet. The hub checks each family\'s EFC memberships at least once a day, so the first upgrades and downgrades will show here within a day.') + '</div>';
+    shell(h);
+  }
+  function card(m){
+    var cls = m.agreement === 'Signed' ? 'ok' : 'warn', agr = m.agreement === 'Signed' ? 'Signed agreement' + (m.form ? ' (' + esc(m.form) + ')' : '') : esc(m.agreement) + (m.checkedBy ? ' · checked by ' + esc(m.checkedBy.split(' ')[0]) : '');
+    var h = '<div class="hr-card"><div><span class="mv-t ' + esc(m.type) + '">' + esc(m.type) + '</span><b>' + esc(m.student || m.parent || 'Member') + '</b> <span class="hr-m">' + esc(m.school) + ' · spotted ' + esc(m.when) + (m.parent && m.student ? ' · parent ' + esc(m.parent) : '') + '</span></div>' +
+      '<div style="margin-top:6px">' + esc(m.from) + ' <b>&rarr;</b> ' + esc(m.to) + '</div>' +
+      '<div class="hr-m" style="margin-top:4px"><span class="' + (m.change >= 0 ? 'mv-up' : 'mv-dn') + '">' + money(m.change) + ' a week</span> ($' + m.before + ' to $' + m.after + ') · classes a week ' + esc(m.cb) + ' to ' + esc(m.ca) + ' · <span class="mv-a ' + (m.checkedBy && cls === 'warn' ? 'ok' : cls) + '">' + agr + '</span></div>';
+    if (m.type === 'Downgrade') h += '<div class="mv-ft"><span class="hr-m">Why?</span>' + D.reasons.map(function(r){ return '<button type="button" class="hr-b' + (m.reason === r ? ' on' : '') + '" data-mvwhy="' + esc(m.id) + '" data-r="' + esc(r) + '">' + esc(r) + '</button>'; }).join('') + '</div>';
+    if (m.notes) h += '<div class="hr-m" style="white-space:pre-wrap;margin-top:6px">' + esc(m.notes) + '</div>';
+    h += '<div class="mv-ft">' + (m.mobile ? '<button type="button" class="hr-b" data-mvfam="' + esc(m.mobile) + '">Open family</button><button type="button" class="hr-b" data-mvchk="' + esc(m.mobile) + '">Check EFC now</button>' : '') +
+      (m.agreement !== 'Signed' ? '<button type="button" class="hr-b' + (m.checkedBy ? '' : ' y') + '" data-mvok="' + esc(m.id) + '"' + (m.checkedBy ? ' data-undo="1">Undo checked' : '>Mark checked') + '</button>' : '') + '<button type="button" class="hr-b" data-mvnote="' + esc(m.id) + '">Add note</button></div></div>';
+    return h;
+  }
+  document.addEventListener('change', function(e){ var t = e.target; if (!t.closest || !t.closest('#mvWrap') || !t.matches('[data-mvschool]')) return; F.school = t.value; draw(); });
+  document.addEventListener('click', function(e){
+    var t = e.target, x; if (!t.closest || !t.closest('#mvWrap')) return;
+    if (t === E('mvWrap')) { close(); return; }
+    if (t.closest('[data-mvx]')) { close(); return; }
+    if (t.closest('[data-mvref]')) { load(); return; }
+    if ((x = t.closest('[data-mvf]'))) { F[x.getAttribute('data-mvf')] = x.getAttribute('data-v'); draw(); return; }
+    if ((x = t.closest('[data-mvwhy]'))) { var id = x.getAttribute('data-mvwhy'), r = x.getAttribute('data-r'), m = D.items.filter(function(z){ return z.id === id; })[0], note = r === 'Other' ? (prompt('What was the reason?') || '') : ''; if (r === 'Other' && !note) return; if (m && m.reason === r && r !== 'Other') r = ''; x.disabled = true; P({ act: 'reason', id: id, reason: r, note: note }).then(function(j){ if (j && j.ok && m) { m.reason = r; if (note) m.notes = (m.notes ? m.notes + '\n' : '') + note; } draw(); }); return; }
+    if ((x = t.closest('[data-mvok]'))) { var id2 = x.getAttribute('data-mvok'), undo = x.getAttribute('data-undo'), m2 = D.items.filter(function(z){ return z.id === id2; })[0], n2 = undo ? '' : (prompt('Checked: what did you find? (optional, e.g. agreed by phone, form to follow)') || ''); x.disabled = true; P({ act: 'checked', id: id2, undo: undo ? 1 : 0, note: n2 }).then(function(j){ if (j && j.ok && m2) { m2.checkedBy = undo ? '' : String((window.AMA_HUB_USER || {}).name || 'me'); if (n2) m2.notes = (m2.notes ? m2.notes + '\n' : '') + n2; } draw(); }); return; }
+    if ((x = t.closest('[data-mvnote]'))) { var id3 = x.getAttribute('data-mvnote'), m3 = D.items.filter(function(z){ return z.id === id3; })[0], n3 = prompt('Note'); if (!n3) return; P({ act: 'reason', id: id3, reason: (m3 && m3.reason) || '', note: n3 }).then(function(){ if (m3) m3.notes = (m3.notes ? m3.notes + '\n' : '') + n3; draw(); }); return; }
+    if ((x = t.closest('[data-mvfam]'))) { var mob = x.getAttribute('data-mvfam'); close(); if (typeof window.AMA_FAMILY_OPEN === 'function') window.AMA_FAMILY_OPEN(mob); return; }
+    if ((x = t.closest('[data-mvchk]'))) { x.disabled = true; x.textContent = 'Checking EFC...'; P({ act: 'recheck', mobile: x.getAttribute('data-mvchk') }).then(function(j){ load(); }); return; }
+  });
+  window.AMA_MOVES_OPEN = function(){ if (location.hash !== '#moves') history.replaceState(null, '', '#moves'); load(); };
+  window.addEventListener('hashchange', function(){ if (location.hash === '#moves') load(); });
+  if (location.hash === '#moves') (function wait(){ if (window.AMA_HUB_USER && window.AMA_HUB_POST) load(); else setTimeout(wait, 700); })();
+})();
+</script>
+
 <!-- 27 Nov 2026 (Mark, from Laurie): PRINT REQUESTS. Team > Print requests (or #printreq): staff ask for printing (A1 posters,
      flyers...); Mark gets a text and sets the status. Same look as Hub change requests. -->
 <script>
