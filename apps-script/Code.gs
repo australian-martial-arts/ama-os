@@ -19650,11 +19650,16 @@ function movesLabel_(subs) {
   return subs.map(function (s) { const f = String(s.f || ''); return String(s.d || '').trim() + ' ($' + Number(s.a || 0) + (f === 'week' ? '/wk' : f === 'twoWeeks' ? '/fortnight' : f === 'month' ? '/month' : f ? '/' + f : '') + ')'; }).join(' + ');
 }
 // found: [{ id, school, old: [subs], neu: [subs], student, parent, mobile }]
-function movesSpot_(found) {
-  const out = [];
+function movesDesc_(subs) { return subs.map(function (s) { return String(s.d || '').trim().toLowerCase().replace(/\s+/g, ' '); }).sort().join(';'); }
+function movesSpot_(found, note) {
+  const out = [], tz = CONFIG.timezone;
+  const sh0 = movesSheet_(), C0 = movesCols_(), l0 = sh0.getLastRow(), seen = {};
+  if (l0 > 1) sh0.getRange(2, 1, l0 - 1, MOVES.headers.length).getValues().forEach(function (r) { seen[String(r[C0['Member ID']]) + '|' + String(r[C0['To']])] = 1; });
   found.forEach(function (x) {
     if (!x.old.length || !x.neu.length) return; // joined or stopped paying: not an upgrade or downgrade
     if (movesKey_(x.old) === movesKey_(x.neu)) return;
+    if (movesDesc_(x.old) === movesDesc_(x.neu)) return; // same membership, only the price moved (e.g. the yearly increase): not an upgrade or downgrade
+    if (seen[x.id + '|' + movesLabel_(x.neu)]) return; // already logged
     const b = movesWk_(x.old), a = movesWk_(x.neu), d = Math.round((a.wk - b.wk) * 100) / 100;
     const type = Math.abs(d) >= 1 ? (d > 0 ? 'Upgrade' : 'Downgrade') : a.n > b.n ? 'Upgrade' : a.n < b.n ? 'Downgrade' : 'Switch';
     out.push({ x: x, type: type, b: b, a: a, d: d });
@@ -19663,15 +19668,16 @@ function movesSpot_(found) {
   // match to a Membership changes form for the same family mobile in the last 45 days
   let forms = [];
   try {
-    const ms = mcSheet_(), MC_ = mcCols_(), last = ms.getLastRow(), since = Date.now() - MOVES.formDays * 864e5;
+    const ms = mcSheet_(), MC_ = mcCols_(), last = ms.getLastRow(), since = Date.now() - 120 * 864e5;
     if (last > 1) forms = ms.getRange(2, 1, last - 1, MC.headers.length).getValues().filter(function (r) { const t = r[MC_['Logged at']]; return t && new Date(t).getTime() >= since && !/withdrawn/i.test(String(r[MC_['Status']])); })
-      .map(function (r) { return { id: String(r[MC_['Request ID']]), m9: famM9_(r[MC_['Mobile']]), signed: !!r[MC_['Signed at']] }; });
+      .map(function (r) { return { id: String(r[MC_['Request ID']]), m9: famM9_(r[MC_['Mobile']]), signed: !!r[MC_['Signed at']], t: new Date(r[MC_['Logged at']]).getTime() }; });
   } catch (e) { Logger.log('moves forms: ' + e); }
   const sh = movesSheet_(), now = new Date(), rows = out.map(function (m, i) {
-    const m9 = famM9_(m.x.mobile), f = forms.filter(function (z) { return m9 && z.m9 === m9; }), sg = f.filter(function (z) { return z.signed; })[0], any = f[0];
+    const when = m.x.day ? Utilities.parseDate(m.x.day, tz, 'yyyy-MM-dd') : now, wt = when.getTime();
+    const m9 = famM9_(m.x.mobile), f = forms.filter(function (z) { return m9 && z.m9 === m9 && z.t <= wt + 15 * 864e5 && z.t >= wt - MOVES.formDays * 864e5; }), sg = f.filter(function (z) { return z.signed; })[0], any = f[0];
     const agr = sg ? 'Signed' : any ? 'Sent, not signed' : 'No signed agreement';
     const r = MOVES.headers.map(function () { return ''; }), C = movesCols_();
-    r[C['Move ID']] = 'MV' + Utilities.formatDate(now, CONFIG.timezone, 'yyMMddHHmm') + i; r[C['Spotted at']] = now; r[C['School']] = m.x.school; r[C['Member ID']] = m.x.id;
+    r[C['Move ID']] = 'MV' + Utilities.formatDate(now, CONFIG.timezone, 'yyMMddHHmm') + i; r[C['Spotted at']] = when; if (note) r[C['Notes']] = note; r[C['School']] = m.x.school; r[C['Member ID']] = m.x.id;
     r[C['Student']] = m.x.student || ''; r[C['Parent']] = m.x.parent || ''; r[C['Mobile']] = m.x.mobile || ''; r[C['Type']] = m.type;
     r[C['From']] = movesLabel_(m.x.old); r[C['To']] = movesLabel_(m.x.neu); r[C['Weekly $ before']] = m.b.wk; r[C['Weekly $ after']] = m.a.wk; r[C['Weekly $ change']] = m.d;
     r[C['Classes/wk before']] = m.b.n === 99 ? 'Unlimited' : m.b.n; r[C['Classes/wk after']] = m.a.n === 99 ? 'Unlimited' : m.a.n;
@@ -24454,4 +24460,46 @@ function conn_(who, b) {
     return { ok: true };
   }
   return { ok: true, list: Object.keys(CONN.keys).map(function (k) { let s = null; try { s = JSON.parse(P.getProperty(k + '_SET') || 'null'); } catch (e) { } return { name: k, label: CONN.keys[k], set: !!P.getProperty(k), at: s ? s.at : '', by: s ? s.by : '' }; }) };
+}
+
+/* 28 Nov 2026 (Mark): BACKFILL upgrades and downgrades from EFC membership history (each membership's start and end dates), from 1 Nov 2026
+   to yesterday. Run movesBackfill28Nov from the editor until the log says DONE (it picks up where it left off). Read only in EFC.
+   Changes within 14 days of each other count as one move (old membership ends, new one starts); a gap of up to 30 days between
+   memberships still counts as a change, not a cancel and rejoin. Rows are dated the day of the change and noted 'From EFC history'. */
+function movesHistory_(all, fromYmd, toYmd) {
+  const addD = function (ymd, n) { const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const subs = (all || []).map(function (sb) { const st = String(sb.startDate || '').slice(0, 10); let en = String(sb.endDate || '').slice(0, 10); if (!en && sb.cancelled && sb.cancelledOn) en = String(sb.cancelledOn).slice(0, 10); return { d: sb.description, f: sb.frequency, a: sb.followingPaymentAmount, s: st, e: en }; })
+    .filter(function (x) { return x.s && (!x.e || x.e > x.s); });
+  const at = function (day) { return subs.filter(function (x) { return x.s <= day && (!x.e || day <= x.e); }); };
+  let dates = [];
+  subs.forEach(function (x) { if (x.s >= fromYmd && x.s <= toYmd) dates.push(x.s); if (x.e) { const n = addD(x.e, 1); if (n >= fromYmd && n <= toYmd) dates.push(n); } });
+  dates = dates.filter(function (v, i, a) { return a.indexOf(v) === i; }).sort();
+  const groups = []; dates.forEach(function (d) { const g = groups[groups.length - 1]; if (g && d <= addD(g.b, 14)) g.b = d; else groups.push({ a: d, b: d }); });
+  const out = []; let lastNE = at(addD(fromYmd, -1)), lastDay = addD(fromYmd, -1);
+  groups.forEach(function (g) {
+    let before = at(addD(g.a, -1)); const after = at(g.b);
+    if (!before.length && lastNE.length && g.a <= addD(lastDay, 30)) before = lastNE;
+    if (after.length) { if (before.length) out.push({ day: g.b, old: before, neu: after }); lastNE = after; lastDay = g.b; }
+    else if (before.length) { lastNE = before; lastDay = addD(g.a, -1); }
+  });
+  return out;
+}
+function movesBackfill28Nov() {
+  const P = PropertiesService.getScriptProperties(), tz = CONFIG.timezone, t0 = Date.now();
+  const from = '2026-11-01', to = Utilities.formatDate(new Date(Date.now() - 864e5), tz, 'yyyy-MM-dd');
+  const ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
+  const all = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]), student: String(r[L['Student']] || ''), parent: String(r[L['Parent']] || ''), mobile: String(r[L['Mobile']] || '') }; })
+    .filter(function (x) { return x.id && efcKey_(x.school); });
+  let cur = +(P.getProperty('MOVES_BF_CURSOR') || 0), added = 0;
+  while (cur < all.length && Date.now() - t0 < 270000) {
+    const batch = all.slice(cur, cur + 50), by = {}, list = [];
+    batch.forEach(function (x) { (by[x.school] = by[x.school] || []).push(x); });
+    Object.keys(by).forEach(function (sc) {
+      const loc = efcLoc_(sc), xs = by[sc], res = efcFetchMany_(sc, xs.map(function (x) { return '/version/1/locations/' + loc + '/members/' + x.id + '/subscriptions'; }));
+      xs.forEach(function (x, i) { if (!res[i]) return; movesHistory_(res[i], from, to).forEach(function (h) { list.push({ id: x.id, school: sc, student: x.student, parent: x.parent, mobile: x.mobile, old: h.old, neu: h.neu, day: h.day }); }); });
+    });
+    if (list.length) added += movesSpot_(list, 'From EFC history (backfill)');
+    cur += batch.length; P.setProperty('MOVES_BF_CURSOR', String(cur));
+  }
+  Logger.log((cur >= all.length ? 'DONE ' : 'Progress ') + cur + ' of ' + all.length + ' members checked, ' + added + ' moves added this run');
 }
