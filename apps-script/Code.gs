@@ -24503,13 +24503,13 @@ function movesHistory_(all, fromYmd, toYmd) {
 }
 function movesBackfill28Nov() {
   const P = PropertiesService.getScriptProperties(), tz = CONFIG.timezone, t0 = Date.now();
-  const from = '2026-11-01', to = Utilities.formatDate(new Date(Date.now() - 864e5), tz, 'yyyy-MM-dd');
+  const from = '2026-01-01', to = Utilities.formatDate(new Date(Date.now() - 864e5), tz, 'yyyy-MM-dd'); // 28 Nov 2026 (Mark): back to 1 Jan for the quarterly and yearly views
   const ss = SpreadsheetApp.openById(HOLD.sheetId), live = hubRows_(ss, EFC_LIVE.tab), L = {}; live.head.forEach(function (h, i) { L[h] = i; });
   const mem = live.rows.map(function (r) { return { id: String(r[L['Member ID']]), school: String(r[L['School']]), student: String(r[L['Student']] || ''), parent: String(r[L['Parent']] || ''), mobile: String(r[L['Mobile']] || '') }; })
     .filter(function (x) { return x.id && efcKey_(x.school); });
   // whole families (same school and mobile), so a shared membership split into one per child is not a downgrade
   const fams = {}, all = []; mem.forEach(function (x) { const k = x.school + '|' + (famM9_(x.mobile) || x.id); if (!fams[k]) { fams[k] = { school: x.school, parent: x.parent, mobile: x.mobile, kids: [] }; all.push(fams[k]); } fams[k].kids.push(x); });
-  let cur = +(P.getProperty('MOVES_BF_CURSOR') || 0), added = 0;
+  let cur = +(P.getProperty('MOVES_BF_CURSOR_JAN') || 0), added = 0;
   while (cur < all.length && Date.now() - t0 < 270000) {
     const batch = all.slice(cur, cur + 25), by = {}, list = [];
     batch.forEach(function (f) { (by[f.school] = by[f.school] || []).push(f); });
@@ -24524,7 +24524,7 @@ function movesBackfill28Nov() {
       });
     });
     if (list.length) added += movesSpot_(list, 'From EFC history (backfill)');
-    cur += batch.length; P.setProperty('MOVES_BF_CURSOR', String(cur));
+    cur += batch.length; P.setProperty('MOVES_BF_CURSOR_JAN', String(cur));
   }
   Logger.log((cur >= all.length ? 'DONE ' : 'Progress ') + cur + ' of ' + all.length + ' families checked, ' + added + ' moves added this run');
 }

@@ -7210,24 +7210,59 @@ body.pf-saving #pfWrap button,body.pf-saving #pfSheet button{opacity:.45;pointer
   function E(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function P(b){ b.kind = 'moves'; return window.AMA_HUB_POST(b); }
-  var D = null, F = { per: '4w', school: '', type: 'all' };
+  var D = null, F = { per: 'm0', school: '', type: 'all', by: 'month', from: '', to: '' };
+  /* 28 Nov 2026 (Mark): periods (this/last week, month, quarter, year, custom) and a breakdown by week, month, quarter or year */
+  var PER = [['w0', 'This week'], ['w1', 'Last week'], ['m0', 'This month'], ['m1', 'Last month'], ['q0', 'This quarter'], ['q1', 'Last quarter'], ['y0', 'This year'], ['4w', 'Last 4 weeks'], ['12w', 'Last 12 weeks'], ['all', 'All time'], ['cu', 'Custom dates']];
+  function day0(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function wkStart(d){ var x = day0(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function range(){
+    var n = new Date(), t = day0(n), y = n.getFullYear(), m = n.getMonth(), q = Math.floor(m / 3), p = F.per, a, b;
+    if (p === 'w0') { a = wkStart(n); b = new Date(a.getTime() + 7 * 864e5); }
+    else if (p === 'w1') { b = wkStart(n); a = new Date(b.getTime() - 7 * 864e5); }
+    else if (p === 'm0') { a = new Date(y, m, 1); b = new Date(y, m + 1, 1); }
+    else if (p === 'm1') { a = new Date(y, m - 1, 1); b = new Date(y, m, 1); }
+    else if (p === 'q0') { a = new Date(y, q * 3, 1); b = new Date(y, q * 3 + 3, 1); }
+    else if (p === 'q1') { a = new Date(y, q * 3 - 3, 1); b = new Date(y, q * 3, 1); }
+    else if (p === 'y0') { a = new Date(y, 0, 1); b = new Date(y + 1, 0, 1); }
+    else if (p === '4w') { a = new Date(t.getTime() - 27 * 864e5); b = new Date(t.getTime() + 864e5); }
+    else if (p === '12w') { a = new Date(t.getTime() - 83 * 864e5); b = new Date(t.getTime() + 864e5); }
+    else if (p === 'cu') { a = F.from ? new Date(F.from + 'T00:00:00') : new Date(2000, 0, 1); b = F.to ? new Date(new Date(F.to + 'T00:00:00').getTime() + 864e5) : new Date(t.getTime() + 864e5); }
+    else { a = new Date(2000, 0, 1); b = new Date(2100, 0, 1); }
+    return [a.getTime(), b.getTime()];
+  }
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function bucket(ts){ var d = new Date(ts), y = d.getFullYear(), m = d.getMonth();
+    if (F.by === 'week') { var w = wkStart(d); return [w.getTime(), 'Week of ' + w.getDate() + ' ' + MON[w.getMonth()] + ' ' + w.getFullYear()]; }
+    if (F.by === 'quarter') { var q = Math.floor(m / 3); return [y * 10 + q, 'Q' + (q + 1) + ' ' + y]; }
+    if (F.by === 'year') return [y, String(y)];
+    return [y * 100 + m, MON[m] + ' ' + y]; }
+  function breakdown(all){
+    if (F.by === 'none' || !all.length) return '';
+    var G = {}; all.forEach(function(m){ var k = bucket(m.at); var g = G[k[0]] = G[k[0]] || { k: k[0], l: k[1], up: 0, dn: 0, sw: 0, net: 0 }; if (m.type === 'Upgrade') g.up++; else if (m.type === 'Downgrade') g.dn++; else g.sw++; g.net += m.change; });
+    var L = Object.keys(G).map(function(k){ return G[k]; }).sort(function(a, b){ return b.k - a.k; });
+    return '<div class="hr-card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:left"><th style="padding:4px 8px">' + ({ week: 'Week', month: 'Month', quarter: 'Quarter', year: 'Year' })[F.by] + '</th><th style="padding:4px 8px">Upgrades</th><th style="padding:4px 8px">Downgrades</th><th style="padding:4px 8px">Switches</th><th style="padding:4px 8px">Net change a week</th></tr>' +
+      L.map(function(g){ return '<tr style="border-top:1px solid #3a4a40"><td style="padding:4px 8px"><b>' + esc(g.l) + '</b></td><td style="padding:4px 8px" class="mv-up">' + g.up + '</td><td style="padding:4px 8px" class="mv-dn">' + g.dn + '</td><td style="padding:4px 8px">' + g.sw + '</td><td style="padding:4px 8px" class="' + (g.net >= 0 ? 'mv-up' : 'mv-dn') + '">' + money(g.net) + '</td></tr>'; }).join('') + '</table></div>';
+  }
   function money(n){ n = Number(n || 0); return (n < 0 ? '-' : '+') + '$' + Math.abs(n).toFixed(Math.abs(n) % 1 ? 2 : 0); }
   function shell(inner){ var w = E('mvWrap'); if (!w) { w = document.createElement('div'); w.id = 'mvWrap'; w.className = 'hr-wrap'; document.body.appendChild(w); } w.innerHTML = '<div class="hr-box" style="max-width:900px">' + inner + '</div>'; return w; }
   function close(){ var w = E('mvWrap'); if (w) w.remove(); if (location.hash === '#moves') history.replaceState(null, '', location.pathname); }
   function top(){ return '<div class="hr-top"><h2>Upgrades and downgrades</h2><div><button type="button" class="hr-b" data-mvref>Refresh</button> <button type="button" class="hr-b" data-mvx>Close</button></div></div>'; }
   function load(){ shell(top() + '<p class="hr-m">Loading...</p>'); P({ act: 'list' }).then(function(j){ if (!j || !j.ok) { shell(top() + '<p>' + esc((j && j.error) || 'Could not load.') + '</p>'); return; } D = j; draw(); }).catch(function(){ shell(top() + '<p>Could not load.</p>'); }); }
-  function inPer(m){ var days = F.per === '1w' ? 7 : F.per === '4w' ? 28 : F.per === '12w' ? 84 : 99999; return m.at >= Date.now() - days * 864e5; }
+  function inPer(m){ var r = range(); return m.at >= r[0] && m.at < r[1]; }
   function draw(){
     var all = D.items.filter(function(m){ return inPer(m) && (!F.school || m.school === F.school); });
     var ups = all.filter(function(m){ return m.type === 'Upgrade'; }), dns = all.filter(function(m){ return m.type === 'Downgrade'; });
     var net = all.reduce(function(t, m){ return t + m.change; }, 0), nosign = all.filter(function(m){ return m.agreement !== 'Signed' && !m.checkedBy; }), noreason = dns.filter(function(m){ return !m.reason; });
     var L = all.filter(function(m){ return F.type === 'all' || (F.type === 'follow' ? (m.agreement !== 'Signed' && !m.checkedBy) || (m.type === 'Downgrade' && !m.reason) : m.type === F.type); });
     var seg = function(k, v, l){ return '<button type="button" class="hr-b' + (F[k] === v ? ' on' : '') + '" data-mvf="' + k + '" data-v="' + v + '">' + l + '</button>'; };
-    var h = top() + '<div class="hr-m" style="margin-top:6px">Spotted automatically from EFC, no form needed. The hub compares every family\'s memberships at least once a day, and straight away when a membership change is marked done in EFC.' + (D.since ? ' Tracking since ' + esc(D.since) + '.' : '') + '</div>' +
-      '<div class="mv-ft">' + seg('per', '1w', 'This week') + seg('per', '4w', 'Last 4 weeks') + seg('per', '12w', 'Last 12 weeks') + seg('per', 'all', 'All') +
-      ' <select data-mvschool><option value="">All schools</option>' + D.schools.map(function(s){ return '<option' + (F.school === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></div>' +
+    var h = top() + '<div class="hr-m" style="margin-top:6px">Spotted automatically from EFC, no form needed. The hub compares every family\'s memberships at least once a day, and within 10 minutes when a membership change is marked done in EFC. History rebuilt from EFC back to 1 Jan 2026 (families still with us).' + (D.since ? ' Tracking since ' + esc(D.since) + '.' : '') + '</div>' +
+      '<div class="mv-ft"><span class="hr-m">Period</span><select data-mvper>' + PER.map(function(p){ return '<option value="' + p[0] + '"' + (F.per === p[0] ? ' selected' : '') + '>' + p[1] + '</option>'; }).join('') + '</select>' +
+      (F.per === 'cu' ? '<input type="date" data-mvfrom value="' + esc(F.from) + '" style="background:transparent;border:1px solid #3a4a40;border-radius:8px;padding:5px 8px;color:inherit;font:inherit;font-size:13px"> to <input type="date" data-mvto value="' + esc(F.to) + '" style="background:transparent;border:1px solid #3a4a40;border-radius:8px;padding:5px 8px;color:inherit;font:inherit;font-size:13px">' : '') +
+      ' <select data-mvschool><option value="">All schools</option>' + D.schools.map(function(s){ return '<option' + (F.school === s ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' +
+      ' <span class="hr-m">Break down by</span>' + seg('by', 'week', 'Week') + seg('by', 'month', 'Month') + seg('by', 'quarter', 'Quarter') + seg('by', 'year', 'Year') + seg('by', 'none', 'Off') + '</div>' +
       '<div class="mv-k"><div><b class="mv-up">' + ups.length + '</b><span>Upgrades</span></div><div><b class="mv-dn">' + dns.length + '</b><span>Downgrades</span></div>' +
       '<div><b class="' + (net >= 0 ? 'mv-up' : 'mv-dn') + '">' + money(net) + '</b><span>Net change a week</span></div><div><b>' + nosign.length + '</b><span>No signed agreement</span></div><div><b>' + noreason.length + '</b><span>Downgrades with no reason</span></div></div>' +
+      breakdown(all) +
       '<div class="mv-ft">' + seg('type', 'all', 'All') + seg('type', 'Upgrade', 'Upgrades') + seg('type', 'Downgrade', 'Downgrades') + seg('type', 'Switch', 'Switches') + seg('type', 'follow', 'Needs follow-up') + '</div>';
     h += L.length ? L.map(card).join('') : '<div class="hr-card hr-m">' + (D.items.length ? 'Nothing here for these filters.' : 'Nothing spotted yet. The hub checks each family\'s EFC memberships at least once a day, so the first upgrades and downgrades will show here within a day.') + '</div>';
     shell(h);
@@ -7243,7 +7278,8 @@ body.pf-saving #pfWrap button,body.pf-saving #pfSheet button{opacity:.45;pointer
       (m.agreement !== 'Signed' ? '<button type="button" class="hr-b' + (m.checkedBy ? '' : ' y') + '" data-mvok="' + esc(m.id) + '"' + (m.checkedBy ? ' data-undo="1">Undo checked' : '>Mark checked') + '</button>' : '') + '<button type="button" class="hr-b" data-mvnote="' + esc(m.id) + '">Add note</button></div></div>';
     return h;
   }
-  document.addEventListener('change', function(e){ var t = e.target; if (!t.closest || !t.closest('#mvWrap') || !t.matches('[data-mvschool]')) return; F.school = t.value; draw(); });
+  document.addEventListener('change', function(e){ var t = e.target; if (!t.closest || !t.closest('#mvWrap')) return;
+    if (t.matches('[data-mvschool]')) { F.school = t.value; draw(); } else if (t.matches('[data-mvper]')) { F.per = t.value; draw(); } else if (t.matches('[data-mvfrom]')) { F.from = t.value; draw(); } else if (t.matches('[data-mvto]')) { F.to = t.value; draw(); } });
   document.addEventListener('click', function(e){
     var t = e.target, x; if (!t.closest || !t.closest('#mvWrap')) return;
     if (t === E('mvWrap')) { close(); return; }
