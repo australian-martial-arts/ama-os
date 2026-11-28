@@ -272,6 +272,11 @@ footer b{color:#fff}
 
 /* In the JS (inline colours): change "Filling up" from #fff3c2 to #FDDC6C in both the
    legend swatch and the calendar day cells, so it's visible. */
+
+/* 28 Nov 2026 (Mark): calendar badge never runs past the day box; short words on phones */
+.c .u{max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:clip}.c .u i{font-style:normal}.c .u .us{display:none}
+@media (max-width:700px){.c .u{align-self:stretch;text-align:center;padding-left:2px;padding-right:2px}.c .u .ul{display:none}.c .u .us{display:inline}}
+@media (max-width:350px){.c .u{font-size:7.5px;padding-left:1px;padding-right:1px;letter-spacing:-.01em}}
 </style>
 </head>
 <body>
@@ -310,7 +315,7 @@ footer b{color:#fff}
 <section id="themes" class="skyband"><div class="wrap">
   <div class="sh"><div class="tag">Every day is different</div><h2>A new theme every day</h2><p>Each day brings new techniques and challenges, plus our camp favourites: mini Olympics, tricking, self defence and dodgeball.</p></div>
   <div class="week" id="week"></div>
-  <div class="staples"><span>🏅 Mini Olympics</span><span>🤸 Gymnastics and tricking</span><span>🛡 Self defence</span><span>🔴 Dodgeball</span><span>🎯 Nerf wars on Wednesdays and Fridays</span></div>
+  <div class="staples"><span>🏅 Mini Olympics</span><span>🤸 Gymnastics and tricking</span><span>🛡 Self defence</span><span>🔴 Dodgeball</span><span>🎯 Nerf wars Wed/Fri</span></div>
 </div></section>
 
 <section class="sand" id="days"><div class="wrap">
@@ -429,6 +434,7 @@ footer b{color:#fff}
   function total() { return S.kids.reduce(function (a, k) { return a + kidTotal(k); }, 0); }
   function uClass(d) { return d.full ? 'full' : d.urgency === 'Only a few spots left' ? 'few' : d.urgency === 'Filling up' ? 'fill' : 'ok'; }
   function uText(d) { return d.full ? 'Full' : d.urgency || 'Book now'; }
+  function uShort(d) { var t = uText(d); return t === 'Book now' ? 'Book' : t === 'Filling up' ? 'Filling' : /few/i.test(t) ? 'Few left' : t; } // 28 Nov 2026: short badge on phones so it never runs past the day box
 
   function drawWeek() {
     var seen = {}, list = [];
@@ -451,7 +457,7 @@ footer b{color:#fff}
       }
       var ymd = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'), d = byDate[ymd], inRange = ymd >= a && ymd <= z;
       if (!d) { cells += '<div class="c' + (inRange ? ' closed' : '') + '"><span class="n">' + dt.getDate() + '</span>' + (inRange ? '<span class="t">Closed</span>' : '') + '</div>'; continue; }
-      cells += '<div class="c ' + (d.full ? 'full' : 'open') + (k.days.indexOf(ymd) > -1 ? ' sel' : '') + '" tabindex="0" data-d="' + ymd + '"><span class="n">' + dt.getDate() + '</span>' + (S.friend && S.friend.days.indexOf(ymd) > -1 ? '<span class="fr"></span>' : '') + '<span class="t">' + esc(d.theme) + '</span><span class="u ' + uClass(d) + '">' + esc(uText(d)) + '</span><div class="tip"><b>' + esc(d.label) + ' · ' + esc(d.theme) + '</b>' + esc((d.heroes || []).join(' · ')) + '<br><span style="color:#ffe98a;font-weight:700">' + esc(uText(d)) + '</span>' + (S.friend && S.friend.days.indexOf(ymd) > -1 ? '<br><span style="color:#ffb703;font-weight:700">● ' + esc(S.friend.who) + (S.friend.kids.length > 1 ? ' are' : ' is') + ' booked this day</span>' : '') + '</div></div>';
+      cells += '<div class="c ' + (d.full ? 'full' : 'open') + (k.days.indexOf(ymd) > -1 ? ' sel' : '') + '" tabindex="0" data-d="' + ymd + '"><span class="n">' + dt.getDate() + '</span>' + (S.friend && S.friend.days.indexOf(ymd) > -1 ? '<span class="fr"></span>' : '') + '<span class="t">' + esc(d.theme) + '</span><span class="u ' + uClass(d) + '"><i class="ul">' + esc(uText(d)) + '</i><i class="us">' + esc(uShort(d)) + '</i></span><div class="tip"><b>' + esc(d.label) + ' · ' + esc(d.theme) + '</b>' + esc((d.heroes || []).join(' · ')) + '<br><span style="color:#ffe98a;font-weight:700">' + esc(uText(d)) + '</span>' + (S.friend && S.friend.days.indexOf(ymd) > -1 ? '<br><span style="color:#ffb703;font-weight:700">● ' + esc(S.friend.who) + (S.friend.kids.length > 1 ? ' are' : ' is') + ' booked this day</span>' : '') + '</div></div>';
     }
     flush();
     $('months').innerHTML = html;
